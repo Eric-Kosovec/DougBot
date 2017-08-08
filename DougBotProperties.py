@@ -1,0 +1,5 @@
+DESCRIPTION = "Soundboard-style bot."
+
+COMMAND_PREFIX = "!d "
+
+TOKEN = "MzQ0NDE1MTE1OTU0NjE4MzY5.DGsZGw.GUFy62YNkvfjWCecfsn1jL9tZdc"
