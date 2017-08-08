@@ -13,12 +13,15 @@ async def on_ready():
 async def ping(ctx):
     await client.say("pong")
 
+
 @client.command(pass_context=True)
 async def slap(ctx, args):
     await client.say("You slapped {}".format(args))
 
+
 @client.command(pass_context=True)
-async def disturb():
-    await client.say(">>rule34 420")
+async def github(ctx):
+    await client.say("https://github.com/Eric-Kosovec/DougBot")
+
 
 client.run(TOKEN)
