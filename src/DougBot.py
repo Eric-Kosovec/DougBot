@@ -9,6 +9,8 @@ client = commands.Bot(description=DESCRIPTION, command_prefix=COMMAND_PREFIX)
 user_dict = dict()
 
 class DougBot(discord.Client):
+    # TODO FINISH THIS CLASS AND MAKE THE COMMANDS IN A MODULAR FASHION:
+    # THAT IS, REGISTER THE COMMANDS WITH DOUGBOT FROM ONE PLACE?
     def __init__(self):
         super().__init__()
 
@@ -33,14 +35,16 @@ async def ping(ctx):
 @client.command(pass_context=True)
 async def join(ctx):
     channel = discord.utils.get(client.get_all_channels(), name='SadDoug Central', type=ChannelType.voice)
-    client.join_voice_channel(channel)
+    await client.join_voice_channel(channel)
 
 
 @client.command(pass_context=True)
 async def leave(ctx):
     channel = discord.utils.get(client.get_all_channels(), name='SadDoug Central', type=ChannelType.voice)
     voice_client = client.voice_client_in(channel.server)
+    print("Here now")
     if voice_client is not None:
+        print("Here")
         await voice_client.disconnect()
     return
 
@@ -94,11 +98,18 @@ async def dictsize(ctx):
 
 
 @client.command(pass_context=True)
+async def tts(ctx):
+    await client.say("/tts My girlfriend said I'm sad, so I dressed as a clown and killed her dog.")
+
+
+@client.command(pass_context=True)
 async def printdict(ctx):
     dict_str = "["
 
+    space = " "
     for (key, value) in user_dict.items():
-        dict_str += " " + key + ":" + value
+        dict_str += space + key + ":" + value
+        space = ", "
 
     dict_str += " ]"
 
