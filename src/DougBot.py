@@ -1,7 +1,15 @@
+import discord
 from DougBotProperties import *
 from discord.ext import commands
 
 client = commands.Bot(description=DESCRIPTION, command_prefix=COMMAND_PREFIX)
+
+
+class DougBot(discord.Client):
+    def __init__(self):
+        super().__init__()
+
+        return
 
 
 @client.event
@@ -13,7 +21,7 @@ async def on_ready():
 
 @client.command(pass_context=True)
 async def ping(ctx):
-    await client.say("/tts vwvwvwvw")
+    await client.say("pong")
 
 
 @client.command(pass_context=True)
