@@ -6,12 +6,14 @@ client = commands.Bot(description=DESCRIPTION, command_prefix=COMMAND_PREFIX)
 
 @client.event
 async def on_ready():
-    print("Works")
+    print("Bot online")
+    print("Name: {}".format(client.user.name))
+    print("ID: {}".format(client.user.id))
 
 
 @client.command(pass_context=True)
 async def ping(ctx):
-    await client.say("pong")
+    await client.say("/tts vwvwvwvw")
 
 
 @client.command(pass_context=True)
@@ -21,7 +23,7 @@ async def slap(ctx, args):
 
 @client.command(pass_context=True)
 async def github(ctx):
-    await client.say("https://github.com/Eric-Kosovec/DougBot")
+    await client.say(GITHUB)
 
 
 client.run(TOKEN)
