@@ -1,5 +1,6 @@
 import discord
 from DougBotProperties import *
+from Logger import *
 from discord.ext import commands
 
 client = commands.Bot(description=DESCRIPTION, command_prefix=COMMAND_PREFIX)
@@ -14,9 +15,13 @@ class DougBot(discord.Client):
 
 @client.event
 async def on_ready():
+    init_logger()
+
     print("Bot online")
     print("Name: {}".format(client.user.name))
     print("ID: {}".format(client.user.id))
+    print("-----------------------")
+
 
 
 @client.command(pass_context=True)
