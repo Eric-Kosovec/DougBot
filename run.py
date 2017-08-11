@@ -1,9 +1,10 @@
+from DougBotProperties import *
 from src.DougBot import *
 
 
 def main():
     dougbot = DougBot()
-    dougbot.run()
+    dougbot.run(TOKEN)
 
     return
 

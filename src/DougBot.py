@@ -1,118 +1,128 @@
-import discord
-from discord.channel import *
-from discord.ext import commands
+import discord.client
+from discord.message import Message
 
 from DougBotProperties import *
 
-client = commands.Bot(description=DESCRIPTION, command_prefix=COMMAND_PREFIX)
-
-user_dict = dict()
 
 class DougBot(discord.Client):
     # TODO FINISH THIS CLASS AND MAKE THE COMMANDS IN A MODULAR FASHION:
     # THAT IS, REGISTER THE COMMANDS WITH DOUGBOT FROM ONE PLACE?
     def __init__(self):
+        self.voice = None
+
         super().__init__()
+        return
+
+    async def on_ready(self):
+        # init_logger()
+
+        print("Bot online")
+        print("Name: %s" % self.user.name)
+        print("ID: %s" % self.user.id)
+        print("-----------------------")
+
+    async def on_message(self, message: Message):
+        # Wait until the bot is ready before checking messages.
+        await self.wait_until_ready()
+
+        # Avoid any sort of bot talking to bot type situation.
+        if message.author.id == self.user.id or message.author.bot:
+            return
+
+        # Normalize message content
+        norm_msg = message.content.strip().casefold()
+
+        if not self._is_command(norm_msg, COMMAND_PREFIX):
+            return
+
+        (command, arguments) = self._parse_command(norm_msg, COMMAND_PREFIX)
+
+        # Call proper command with arguments, if need be.
+        if not hasattr(self, "cmd_%s" % command):
+            print("There is no command %s" % command)
+            return
+
+        # Gets the function having the prefix cmd_ within the DougBot class.
+        func = getattr(self, "cmd_%s" % command)
+
+        # TODO FIGURE OUT HOW TO PASS ARGUMENTS TO FUNCTIONS WITH VARYING REQUIREMENTS
+        # ALSO, FIGURE OUT HOW TO MAKE COMMANDS INTO MODULES, WHEREBY THEY LIE IN A SEPARATE FILE
+        # AND CAN BE HOOKED INTO DOUGBOT
+        await func(message)
 
         return
 
+    async def cmd_ping(self, message: Message):
+        await self.send_message(message.channel, "Pong")
 
-@client.event
-async def on_ready():
-    # init_logger()
+    async def cmd_github(self, message: Message):
+        await self.send_message(message.channel, GITHUB)
 
-    print("Bot online")
-    print("Name: {}".format(client.user.name))
-    print("ID: {}".format(client.user.id))
-    print("-----------------------")
+    async def cmd_join(self, message: Message):
+        # Don't join a channel if this was a private message
+        if message.channel.is_private:
+            return
 
+        # Get the voice channel the user is in and join that one.
+        voice_channel = message.author.voice.voice_channel
 
-@client.command(pass_context=True)
-async def ping(ctx):
-    await client.say("pong")
+        # User is not in a voice channel, ignore them.
+        if voice_channel is None:
+            print("USER NOT IN VOICE CHANNEL")
+            return
 
+        # TODO Check if we are already in the channel
 
-@client.command(pass_context=True)
-async def join(ctx):
-    channel = discord.utils.get(client.get_all_channels(), name='SadDoug Central', type=ChannelType.voice)
-    await client.join_voice_channel(channel)
+        await self.join_voice_channel(voice_channel)
 
+    async def cmd_leave(self, message: Message):
+        # Don't leave channel if this was a private message
+        if message.channel.is_private:
+            return
 
-@client.command(pass_context=True)
-async def leave(ctx):
-    channel = discord.utils.get(client.get_all_channels(), name='SadDoug Central', type=ChannelType.voice)
-    voice_client = client.voice_client_in(channel.server)
-    print("Here now")
-    if voice_client is not None:
-        print("Here")
-        await voice_client.disconnect()
-    return
+        # Message is not from a user within a voice channel.
+        if message.author.voice.voice_channel is None:
+            return
 
+        print("Author's channel: ")
+        print(message.author.voice.voice_channel)
 
-@client.command(pass_context=True)
-async def slap(ctx, args):
-    await client.say("You slapped {}".format(args))
+        # Get the VoiceClient object of the bot's from the server the message was sent from.
+        bot_voice_client = self.voice_client_in(message.server)
 
+        print("Out voiceclient is ")
+        print(self.voice)
+        print()
 
-@client.command(pass_context=True)
-async def github(ctx):
-    await client.say(GITHUB)
+        # TODO: BOT NEVER HAS A LEGIT VOICECLIENT OBJECT, APPARENTLY
 
+        # Bot is not in a voice channel on the server.
+        if bot_voice_client is None:
+            print("NOT IN VOICE CHANNEL ON SERVER")
+            return
 
-@client.command(pass_context=True)
-async def putdict(ctx, args):
-    strs = args.split(":")
-    key = strs[0]
-    value = strs[1]
-    user_dict[key] = value
-    await client.say("{} : {} inserted into dictionary.".format(key, value))
+        await bot_voice_client.disconnect()
 
+    @staticmethod
+    def _is_command(message: str, prefix: str):
+        return message.startswith(prefix)
 
-@client.command(pass_context=True)
-async def querydict(ctx, args):
-    if args in user_dict:
-        await client.say("{} found in dictionary.".format(args))
-    else:
-        await client.say("{} not found in dictionary.".format(args))
+    @staticmethod
+    def _parse_command(message: str, prefix: str):
+        # Grab command and any arguments given
 
+        first_space_idx = message.find(" ")
 
-@client.command(pass_context=True)
-async def removedict(ctx, args):
-    try:
-        value = user_dict[args]
-        del user_dict[args]
-        await client.say("{} : {} not removed from dictionary.".format(args, value))
-    except KeyError:
-        await client.say("{} not found in dictionary.".format(args))
+        if first_space_idx < 0:
+            command = message[len(prefix):len(message)]
+            arguments = ""
+        else:
+            command = message[len(prefix):first_space_idx]
+            arguments = message[first_space_idx + 1:len(message)].strip()
 
-
-@client.command(pass_context=True)
-async def cleardict(ctx):
-    user_dict.clear()
-    await client.say("Dictionary cleared.")
+        return command, arguments
 
 
-@client.command(pass_context=True)
-async def dictsize(ctx):
-    await client.say("{}".format(len(user_dict)))
-
-
-@client.command(pass_context=True)
-async def tts(ctx):
-    await client.say("/tts My girlfriend said I'm sad, so I dressed as a clown and killed her dog.")
-
-
-@client.command(pass_context=True)
-async def printdict(ctx):
-    dict_str = "["
-
-    space = " "
-    for (key, value) in user_dict.items():
-        dict_str += space + key + ":" + value
-        space = ", "
-
-    dict_str += " ]"
-
-    await client.say(dict_str)
-
-client.run(TOKEN)
+if __name__ == "__main__":
+    dougbot = DougBot()
+    dougbot.run(TOKEN)
