@@ -10,9 +10,7 @@ class DougBot(discord.Client):
     # TODO FINISH THIS CLASS AND MAKE THE COMMANDS IN A MODULAR FASHION:
     # THAT IS, REGISTER THE COMMANDS WITH DOUGBOT FROM ONE PLACE?
     def __init__(self, config_file=_DEFAULT_CONFIG_FILE):
-        self.voice_client = None
         self.config = Config(config_file)
-        self.command_prefix = self.config.command_prefix
         super().__init__()
         return
 
@@ -43,10 +41,10 @@ class DougBot(discord.Client):
 
         ## TODO MAYBE INSTEAD DO SOMETHING LIKE STARTSWITH(PREFIX + COMMAND)
 
-        if not self._is_command(norm_msg, self.command_prefix):
+        if not self._is_command(norm_msg, self.config.command_prefix):
             return
 
-        (command, arguments) = self._parse_command(norm_msg, self.command_prefix)
+        (command, arguments) = self._parse_command(norm_msg, self.config.command_prefix)
 
         # Call proper command with arguments, if need be.
         if not hasattr(self, "cmd_%s" % command):
@@ -70,25 +68,30 @@ class DougBot(discord.Client):
         await self.send_message(message.channel, self.config.source_code)
 
     async def cmd_join(self, message: Message):
-        # Don't join a channel if this was a private message
+        # Don't join a channel if this was a private message, unless it's from the owner.
         if message.channel.is_private:
             return
 
         # Get the voice channel the user is in and join that one.
-        voice_channel = message.author.voice.voice_channel
+        user_voice_channel = message.author.voice.voice_channel
 
         # User is not in a voice channel, ignore them.
-        if voice_channel is None:
-            print("USER NOT IN VOICE CHANNEL")
+        if user_voice_channel is None:
             return
 
-        # TODO Check if we are already in the channel
+        # Check if we are already in a channel on the server
+        if self.voice_client_in(message.server) is not None:
+            return
 
-        # TODO MAKE SURE THIS IS NOT NONE, ELSE GIVE ERROR OF SORTS/DON'T JOIN
-        self.voice_client = await self.join_voice_channel(voice_channel)
+        # Check if we are already in the channel
+        for vc in self.voice_clients:
+            if vc.channel == user_voice_channel:
+                return
+
+        await self.join_voice_channel(user_voice_channel)
 
     async def cmd_leave(self, message: Message):
-        # Don't leave channel if this was a private message
+        # Don't leave channel if this was a private message, unless it's from the owner.
         if message.channel.is_private:
             return
 
@@ -96,24 +99,11 @@ class DougBot(discord.Client):
         if message.author.voice.voice_channel is None:
             return
 
-        print("Author's channel: ")
-        print(message.author.voice.voice_channel)
-
-        print("Message server is ")
-        print(message.server)
-
         # Get the VoiceClient object of the bot's from the server the message was sent from.
         bot_voice_client = self.voice_client_in(message.server)
 
-        print("Our voiceclient is ")
-        print(self.voice_client)
-        print()
-
-        # TODO: BOT NEVER HAS A LEGIT VOICECLIENT OBJECT, APPARENTLY
-
         # Bot is not in a voice channel on the server.
         if bot_voice_client is None:
-            print("NOT IN VOICE CHANNEL ON SERVER")
             return
 
         await bot_voice_client.disconnect()
