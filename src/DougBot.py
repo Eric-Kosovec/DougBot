@@ -5,12 +5,15 @@ from Config import *
 
 
 class DougBot(discord.Client):
+    # TODO BREAKS IF BOT IS STARTED FROM RUN.PY
     _DEFAULT_CONFIG_FILE = "../config/config.ini"
 
     # TODO FINISH THIS CLASS AND MAKE THE COMMANDS IN A MODULAR FASHION:
     # THAT IS, REGISTER THE COMMANDS WITH DOUGBOT FROM ONE PLACE?
     def __init__(self, config_file=_DEFAULT_CONFIG_FILE):
         self.config = Config(config_file)
+        # Soundplayer dictionary in form server:soundplayer
+        self.sound_players = dict()
         super().__init__()
         return
 
@@ -19,6 +22,11 @@ class DougBot(discord.Client):
             self.loop.run_until_complete(self.start(self.config.token))
         except discord.errors.LoginFailure:
             print("Bot could not login. Bad token.")
+        finally:
+            # TODO FIX CLEANUP
+            for vc in self.voice_clients:
+                vc.disconnect()
+            self.loop.close()
 
     async def on_ready(self):
         # init_logger()
@@ -41,7 +49,7 @@ class DougBot(discord.Client):
 
         ## TODO MAYBE INSTEAD DO SOMETHING LIKE STARTSWITH(PREFIX + COMMAND)
 
-        if not self._is_command(norm_msg, self.config.command_prefix):
+        if not self._is_command_form(norm_msg, self.config.command_prefix):
             return
 
         (command, arguments) = self._parse_command(norm_msg, self.config.command_prefix)
@@ -54,7 +62,7 @@ class DougBot(discord.Client):
         # Gets the function having the prefix cmd_ within the DougBot class.
         func = getattr(self, "cmd_%s" % command)
 
-        # TODO FIGURE OUT HOW TO PASS ARGUMENTS TO FUNCTIONS WITH VARYING REQUIREMENTS
+        # !!!! TODO FIGURE OUT HOW TO PASS ARGUMENTS TO FUNCTIONS WITH VARYING REQUIREMENTS
         # ALSO, FIGURE OUT HOW TO MAKE COMMANDS INTO MODULES, WHEREBY THEY LIE IN A SEPARATE FILE
         # AND CAN BE HOOKED INTO DOUGBOT
         await func(message)
@@ -108,8 +116,35 @@ class DougBot(discord.Client):
 
         await bot_voice_client.disconnect()
 
+    # NOTE: ALL TAKES PLACE WITHIN SERVER'S RESPECTIVE SOUNDPLAYER
+    # PLAY WILL START PLAYING FROM THE QUEUE - DON'T PLAY IF ALREADY PLAYING
+    # QUEUE WILL ADD TO QUEUE (WITH START/END TIMESTAMP)
+    # STOP WILL END THE CURRENTLY PLAYING AUDIO (SOFT STOP, IDEALLY)
+    # NEXT WILL PLAY NEXT IN QUEUE
+    # CLEAR QUEUE WILL REMOVE ALL SONGS
+    # REMOVE LINK WILL REMOVE THE GIVEN LINK FROM QUEUE
+    # REMOVE BY ITSELF WILL REMOVE CURRENT PLAYING OR FRONT OF QUEUE ITEM
+    # VOLUME # CHANGES VOLUME
+    # CURR VOLUME DISPLAY VOLUME
+    # FFW
+    # SKIP ONTO NEXT TRACK
+    # LEAVE WILL MAKE IT STOP TRACK, CLEAR QUEUE, LEAVE
+    # JOIN PLAYS CURRENT QUEUE
+    # NOW PLAYING
+    # DEQUEUE # ?
+
+    async def cmd_play(self, message: Message):
+        print("IN PLAY")
+
+        await self.cmd_join(message)
+        player = await self.voice_client_in(message.server).create_ytdl_player(
+            'https://www.youtube.com/watch?v=utH9UCr0p8Q')
+        player.start()
+
+        return
+
     @staticmethod
-    def _is_command(message: str, prefix: str):
+    def _is_command_form(message: str, prefix: str):
         return message.startswith(prefix)
 
     @staticmethod

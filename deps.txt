@@ -2,3 +2,4 @@ pip
 discord.py
 discord.py[voice]
 PyNaCl
+youtube_dl
