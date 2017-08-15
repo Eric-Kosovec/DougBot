@@ -1,4 +1,4 @@
-from src.DougBot import *
+from dougbot.dougbot import *
 
 
 def main():

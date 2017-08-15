@@ -1,7 +1,10 @@
 import discord.client
-from discord.message import Message
 
-from Config import *
+from cmd.github import *
+from cmd.ping import *
+# TODO FIND WHY THIS COMES UP AS UNUSED IMPORT, EVEN THOUGH IT IS INFACT USED.
+# MAYBE BECAUSE IT'S ONLY USED IN INIT?
+from configdata import Config
 
 
 class DougBot(discord.Client):
@@ -14,6 +17,10 @@ class DougBot(discord.Client):
         self.config = Config(config_file)
         # Soundplayer dictionary in form server:soundplayer
         self.sound_players = dict()
+
+        self._command_map = dict()
+        self._register_commands(self._command_map)
+
         super().__init__()
         return
 
@@ -23,9 +30,7 @@ class DougBot(discord.Client):
         except discord.errors.LoginFailure:
             print("Bot could not login. Bad token.")
         finally:
-            # TODO FIX CLEANUP
-            for vc in self.voice_clients:
-                vc.disconnect()
+            # TODO CLEANUP
             self.loop.close()
 
     async def on_ready(self):
@@ -54,6 +59,16 @@ class DougBot(discord.Client):
 
         (command, arguments) = self._parse_command(norm_msg, self.config.command_prefix)
 
+        if command == "join":
+            await self.cmd_join(message)
+            return
+        elif command == "leave":
+            await self.cmd_leave(message)
+            return
+        else:
+            await self._command_map[command]
+            return
+
         # Call proper command with arguments, if need be.
         if not hasattr(self, "cmd_%s" % command):
             print("There is no command %s" % command)
@@ -68,12 +83,6 @@ class DougBot(discord.Client):
         await func(message)
 
         return
-
-    async def cmd_ping(self, message: Message):
-        await self.send_message(message.channel, "Pong")
-
-    async def cmd_github(self, message: Message):
-        await self.send_message(message.channel, self.config.source_code)
 
     async def cmd_join(self, message: Message):
         # Don't join a channel if this was a private message, unless it's from the owner.
@@ -116,23 +125,6 @@ class DougBot(discord.Client):
 
         await bot_voice_client.disconnect()
 
-    # NOTE: ALL TAKES PLACE WITHIN SERVER'S RESPECTIVE SOUNDPLAYER
-    # PLAY WILL START PLAYING FROM THE QUEUE - DON'T PLAY IF ALREADY PLAYING
-    # QUEUE WILL ADD TO QUEUE (WITH START/END TIMESTAMP)
-    # STOP WILL END THE CURRENTLY PLAYING AUDIO (SOFT STOP, IDEALLY)
-    # NEXT WILL PLAY NEXT IN QUEUE
-    # CLEAR QUEUE WILL REMOVE ALL SONGS
-    # REMOVE LINK WILL REMOVE THE GIVEN LINK FROM QUEUE
-    # REMOVE BY ITSELF WILL REMOVE CURRENT PLAYING OR FRONT OF QUEUE ITEM
-    # VOLUME # CHANGES VOLUME
-    # CURR VOLUME DISPLAY VOLUME
-    # FFW
-    # SKIP ONTO NEXT TRACK
-    # LEAVE WILL MAKE IT STOP TRACK, CLEAR QUEUE, LEAVE
-    # JOIN PLAYS CURRENT QUEUE
-    # NOW PLAYING
-    # DEQUEUE # ?
-
     async def cmd_play(self, message: Message):
         print("IN PLAY")
 
@@ -141,6 +133,14 @@ class DougBot(discord.Client):
             'https://www.youtube.com/watch?v=utH9UCr0p8Q')
         player.start()
 
+        return
+
+    @staticmethod
+    def _register_commands(command_map: dict):
+        gh = GitHub()
+        command_map[gh.title] = gh
+        p = Ping()
+        command_map[p.title] = p
         return
 
     @staticmethod

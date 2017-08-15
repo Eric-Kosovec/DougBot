@@ -1,4 +1,4 @@
-from src.util.Queue import *
+from dougbot.util.queue import *
 
 
 class SoundPlayer:
