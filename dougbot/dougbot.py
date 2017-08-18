@@ -1,26 +1,19 @@
-import discord.client
+import os
+import sys
 
-from cmd.github import *
-from cmd.ping import *
-# TODO FIND WHY THIS COMES UP AS UNUSED IMPORT, EVEN THOUGH IT IS INFACT USED.
-# MAYBE BECAUSE IT'S ONLY USED IN INIT?
+import discord.client
+from discord import Message
+
 from configdata import Config
 
 
 class DougBot(discord.Client):
-    # TODO BREAKS IF BOT IS STARTED FROM RUN.PY
-    _DEFAULT_CONFIG_FILE = "../config/config.ini"
+    _DEFAULT_CONFIG_FILE = "./config/config.ini"
 
-    # TODO FINISH THIS CLASS AND MAKE THE COMMANDS IN A MODULAR FASHION:
-    # THAT IS, REGISTER THE COMMANDS WITH DOUGBOT FROM ONE PLACE?
     def __init__(self, config_file=_DEFAULT_CONFIG_FILE):
         self.config = Config(config_file)
-        # Soundplayer dictionary in form server:soundplayer
-        self.sound_players = dict()
-
-        self._command_map = dict()
-        self._register_commands(self._command_map)
-
+        self.plugins = {}
+        self._load_plugins()
         super().__init__()
         return
 
@@ -50,102 +43,40 @@ class DougBot(discord.Client):
             return
 
         # Normalize message content
-        norm_msg = message.content.strip().casefold()
+        norm_msg = message.content.lower()
 
-        ## TODO MAYBE INSTEAD DO SOMETHING LIKE STARTSWITH(PREFIX + COMMAND)
-
-        if not self._is_command_form(norm_msg, self.config.command_prefix):
+        if not norm_msg.startswith(self.config.command_prefix):
             return
 
         (command, arguments) = self._parse_command(norm_msg, self.config.command_prefix)
 
-        if command == "join":
-            await self.cmd_join(message)
+        try:
+            plugin = self.plugins[command]
+        except KeyError as e:
+            await self.send_message(message.channel, "%s is not a command." % command)
             return
-        elif command == "leave":
-            await self.cmd_leave(message)
-            return
+
+        if plugin is None:
+            await self.send_message(message.channel, "Command %s is not currently working." % command)
         else:
-            await self._command_map[command]
-            return
-
-        # Call proper command with arguments, if need be.
-        if not hasattr(self, "cmd_%s" % command):
-            print("There is no command %s" % command)
-            return
-
-        # Gets the function having the prefix cmd_ within the DougBot class.
-        func = getattr(self, "cmd_%s" % command)
-
-        # !!!! TODO FIGURE OUT HOW TO PASS ARGUMENTS TO FUNCTIONS WITH VARYING REQUIREMENTS
-        # ALSO, FIGURE OUT HOW TO MAKE COMMANDS INTO MODULES, WHEREBY THEY LIE IN A SEPARATE FILE
-        # AND CAN BE HOOKED INTO DOUGBOT
-        await func(message)
-
+            try:
+                await plugin.run(command, message, arguments, self)
+            except Exception as e:
+                await self.send_message(message.channel, "Command %s is not currently working." % command)
         return
 
-    async def cmd_join(self, message: Message):
-        # Don't join a channel if this was a private message, unless it's from the owner.
-        if message.channel.is_private:
-            return
+    def _load_plugins(self):
+        sys.path.append("plugins")
 
-        # Get the voice channel the user is in and join that one.
-        user_voice_channel = message.author.voice.voice_channel
-
-        # User is not in a voice channel, ignore them.
-        if user_voice_channel is None:
-            return
-
-        # Check if we are already in a channel on the server
-        if self.voice_client_in(message.server) is not None:
-            return
-
-        # Check if we are already in the channel
-        for vc in self.voice_clients:
-            if vc.channel == user_voice_channel:
-                return
-
-        await self.join_voice_channel(user_voice_channel)
-
-    async def cmd_leave(self, message: Message):
-        # Don't leave channel if this was a private message, unless it's from the owner.
-        if message.channel.is_private:
-            return
-
-        # Message is not from a user within a voice channel.
-        if message.author.voice.voice_channel is None:
-            return
-
-        # Get the VoiceClient object of the bot's from the server the message was sent from.
-        bot_voice_client = self.voice_client_in(message.server)
-
-        # Bot is not in a voice channel on the server.
-        if bot_voice_client is None:
-            return
-
-        await bot_voice_client.disconnect()
-
-    async def cmd_play(self, message: Message):
-        print("IN PLAY")
-
-        await self.cmd_join(message)
-        player = await self.voice_client_in(message.server).create_ytdl_player(
-            'https://www.youtube.com/watch?v=utH9UCr0p8Q')
-        player.start()
-
-        return
-
-    @staticmethod
-    def _register_commands(command_map: dict):
-        gh = GitHub()
-        command_map[gh.title] = gh
-        p = Ping()
-        command_map[p.title] = p
-        return
-
-    @staticmethod
-    def _is_command_form(message: str, prefix: str):
-        return message.startswith(prefix)
+        for plugin in os.listdir("plugins"):
+            if not plugin == "example.py" and plugin.endswith(".py"):
+                plugin_name = plugin.split(".")[0].lower()
+                prog = __import__(plugin_name)
+                if hasattr(prog, "ALIASES") and len(prog.ALIASES) > 0:
+                    for alias in prog.ALIASES:
+                        self.plugins[alias.lower()] = prog
+                else:
+                    self.plugins[plugin_name] = prog
 
     @staticmethod
     def _parse_command(message: str, prefix: str):
@@ -158,7 +89,7 @@ class DougBot(discord.Client):
             arguments = ""
         else:
             command = message[len(prefix):first_space_idx]
-            arguments = message[first_space_idx + 1:len(message)].strip()
+            arguments = message[first_space_idx + 1:len(message)]
 
         return command, arguments
 

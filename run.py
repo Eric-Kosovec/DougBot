@@ -1,8 +1,8 @@
-from dougbot.dougbot import *
+from dougbot.dougbot import DougBot
 
 
 def main():
-    bot = DougBot()
+    bot = DougBot("./dougbot/config/config.ini")
     bot.run()
     return
 
