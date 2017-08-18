@@ -6,7 +6,6 @@ async def run(alias, message, args, client):
 
 
 async def music_join(message, client):
-    print("join")
     # Don't join a channel if this was a private message, unless it's from the owner.
     if message.channel.is_private:
         return
@@ -25,7 +24,6 @@ async def music_join(message, client):
 
 
 async def music_leave(message, client):
-    print("leave")
     # Don't leave channel if this was a private message, unless it's from the owner.
     if message.channel.is_private:
         return
@@ -45,7 +43,6 @@ async def music_leave(message, client):
 
 
 async def music_play(message, client):
-    print("play")
     await music_join(message, client)
     player = await client.voice_client_in(message.server).create_ytdl_player(
         'https://www.youtube.com/watch?v=dREbzlgmuZg')
@@ -55,3 +52,22 @@ async def music_play(message, client):
 ALIAS_TO_METHOD = {"join": music_join,
                    "leave": music_leave,
                    "play": music_play}
+
+# Defines all music commands and soundplayers for servers
+
+# NOTE: ALL TAKES PLACE WITHIN SERVER'S RESPECTIVE SOUNDPLAYER
+# PLAY WILL START PLAYING FROM THE QUEUE - DON'T PLAY IF ALREADY PLAYING
+# QUEUE WILL ADD TO QUEUE (WITH START/END TIMESTAMP)
+# STOP WILL END THE CURRENTLY PLAYING AUDIO (SOFT STOP, IDEALLY)
+# NEXT WILL PLAY NEXT IN QUEUE
+# CLEAR QUEUE WILL REMOVE ALL SONGS
+# REMOVE LINK WILL REMOVE THE GIVEN LINK FROM QUEUE
+# REMOVE BY ITSELF WILL REMOVE CURRENT PLAYING OR FRONT OF QUEUE ITEM
+# VOLUME # CHANGES VOLUME
+# CURR VOLUME DISPLAY VOLUME
+# FFW
+# SKIP ONTO NEXT TRACK
+# LEAVE WILL MAKE IT STOP TRACK, CLEAR QUEUE, LEAVE
+# JOIN PLAYS CURRENT QUEUE
+# NOW PLAYING
+# DEQUEUE # ?

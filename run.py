@@ -2,7 +2,7 @@ from dougbot.dougbot import DougBot
 
 
 def main():
-    bot = DougBot("./dougbot/config/config.ini")
+    bot = DougBot()
     bot.run()
     return
 

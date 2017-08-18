@@ -22,7 +22,7 @@ class DougBot(discord.Client):
     def __init__(self, config_file=_DEFAULT_CONFIG_FILE):
         self.config = Config(config_file)
         self.plugins = self._load_plugins()
-        # self.logger = get_logger()
+        # self.logger = get_logger() #
         super().__init__()
 
     def run(self):

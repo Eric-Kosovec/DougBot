@@ -3,9 +3,9 @@ import subprocess
 
 def main():
     # Using 'with' allows for file to close when done, even with exceptions.
-    with open("deps.txt", 'r') as f:
-        for dep in f:
-            subprocess.run(["pip", "install", "--upgrade", dep.strip()])
+    with open("requirements.txt", 'r') as req_file:
+        for req in req_file:
+            subprocess.run(["pip", "install", "--upgrade", req.strip()])
             print()
     return
 
