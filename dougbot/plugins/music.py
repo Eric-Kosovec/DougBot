@@ -1,9 +1,7 @@
 ALIASES = ["join", "leave", "play"]
 
-
 async def run(alias, message, args, client):
     await ALIAS_TO_METHOD[alias](message, client)
-
 
 async def music_join(message, client):
     # Don't join a channel if this was a private message, unless it's from the owner.
@@ -22,7 +20,6 @@ async def music_join(message, client):
 
     await client.join_voice_channel(user_voice_channel)
 
-
 async def music_leave(message, client):
     # Don't leave channel if this was a private message, unless it's from the owner.
     if message.channel.is_private:
@@ -40,7 +37,6 @@ async def music_leave(message, client):
         return
 
     await bot_voice_client.disconnect()
-
 
 async def music_play(message, client):
     await music_join(message, client)
