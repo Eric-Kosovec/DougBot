@@ -19,9 +19,9 @@ async def run(alias, message, args, client):
     if their_move == our_move:
         await client.send_message(message.channel, "It's a tie!")
     elif trumps[trumps.index(their_move) + 1] == our_move:
-        await client.send_message(message.channel, "You won. Go fuck yourself.")
+        await client.send_message(message.channel, "You won.")
     else:
-        await client.send_message(message.channel, "I won. Go fuck yourself.")
+        await client.send_message(message.channel, "I won.")
 
 
 def _random_move(max_val):

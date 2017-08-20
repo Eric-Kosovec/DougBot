@@ -2,7 +2,7 @@ from plugins.audio import soundplayer
 
 # NOTE: ALL TAKES PLACE WITHIN SERVER'S RESPECTIVE SOUNDPLAYER
 
-ALIASES = ["join", "leave", "play"]
+ALIASES = ["play"]
 
 sp = soundplayer.SoundPlayer()
 
