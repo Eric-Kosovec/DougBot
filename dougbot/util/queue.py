@@ -2,9 +2,8 @@ from collections import deque
 
 
 class Queue:
-
-    def __init__(self, maxlen=None):
-        self.q = deque(None, maxlen)
+    def __init__(self):
+        self.q = deque()
 
     def enqueue(self, element):
         self.q.append(element)

@@ -98,7 +98,6 @@ async def music_leave(message, args, client):
     await bot_voice_client.disconnect()
 
 
-
 ALIAS_TO_METHOD = {"join": music_join,
                    "leave": music_leave,
                    "play": music_play}

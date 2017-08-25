@@ -65,7 +65,6 @@ class DougBot(discord.Client):
 
         try:
             plugin = self.plugins[command]
-
             if plugin is None:
                 await self.add_reaction(message, self._QUESTION_EMOJI)
             else:
