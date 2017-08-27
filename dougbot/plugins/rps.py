@@ -11,17 +11,15 @@ async def run(alias, message, args, client):
     our_move = trumps[_random_move(len(trumps) - 1)]
 
     if their_move not in trumps:
-        await help(alias, message, args, client)
+        await client.add_reaction(message, "❓")
         return
 
-    await client.send_message(message.channel, our_move.title())
-
     if their_move == our_move:
-        await client.send_message(message.channel, "It's a tie!")
+        await client.send_message(message.channel, "%s\nIt's a tie!" % our_move.title())
     elif trumps[trumps.index(their_move) + 1] == our_move:
-        await client.send_message(message.channel, "You won.")
+        await client.send_message(message.channel, "%s\nYou won." % our_move.title())
     else:
-        await client.send_message(message.channel, "I won.")
+        await client.send_message(message.channel, "%s\nI won." % our_move.title())
 
 
 def _random_move(max_val):

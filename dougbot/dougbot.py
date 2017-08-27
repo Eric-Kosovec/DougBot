@@ -2,6 +2,7 @@ import asyncio
 import os
 import socket
 import sys
+import threading
 
 import aiohttp
 import discord.client
@@ -18,6 +19,9 @@ class DougBot(discord.Client):
     # TODO DECIDE HOW TO DO SO IT WORKS WHILE RUNNING FROM DOUGBOT.PY AND RUN.PY
     _DEFAULT_CONFIG_FILE = "../config/config.ini"
     _QUESTION_EMOJI = "❓"  # The Unicode string of the question emoji.
+
+    # TODO ONLY DO LOCK FOR A COMMAND'S OUTPUT??? OR HOW ELSE TO DO?
+    _message_lock = threading.Lock()
 
     def __init__(self, config_file=_DEFAULT_CONFIG_FILE):
         self.config = Config(config_file)
@@ -74,6 +78,11 @@ class DougBot(discord.Client):
         except Exception as e:  # Catch any other errors that may occur.
             await self.add_reaction(message, self._QUESTION_EMOJI)
             print("Error occurred while running command: %s" % e)
+
+            # async def send_message(self, destination, content=None, *, tts=False, embed=None):
+            # self._message_lock.acquire()
+            # await super().send_message(destination, content, tts=tts, embed=embed)
+            # self._message_lock.release()
 
     def _cleanup(self):
         try:
