@@ -17,9 +17,6 @@ class Queue:
     def clear(self):
         self.q.clear()
 
-    def max_length(self):
-        return self.q.maxlen
-
     def size(self):
         return len(self.q)
 

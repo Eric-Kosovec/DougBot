@@ -4,11 +4,11 @@ import sys
 import plugins.voicecomms
 from util import queue
 
-ALIASES = ["sb", "sbclips"]
+ALIASES = ["sb", "sbclips", "sbaddclip"]
 
 playing = False
 # playing_lock = threading.Lock()
-
+# TODO Determine if synchronization is required.
 #sound_queue_lock = threading.Lock()
 sound_queue = queue.Queue()
 
@@ -21,6 +21,9 @@ async def run(alias, message, args, client):
 
     if alias == "sbclips":
         await _soundboard_clipslist(message, client)
+        return
+    elif alias == "sbaddclip":
+        await _soundboard_add_clip("", message, client)
         return
 
     if len(args) <= 0:
@@ -86,5 +89,10 @@ def _soundboard_finished():
         playing = False
 
 
+async def _soundboard_add_clip(url, message, client):
+    await client.send_message(message.channel, "You will one day add mp3 links.")
+
+
 def cleanup():
+    # TODO ?
     return
