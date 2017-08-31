@@ -59,13 +59,10 @@ class DougBot(discord.Client):
         if message.author.id == self.user.id or message.author.bot:
             return
 
-        # Normalize message content
-        norm_msg = message.content.lower()
-
-        if not norm_msg.startswith(self.config.command_prefix):
+        if not message.content.startswith(self.config.command_prefix):
             return
 
-        (command, arguments) = self._parse_command(norm_msg, self.config.command_prefix)
+        (command, arguments) = self._parse_command(message.content, self.config.command_prefix)
 
         try:
             plugin = self.plugins[command]
