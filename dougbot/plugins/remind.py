@@ -1,12 +1,17 @@
 import asyncio
+import sys
 
 
 async def run(alias, message, args, client):
     if len(args) <= 1:
         return
 
+    # TODO MAKE SURE IT'S NOT TOO LARGE
     seconds = int(args[0])
-    print(seconds)
+
+    if seconds > sys.maxsize:
+        seconds = sys.maxsize - 1
+
     if seconds <= 0:
         # TODO PRINT MESSAGE RIGHT AWAY
         return
