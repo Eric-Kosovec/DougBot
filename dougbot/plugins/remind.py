@@ -12,14 +12,13 @@ async def run(alias, message, args, client):
     if seconds > sys.maxsize:
         seconds = sys.maxsize - 1
 
-    if seconds <= 0:
-        # TODO PRINT MESSAGE RIGHT AWAY
-        return
-
-    remind_of = ""
+    remind_of = ''
 
     for i in range(1, len(args)):
-        remind_of += args[i] + " "
+        remind_of += args[i] + ' '
+
+    if seconds <= 0:
+        seconds = 0
 
     await remind_send_reminder(seconds, remind_of, client, message.channel)
 

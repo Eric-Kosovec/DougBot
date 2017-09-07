@@ -2,28 +2,20 @@ import asyncio
 import os
 import socket
 import sys
-import threading
 
 import aiohttp
 import discord.client
 from discord import Message
 
-from config import Config
-from exceptions.commanderror import *
+from dougbot.config import Config
+from dougbot.core.exceptions.commanderror import CommandConflictError
 
 
 # TODO LOGGING
 
 
 class DougBot(discord.Client):
-    # TODO DECIDE HOW TO DO SO IT WORKS WHILE RUNNING FROM DOUGBOT.PY AND RUN.PY
-    _DEFAULT_CONFIG_FILE = "../config/config.ini"
-    _QUESTION_EMOJI = "❓"  # The Unicode string of the question emoji.
-
-    # TODO ONLY DO LOCK FOR A COMMAND'S OUTPUT??? OR HOW ELSE TO DO?
-    _message_lock = threading.Lock()
-
-    def __init__(self, config_file=_DEFAULT_CONFIG_FILE):
+    def __init__(self, config_file):
         self.config = Config(config_file)
         self.plugins = self._load_plugins()
         # self.logger = get_logger()
@@ -33,23 +25,25 @@ class DougBot(discord.Client):
         try:
             self.loop.run_until_complete(self.start(self.config.token))
         except discord.errors.LoginFailure:
-            print("Bot could not login. Bad token.")
+            print('Bot could not login. Bad token.')
         except socket.gaierror:
-            print("Bot could not login. Could not connect to Discord servers.")
+            print('Bot could not login. Could not connect to Discord servers.')
         except aiohttp.errors.ClientOSError:
-            print("Bot could not login. Could not connect to Discord servers.")
+            print('Bot could not login. Could not connect to Discord servers.')
         finally:
             try:
                 self._cleanup()
             except Exception as e:
-                print("Cleanup error: %s", e)
+                print('Cleanup error: %s', e)
             self.loop.close()
 
+    # TODO MAKE METHOD TO CHECK IF EVERYONE LEFT CHANNEL AND THEN LEAVE IF NECESSARY
+
     async def on_ready(self):
-        print("Bot online")
-        print("Name: %s" % self.user.name)
-        print("ID: %s" % self.user.id)
-        print("-" * (len(self.user.id) + 4))
+        print('Bot online')
+        print('Name: %s' % self.user.name)
+        print('ID: %s' % self.user.id)
+        print('-' * (len(self.user.id) + 4))
 
     async def on_message(self, message: Message):
         # Wait until the bot is ready before checking messages.
@@ -67,19 +61,18 @@ class DougBot(discord.Client):
         try:
             plugin = self.plugins[command]
             if plugin is None:
-                await self.add_reaction(message, self._QUESTION_EMOJI)
+                await self.confusion(message)
             else:
                 await plugin.run(command, message, arguments, self)
         except KeyError as e:  # Command not in dictionary.
-            await self.add_reaction(message, self._QUESTION_EMOJI)
+            await self.confusion(message)
         except Exception as e:  # Catch any other errors that may occur.
-            await self.add_reaction(message, self._QUESTION_EMOJI)
-            print("Error occurred while running command: %s" % e)
+            await self.confusion(message)
+            print('Error occurred while running command: %s' % e)
 
-            # async def send_message(self, destination, content=None, *, tts=False, embed=None):
-            # self._message_lock.acquire()
-            # await super().send_message(destination, content, tts=tts, embed=embed)
-            # self._message_lock.release()
+    async def confusion(self, message):
+        question_emoji = '❓'  # The Unicode string of the question emoji.
+        await self.add_reaction(message, question_emoji)
 
     def _cleanup(self):
         try:
@@ -92,7 +85,7 @@ class DougBot(discord.Client):
             self.loop.run_until_complete(gathered)
             gathered.exception()
         except:
-            pass
+            pass  # Ignore any exceptions
 
     async def _logout(self):
         await self._disconnect_voice_clients()
@@ -104,22 +97,24 @@ class DougBot(discord.Client):
 
     @staticmethod
     def _load_plugins():
+        # Generate portable pathway to plugins
+        plugin_dir = os.path.dirname(os.path.dirname(__file__))
+        plugin_dir = os.path.join(plugin_dir, 'plugins')
+
         # Add plugin package to where the system looks for files.
-        sys.path.append("plugins")
+        sys.path.append(plugin_dir)
 
         plugins = {}
 
-        # TODO CLEANUP?
-
         # Go through every file in the plugins folder
-        for plugin in os.listdir("plugins"):
-            if plugin.endswith(".py") and not plugin == "example.py":
-                plugin_name = plugin.split(".")[0].lower()
+        for plugin in os.listdir(plugin_dir):
+            if plugin.endswith('.py') and not plugin == 'example.py':
+                plugin_name = plugin.split('.')[0].lower()
                 # Import the plugin module
-                prog = __import__(plugin_name)
+                prog = __import__(str(plugin_name))
 
                 # If the plugin wants to be known by other names, use those names instead.
-                if hasattr(prog, "ALIASES") and len(prog.ALIASES) > 0:
+                if hasattr(prog, 'ALIASES') and len(prog.ALIASES) > 0:
                     for alias in prog.ALIASES:
                         norm_alias = alias.lower()
 
@@ -132,7 +127,7 @@ class DougBot(discord.Client):
                         raise CommandConflictError(plugins[plugin_name], plugin_name)
                     plugins[plugin_name] = prog
 
-        sys.path.remove("plugins")
+        sys.path.remove(plugin_dir)
 
         return plugins
 
@@ -143,12 +138,12 @@ class DougBot(discord.Client):
             command = (tokens[0])[len(prefix):len(tokens[0])]  # Strip the prefix off the command
             arguments = tokens[1:len(tokens)]
         else:
-            command = ""
+            command = ''
             arguments = []
 
         return command, arguments
 
 
-if __name__ == "__main__":
-    dougbot = DougBot()
+if __name__ == '__main__':
+    dougbot = DougBot('../config/config.ini')
     dougbot.run()

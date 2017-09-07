@@ -1,6 +1,6 @@
-from db.admindao import AdminDAO
+from dougbot.core.db.admindao import AdminDAO
 
-ALIASES = ["admin"]
+ALIASES = ['admin']
 
 admindao = AdminDAO()
 
@@ -10,35 +10,35 @@ async def run(alias, message, args, client):
         return
 
     if len(args) < 2:
-        await client.add_reaction(message, "❓")
-        print("BAD INPUT TO ADMIN")
+        await client.confusion(message)
+        print('BAD INPUT TO ADMIN')
         return
 
     user_id = get_id_from_username(client, args[1])
     print(args[1])
 
     if user_id is None:
-        print("BAD USERNAME")
-        await client.add_reaction(message, "❓")
+        print('BAD USERNAME')
+        await client.confusion(message)
         return
 
-    if args[0] == "add":
+    if args[0] == 'add':
         admindao.add_admin(user_id)
-        print("ADDED %s" % user_id)
-    elif args[0] == "remove":
+        print('ADDED %s' % user_id)
+    elif args[0] == 'remove':
         if user_id == client.config.owner:
             return
         admindao.remove_admin(user_id)
-        print("REMOVED %s" % user_id)
+        print('REMOVED %s' % user_id)
     else:
-        await client.add_reaction(message, "❓")
+        await client.confusion(message)
 
 
 def get_id_from_username(client, username):
     members = client.get_all_members()
 
     # Is a mention of a user, so the id is within the name
-    if "<@" in username and len(username) > 2:
+    if '<@' in username and len(username) > 2:
         user_id = username[2:len(username) - 1]
         return user_id
 

@@ -1,6 +1,6 @@
-import plugins.soundboard
+from dougbot.plugins import soundboard
 
-ALIASES = ["join", "leave"]
+ALIASES = ['join', 'leave']
 
 
 async def run(alias, message, args, client):
@@ -40,16 +40,19 @@ async def leave(message, client):
     # Get the VoiceClient object of the bot's from the server the message was sent from.
     bot_voice_client = client.voice_client_in(message.server)
 
-    # TODO CHECK IF USER IS IN SAME VOICE CHANNEL AS BOT
-
     # Bot is not in a voice channel on the server.
     if bot_voice_client is None:
         return
 
-    plugins.soundboard.playing = False
-    plugins.soundboard.voice = None
+    # User is not in the same voice channel as the bot.
+    if not bot_voice_client.channel == message.author.voice.voice_channel:
+        return
+
+    # TODO GET RID OF NEEDING THIS
+    soundboard.playing = False
+    soundboard.voice = None
 
     await bot_voice_client.disconnect()
 
 
-COMMAND_MAP = {"join": join, "leave": leave}
+COMMAND_MAP = {'join': join, 'leave': leave}

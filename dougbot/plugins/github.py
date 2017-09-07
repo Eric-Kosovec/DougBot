@@ -1,16 +1,17 @@
 import subprocess
 
-ALIASES = ["github", "gitsounds"]
+ALIASES = ['github', 'gitsounds']
 
 
 async def run(alias, message, args, client):
-    if alias == "gitsounds":
+    if alias == 'gitsounds':
         await _git_command()
+        return
+    elif alias == 'github':
+        await client.send_message(message.channel, client.config.source_code)
 
-    await client.send_message(message.channel, client.config.source_code)
 
-
-def _git_command():
-    subprocess.run(["git", "fetch"])
-    subprocess.run(["git", "checkout", "HEAD", "..\\resources"])
-    return
+async def _git_command():
+    # TODO FIX
+    subprocess.run(['git', 'fetch'])
+    subprocess.run(['git', 'checkout', 'HEAD', 'resources'])

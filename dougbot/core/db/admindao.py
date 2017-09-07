@@ -1,4 +1,4 @@
-from db.dougbotdb import DougBotDB
+from dougbot.core.db.dougbotdb import DougBotDB
 
 
 class AdminDAO:
@@ -8,6 +8,7 @@ class AdminDAO:
         self.conn = db.get_connection()
         cur = self.conn.cursor()
         cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='admin'")
+        # TODO CHECK IF TABLE ALREADY EXISTS PROPERLY
         #if cur.rowcount <= 0:
             #cur.execute("CREATE TABLE admin (id text)")
             #self.conn.commit()

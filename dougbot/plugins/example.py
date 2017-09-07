@@ -13,3 +13,7 @@ async def run(alias, message, args, client):
 async def help(alias, message, args, client):
     # Send message through client to message channel about command usage
     return
+
+
+async def cleanup(client):
+    return

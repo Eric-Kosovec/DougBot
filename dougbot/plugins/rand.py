@@ -3,17 +3,17 @@ from Lib import random
 
 async def run(alias, message, args, client):
     if len(args) == 0:
-        await client.send_message(message.channel, "%f" % random.random())
+        await client.send_message(message.channel, '%f' % random.random())
         return
 
     if len(args) < 2:
-        await client.add_reaction(message, "❓")
+        await client.confusion(message)
         return
 
     lower_bound = args[0]
     upper_bound = args[1]
 
-    if "." in lower_bound or "." in upper_bound:
+    if '.' in lower_bound or '.' in upper_bound:
         delta = 0.1
         lower_bound = float(lower_bound)
         upper_bound = float(upper_bound)
@@ -29,7 +29,7 @@ async def run(alias, message, args, client):
         if rand_float > upper_bound:
             rand_float = upper_bound
 
-        await client.send_message(message.channel, "%f" % rand_float)
+        await client.send_message(message.channel, '%f' % rand_float)
     else:
         lower_bound = int(lower_bound)
         upper_bound = int(upper_bound)
@@ -39,4 +39,4 @@ async def run(alias, message, args, client):
             lower_bound = upper_bound
             upper_bound = tmp
 
-        await client.send_message(message.channel, "%d" % random.randint(lower_bound, upper_bound))
+        await client.send_message(message.channel, '%d' % random.randint(lower_bound, upper_bound))

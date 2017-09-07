@@ -5,6 +5,9 @@ class Queue:
     def __init__(self):
         self.q = deque()
 
+    def __len__(self):
+        return len(self.q)
+
     def enqueue(self, element):
         self.q.append(element)
 
