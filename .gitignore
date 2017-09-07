@@ -3,8 +3,8 @@
 /dougbot/discord.log
 /config/config.ini
 /dougbot/__pycache__/
-/dougbot/db/__pycache__/
-/dougbot/exceptions/__pycache__/
-/dougbot/plugins/__pycache__/
-/dougbot/util/__pycache__/
-
+/dougbot/core/__pycache__/
+/dougbot/core/db/__pycache__/
+/dougbot/core/exceptions/__pycache__/
+/dougbot/core/util/__pycache__/
+/dougbot/core/plugins/__pycache__/
