@@ -1,13 +1,5 @@
 /.idea
-/*/__pycache__/*/
-/*/__pycache__/*
-/__pycache__/
+*/__pycache__/*
 /discord.log
-/dougbot/discord.log
+*/discord.log
 /config/config.ini
-/dougbot/__pycache__/
-/dougbot/core/__pycache__/
-/dougbot/core/db/__pycache__/
-/dougbot/core/exceptions/__pycache__/
-/dougbot/core/util/__pycache__/
-/dougbot/core/plugins/__pycache__/
