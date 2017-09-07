@@ -1,13 +1,16 @@
 import subprocess
 
 
-def main():
+def update():
     # Using 'with' allows for file to close when done, even with exceptions.
-    with open("requirements.txt", 'r') as req_file:
+    with open('requirements.txt', 'r') as req_file:
         for req in req_file:
-            subprocess.run(["pip", "install", "--upgrade", req.strip()])
+            subprocess.run(['pip', 'install', '--upgrade', req.strip()])
             print()
-    return
+
+
+def main():
+    update()
 
 
 if __name__ == "__main__":

@@ -1,4 +1,7 @@
 /.idea
+/*/__pycache__/*/
+/*/__pycache__/*
+/__pycache__/
 /discord.log
 /dougbot/discord.log
 /config/config.ini
