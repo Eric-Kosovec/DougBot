@@ -5,7 +5,7 @@ import sys
 
 import aiohttp
 import discord.client
-from discord import Message
+from discord import Message, Member
 
 from dougbot.config import Config
 from dougbot.core.exceptions.commanderror import CommandConflictError
@@ -37,13 +37,24 @@ class DougBot(discord.Client):
                 print('Cleanup error: %s', e)
             self.loop.close()
 
-    # TODO MAKE METHOD TO CHECK IF EVERYONE LEFT CHANNEL AND THEN LEAVE IF NECESSARY
-
     async def on_ready(self):
         print('Bot online')
         print('Name: %s' % self.user.name)
         print('ID: %s' % self.user.id)
         print('-' * (len(self.user.id) + 4))
+
+    # Occurs whenever a user changes their voice state
+    async def on_voice_state_update(self, before: Member, after: Member):
+        if before is None or after is None:
+            return
+
+        # They left a channel.
+        if before.voice.voice_channel is not None and after.voice.voice_channel is None:
+            voice_channel_left = before.voice.voice_channel
+            bot_voice_client = self.voice_client_in(voice_channel_left.server)
+            # No members left except possibly ourselves, so leave the channel if we are in there.
+            if len(voice_channel_left.voice_members) == 1 and bot_voice_client is not None and bot_voice_client.channel == voice_channel_left:
+                await self.voice_client_in(voice_channel_left.server).disconnect()
 
     async def on_message(self, message: Message):
         # Wait until the bot is ready before checking messages.
@@ -143,6 +154,7 @@ class DougBot(discord.Client):
 
         return command, arguments
 
+# TODO GRACEFUL HANDLING OF BEING KILLED FROM TERMINAL
 
 if __name__ == '__main__':
     dougbot = DougBot('../config/config.ini')
