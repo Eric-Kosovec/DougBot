@@ -1,5 +1,6 @@
 import asyncio
 import os
+import atexit
 import socket
 import sys
 
@@ -18,6 +19,7 @@ class DougBot(discord.Client):
     def __init__(self, config_file):
         self.config = Config(config_file)
         self.plugins = self._load_plugins()
+        atexit.register(self.cleanup)
         # self.logger = get_logger()
         super().__init__()
 
@@ -32,10 +34,11 @@ class DougBot(discord.Client):
             print('Bot could not login. Could not connect to Discord servers.')
         finally:
             try:
-                self._cleanup()
+                self.cleanup()
             except Exception as e:
                 print('Cleanup error: %s', e)
-            self.loop.close()
+            finally:
+                self.loop.close()
 
     async def on_ready(self):
         print('Bot online')
@@ -48,12 +51,22 @@ class DougBot(discord.Client):
         if before is None or after is None:
             return
 
+        # Joined channel
+        if before.voice.voice_channel is not None and after.voice.voice_channel is not None and before.voice.voice_channel is not after.voice.voice_channel:
+            vc = self.voice_client_in(after.voice.voice_channel)
+            # Already in the channel
+            if vc is None or vc.channel == after.voice.voice_channel:
+                return
+            # TODO FIGURE OUT MESSAGE PART
+            #await voicecomms.join(None, self)
+            return
+
         # They left a channel.
         if before.voice.voice_channel is not None and after.voice.voice_channel is None:
             voice_channel_left = before.voice.voice_channel
             bot_voice_client = self.voice_client_in(voice_channel_left.server)
             # No members left except possibly ourselves, so leave the channel if we are in there.
-            if len(voice_channel_left.voice_members) == 1 and bot_voice_client is not None and bot_voice_client.channel == voice_channel_left:
+            if len(after.voice.voice_channel.voice_members) == 1 and bot_voice_client is not None and bot_voice_client.channel == voice_channel_left:
                 await self.voice_client_in(voice_channel_left.server).disconnect()
 
     async def on_message(self, message: Message):
@@ -75,7 +88,7 @@ class DougBot(discord.Client):
                 await self.confusion(message)
             else:
                 await plugin.run(command, message, arguments, self)
-        except KeyError as e:  # Command not in dictionary.
+        except KeyError:  # Command not in dictionary.
             await self.confusion(message)
         except Exception as e:  # Catch any other errors that may occur.
             await self.confusion(message)
@@ -85,7 +98,7 @@ class DougBot(discord.Client):
         question_emoji = '❓'  # The Unicode string of the question emoji.
         await self.add_reaction(message, question_emoji)
 
-    def _cleanup(self):
+    def cleanup(self):
         try:
             self.loop.run_until_complete(self._logout())
 
@@ -95,7 +108,8 @@ class DougBot(discord.Client):
             gathered.cancel()
             self.loop.run_until_complete(gathered)
             gathered.exception()
-        except:
+        except Exception as e:
+            print('Ignored Exception in cleanup: %s' % e)
             pass  # Ignore any exceptions
 
     async def _logout(self):

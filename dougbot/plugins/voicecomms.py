@@ -9,6 +9,9 @@ async def run(alias, message, args, client):
 
 
 async def join(message, client):
+    if message is None or client is None:
+        return
+
     # Don't join a channel if this was a private message, unless it's from the owner.
     if message.channel.is_private:
         return
@@ -29,12 +32,15 @@ async def join(message, client):
 
 
 async def leave(message, client):
+    if message is None or client is None:
+        return
+
     # Don't leave channel if this was a private message, unless it's from the owner.
-    if message.channel.is_private:
+    if message is not None and message.channel.is_private:
         return
 
     # Message is not from a user within a voice channel.
-    if message.author.voice.voice_channel is None:
+    if message is not None and message.author.voice.voice_channel is None:
         return
 
     # Get the VoiceClient object of the bot's from the server the message was sent from.
