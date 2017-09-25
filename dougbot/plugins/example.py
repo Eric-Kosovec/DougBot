@@ -15,5 +15,5 @@ async def help(alias, message, args, client):
     return
 
 
-async def cleanup(client):
+def cleanup(client):
     return

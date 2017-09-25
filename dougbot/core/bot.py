@@ -44,7 +44,7 @@ class DougBot(discord.Client):
         print('Bot online')
         print('Name: %s' % self.user.name)
         print('ID: %s' % self.user.id)
-        print('-' * (len(self.user.id) + 4))
+        print('-' * (len(self.user.id) + len('ID: ')))
 
     # Occurs whenever a user changes their voice state
     async def on_voice_state_update(self, before: Member, after: Member):
@@ -52,24 +52,28 @@ class DougBot(discord.Client):
             return
 
         # Joined channel
-        if before.voice.voice_channel is not None and after.voice.voice_channel is not None and before.voice.voice_channel is not after.voice.voice_channel:
-            vc = self.voice_client_in(after.voice.voice_channel)
-            # Already in the channel
-            if vc is None or vc.channel == after.voice.voice_channel:
-                return
-            # TODO FIGURE OUT MESSAGE PART
-            #await voicecomms.join(None, self)
-            return
+        #if before.voice.voice_channel is not None and after.voice.voice_channel is not None and before.voice.voice_channel is not after.voice.voice_channel:
+        #    vc = self.voice_client_in(after.voice.voice_channel)
+        #    # Already in the channel
+        #    if vc is None or vc.channel == after.voice.voice_channel:
+        #        return
+        #    # TODO FIGURE OUT MESSAGE PART
+        #   # TODO INSTEAD HAVE CHANNEL AS INPUT INSTEAD OF MESSAGE
+        #    #await voicecomms.join(None, self)
+        #    return
 
         # They left a channel.
         if before.voice.voice_channel is not None and after.voice.voice_channel is None:
             voice_channel_left = before.voice.voice_channel
             bot_voice_client = self.voice_client_in(voice_channel_left.server)
             # No members left except possibly ourselves, so leave the channel if we are in there.
-            if len(after.voice.voice_channel.voice_members) == 1 and bot_voice_client is not None and bot_voice_client.channel == voice_channel_left:
+            if len(before.voice.voice_channel.voice_members) == 1 and bot_voice_client is not None and bot_voice_client.channel == voice_channel_left:
                 await self.voice_client_in(voice_channel_left.server).disconnect()
 
     async def on_message(self, message: Message):
+        if message is None:
+            return
+
         # Wait until the bot is ready before checking messages.
         await self.wait_until_ready()
 
@@ -95,11 +99,21 @@ class DougBot(discord.Client):
             print('Error occurred while running command: %s' % e)
 
     async def confusion(self, message):
+        if message is None:
+            return
         question_emoji = '❓'  # The Unicode string of the question emoji.
         await self.add_reaction(message, question_emoji)
 
     def cleanup(self):
+        print('cleanup')
         try:
+            done = set()  # Need to track done programs, as a program can have multiple names
+            for name, prog in self.plugins.items():
+                if prog not in done and hasattr(prog, 'cleanup'):
+                    print('%s has cleanup' % name)
+                    prog.cleanup()
+                    done.add(prog)
+
             self.loop.run_until_complete(self._logout())
 
             pending = asyncio.Task.all_tasks(self.loop)
@@ -168,7 +182,6 @@ class DougBot(discord.Client):
 
         return command, arguments
 
-# TODO GRACEFUL HANDLING OF BEING KILLED FROM TERMINAL
 
 if __name__ == '__main__':
     dougbot = DougBot('../config/config.ini')

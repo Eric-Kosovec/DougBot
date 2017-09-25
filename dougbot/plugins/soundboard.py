@@ -5,8 +5,6 @@ from dougbot.plugins import voicecomms
 
 ALIASES = ['sb', 'sbclips', 'sbnext', 'sbstop', 'sbvolume', 'sbresume', 'sbpause']
 
-LEAVE_TIME = 10
-
 
 class ServerSoundboard:
     def __init__(self):
@@ -56,7 +54,6 @@ async def soundboard_stop(message, client):
     server_sb.queue.clear()
     if server_sb.player is not None:
         server_sb.player.stop()
-        await voicecomms.leave(message, client)
 
 
 # TODO ADD PAUSED FLAG?
