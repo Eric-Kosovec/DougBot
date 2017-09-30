@@ -1,19 +1,20 @@
-# Define if you want multiple commands to route to here. Be careful not to use the same command as a different plugin.
-# NOTE: Must be ALIASES in all caps, and must be list of strings of command names.
-# If you have no aliases, then you can ignore the alias parameter of the run and help functions. In this case, it would
-# be the module name.
-ALIASES = []
+from plugins.pluginbase import *
 
 
-async def run(alias, message, args, client):
-    # Do stuff here
-    return
+class Example(PluginBase):
 
+    def __init__(self):
+        func_map = {'help': self.send_help, 'aids': self.aids}
+        super().__init__(func_map)
 
-async def help(alias, message, args, client):
-    # Send message through client to message channel about command usage
-    return
+    async def send_help(self, message, args, client):
+        await client.send_message(message.channel, "SENDING HELP")
 
+    async def aids(self, message, args, client):
+        await client.send_message(message.channel, "AIDS")
 
-def cleanup(client):
-    return
+    async def help(self, alias, message, args, client):
+        return
+
+    async def cleanup(self, message, args, client):
+        return

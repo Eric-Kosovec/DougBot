@@ -10,12 +10,15 @@ from discord import Message, Member
 
 from dougbot.config import Config
 from dougbot.core.exceptions.commanderror import CommandConflictError
+from dougbot.plugins.pluginbase import *
 
 
 # TODO LOGGING
+# TODO FFMPEG TO PATH WITHOUT DOING IT MANUALLY
 
 
 class DougBot(discord.Client):
+
     def __init__(self, config_file):
         self.config = Config(config_file)
         self.plugins = self._load_plugins()
@@ -50,17 +53,6 @@ class DougBot(discord.Client):
     async def on_voice_state_update(self, before: Member, after: Member):
         if before is None or after is None:
             return
-
-        # Joined channel
-        #if before.voice.voice_channel is not None and after.voice.voice_channel is not None and before.voice.voice_channel is not after.voice.voice_channel:
-        #    vc = self.voice_client_in(after.voice.voice_channel)
-        #    # Already in the channel
-        #    if vc is None or vc.channel == after.voice.voice_channel:
-        #        return
-        #    # TODO FIGURE OUT MESSAGE PART
-        #   # TODO INSTEAD HAVE CHANNEL AS INPUT INSTEAD OF MESSAGE
-        #    #await voicecomms.join(None, self)
-        #    return
 
         # They left a channel.
         if before.voice.voice_channel is not None and after.voice.voice_channel is None:
@@ -147,7 +139,7 @@ class DougBot(discord.Client):
 
         # Go through every file in the plugins folder
         for plugin in os.listdir(plugin_dir):
-            if plugin.endswith('.py') and not plugin == 'example.py':
+            if plugin.endswith('.py') and not plugin == 'example.py' and not plugin == 'pluginbase.py':
                 plugin_name = plugin.split('.')[0].lower()
                 # Import the plugin module
                 prog = __import__(str(plugin_name))
@@ -177,6 +169,7 @@ class DougBot(discord.Client):
             command = (tokens[0])[len(prefix):len(tokens[0])]  # Strip the prefix off the command
             arguments = tokens[1:len(tokens)]
         else:
+            # TODO RAISE COMMAND ERROR
             command = ''
             arguments = []
 
