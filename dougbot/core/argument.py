@@ -9,15 +9,15 @@ TYPE_MAP = {
 TYPE_TO_REGEX = {
     int: r'[-]?\d+',
     str: r'.+',
-    float: r'[-]?(?<![\.\d])[0-9]+(?![\.\d])',
+    float: r'[-]?\d*[.]\d+',
     bool: r'True|False|true|false|0|1'
 }
 
 # TODO ALLOW FOR UNDERSCORES
-_ARG_REGEX = r'<[a-zA-Z]+[0-9]*:(str|int|float|bool)(...)?>'
+ARG_REGEX = r'<[a-zA-Z]+[0-9]*:(str|int|float|bool)(...)?>'
 
-_WHITESPACE_MATCH = r'\s+'
-_WHITESPACE_MATCH_OPTIONAL = r'\s*'
+WHITESPACE_MATCH = r'\s+'
+WHITESPACE_MATCH_OPTIONAL = r'\s*'
 
 
 def to_bool(st):
@@ -26,14 +26,19 @@ def to_bool(st):
         conv = True
     return conv
 
-if __name__ == '__main__':
-    expr = 'hello 5.0 s 5 the'
-    reg = '^' + r'(?=the|hello)' + TYPE_TO_REGEX[float] + TYPE_TO_REGEX[str] + TYPE_TO_REGEX[int] + TYPE_TO_REGEX[str] + '$'
-    #reg = r'(?=the|hello)' + '\s+.+'
+'''if __name__ == '__main__':
+    expr = 'hello 5.0 tree'
+    #reg = r'^(hello|there)\s+\d+\s+.+$'
+    reg = r'^' + _WHITESPACE_MATCH_OPTIONAL + r'(hello|there)' + _WHITESPACE_MATCH + TYPE_TO_REGEX[float] + _WHITESPACE_MATCH + TYPE_TO_REGEX[str] + _WHITESPACE_MATCH_OPTIONAL + '$'
     import re
     p = re.compile(reg)
-    m = p.findall(expr)
-    print(m)
+    m = p.fullmatch(expr)
+    if m is None:
+        print("NO MATCH")
+    else:
+        print(expr[m.start():m.end()])
+        print(m)
+'''
 
 
 class Argument:
@@ -81,11 +86,5 @@ class ArgumentSet:
         space_match = ''
         for arg_class in self.arg_objs:
             arg_set_regex += space_match + arg_class.get_regex()
-            space_match = _WHITESPACE_MATCH
+            space_match = WHITESPACE_MATCH
         return arg_set_regex
-
-
-class Parser:
-
-    def __init__(self):
-        return

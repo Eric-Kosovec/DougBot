@@ -10,7 +10,8 @@ from threading import Thread
 import discord.client
 
 from dougbot.config import Config
-#from dougbot.plugins.plugin import Plugin
+from dougbot.plugins.plugin import Plugin
+from dougbot.core.command import CommandEvent
 
 
 # TODO LOGGING
@@ -79,18 +80,37 @@ class DougBot(discord.Client):
             return
 
         msg = message.content[len(self.config.command_prefix):]
-        match = self._commands_matcher.match(msg)
+        match = self._commands_matcher.fullmatch(msg)
 
         if match is None:
+            print('NO MATCH')
             return
 
-        matched_commands = []
+        commands_triggered = self._get_command_matches(msg)
 
-        for command in self.commands:
-            return
+        # Create a command event
+        # command object created, message object, match object
+        #event = CommandEvent()
+
+        for command, match_obj in commands_triggered:
+            event = CommandEvent(command, message, match_obj)
+
+        #matched_commands = []
+        print('IS A MATCH')
+        #for command in self.commands:
+        #    return
 
         # TODO Run the command
 
+    def _get_command_matches(self, msg):
+        commands = []
+
+        for command in self.commands:
+            match_obj = command.command_matcher.fullmatch(msg)
+            if match_obj is not None:
+                commands.append((command, match_obj))
+
+        return commands
 
     @property
     def commands(self):
@@ -140,10 +160,9 @@ class DougBot(discord.Client):
 
         spacer = ''
         for command in self.commands:
-            commands_regex = commands_regex.join(spacer).join(command.get_regex())
+            commands_regex += spacer + command.get_regex()
             spacer = '|'
 
-        print(commands_regex)
         return commands_regex
 
 

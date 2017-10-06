@@ -1,7 +1,8 @@
 import re
 from enum import Enum
 
-from dougbot.core.parser import ArgumentSet
+import dougbot.core.argument
+from dougbot.core.argument import ArgumentSet
 
 
 class CommandLevel(Enum):
@@ -43,16 +44,21 @@ class Command:
         self._parse_aliases(*args)
         self._parse_arguments(*args)
         self.get_regex()
-        print(self.regex)
+        self.command_matcher = re.compile(self.get_regex())
 
     def get_regex(self):
         if self.regex is not None:
             return self.regex
 
-        # TODO PUT COMMAND ALIASES BEFORE ARGUMENT SET, LIKE
-        # TODO (ALIAS1|ALIAS2) etc
-
-        self.regex = self._argset.get_regex()
+        self.regex = r'('
+        or_expr = r''
+        for alias in self.aliases:
+            self.regex += or_expr + alias
+            or_expr = r'|'
+        argset_regex = self._argset.get_regex()
+        self.regex += r')'
+        if argset_regex is not None and len(argset_regex) > 0:
+            self.regex += dougbot.core.argument.WHITESPACE_MATCH + self._argset.get_regex()
 
         return self.regex
 
@@ -96,5 +102,5 @@ class Command:
 
 class CommandEvent:
 
-    def __init__(self, command, msg):
+    def __init__(self, command, msg, match):
         return

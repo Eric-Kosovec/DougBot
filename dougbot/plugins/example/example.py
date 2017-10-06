@@ -5,13 +5,13 @@ class Example(Plugin):
     def __init__(self):
         super().__init__()
 
-    @Plugin.command('test', '<content:str>', '<love:int>')
-    def test(self):
+    @Plugin.command('test', 'best', '<content:str>', '<love:int>')
+    def test(self, event, cotent, love):
         print("Tested")
         return
 
     @Plugin.command('test2', '<the:float>')
-    def test2(self):
+    def test2(self, event, the):
         print("Test2")
         return
 

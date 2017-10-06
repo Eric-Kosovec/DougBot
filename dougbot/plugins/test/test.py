@@ -8,5 +8,5 @@ class Test(Plugin):
         return
 
     @Plugin.command('Meth')
-    def mymethod(self):
+    def mymethod(self, event):
         return
