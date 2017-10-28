@@ -1,16 +1,16 @@
 import asyncio
+import importlib
+import inspect
 import os
-import atexit
-import socket
+import re
 import sys
+from threading import Thread
 
-import aiohttp
 import discord.client
-from discord import Message, Member
 
 from dougbot.config import Config
-from dougbot.core.exceptions.commanderror import CommandConflictError
-from dougbot.plugins.pluginbase import *
+from dougbot.core.command import CommandEvent
+from dougbot.plugins.plugin import Plugin
 
 
 # TODO LOGGING
@@ -18,30 +18,40 @@ from dougbot.plugins.pluginbase import *
 
 
 class DougBot(discord.Client):
-
     def __init__(self, config_file):
-        self.config = Config(config_file)
-        self.plugins = self._load_plugins()
-        atexit.register(self.cleanup)
-        # self.logger = get_logger()
         super().__init__()
+        self.config = Config(config_file)
+        self.avatar_url = self.config.avatar_url
+        self._cmd_thread = None
+        self._plugins = None
 
-    def run(self):
+        self._load_plugins()
+        self._commands_regex = self._create_commands_regex()
+        self._commands_matcher = re.compile(self._commands_regex)
+
+        # self.logger = get_logger()
+
+    def run(self, *args, **kwargs):
         try:
-            self.loop.run_until_complete(self.start(self.config.token))
-        except discord.errors.LoginFailure:
-            print('Bot could not login. Bad token.')
-        except socket.gaierror:
-            print('Bot could not login. Could not connect to Discord servers.')
-        except aiohttp.errors.ClientOSError:
-            print('Bot could not login. Could not connect to Discord servers.')
-        finally:
-            try:
-                self.cleanup()
-            except Exception as e:
-                print('Cleanup error: %s', e)
-            finally:
-                self.loop.close()
+            # TODO CAUSES ISSUES WITH ASYNCRONOUS SOUND PLAYING
+            # Create thread to read console for exit command.
+            #self._cmd_thread = Thread(target=self._console_cmd_parse, daemon=True)
+            #self._cmd_thread.start()
+
+            # Blocking function that does not return until the bot is done.
+            super().run(*(self.config.token, *args), **kwargs)
+        except Exception as e:
+            print('Exception while running bot: %s' % e)
+            self.cleanup()
+
+    def _console_cmd_parse(self):
+        bot_exit = False
+        while not bot_exit:
+            line = input()
+            if line is not None and line.lower() == 'exit':
+                bot_exit = True
+        self.cleanup()
+        sys.exit(0)
 
     async def on_ready(self):
         print('Bot online')
@@ -49,20 +59,13 @@ class DougBot(discord.Client):
         print('ID: %s' % self.user.id)
         print('-' * (len(self.user.id) + len('ID: ')))
 
-    # Occurs whenever a user changes their voice state
-    async def on_voice_state_update(self, before: Member, after: Member):
-        if before is None or after is None:
+    async def confusion(self, message):
+        if message is None:
             return
+        question_emoji = '❓'  # The Unicode string of the question emoji.
+        await self.add_reaction(message, question_emoji)
 
-        # They left a channel.
-        if before.voice.voice_channel is not None and after.voice.voice_channel is None:
-            voice_channel_left = before.voice.voice_channel
-            bot_voice_client = self.voice_client_in(voice_channel_left.server)
-            # No members left except possibly ourselves, so leave the channel if we are in there.
-            if len(before.voice.voice_channel.voice_members) == 1 and bot_voice_client is not None and bot_voice_client.channel == voice_channel_left:
-                await self.voice_client_in(voice_channel_left.server).disconnect()
-
-    async def on_message(self, message: Message):
+    async def on_message(self, message):
         if message is None:
             return
 
@@ -76,58 +79,42 @@ class DougBot(discord.Client):
         if not message.content.startswith(self.config.command_prefix):
             return
 
-        (command, arguments) = self._parse_command(message.content, self.config.command_prefix)
+        msg = message.content[len(self.config.command_prefix):]
+        match = self._commands_matcher.match(msg)
 
-        try:
-            plugin = self.plugins[command]
-            if plugin is None:
-                await self.confusion(message)
-            else:
-                await plugin.run(command, message, arguments, self)
-        except KeyError:  # Command not in dictionary.
-            await self.confusion(message)
-        except Exception as e:  # Catch any other errors that may occur.
-            await self.confusion(message)
-            print('Error occurred while running command: %s' % e)
-
-    async def confusion(self, message):
-        if message is None:
+        if match is None:
             return
-        question_emoji = '❓'  # The Unicode string of the question emoji.
-        await self.add_reaction(message, question_emoji)
+
+        commands_triggered = self._get_command_matches(msg)
+
+        for command, match_obj in commands_triggered:
+            try:
+                await command.execute(CommandEvent(command, message, msg, match_obj, self))
+            except Exception as e:
+                print('Error in running command %s' % e)
+                await self.confusion(message)
+
+    def _get_command_matches(self, msg):
+        commands = []
+
+        for command in self.commands:
+            match_obj = command.command_matcher.fullmatch(msg)
+            if match_obj is not None:
+                commands.append((command, match_obj))
+
+        return commands
+
+    @property
+    def commands(self):
+        for plugin, mdl in self._plugins.items():
+            for command in mdl.get_commands():
+                yield command
 
     def cleanup(self):
-        print('cleanup')
-        try:
-            done = set()  # Need to track done programs, as a program can have multiple names
-            for name, prog in self.plugins.items():
-                if prog not in done and hasattr(prog, 'cleanup'):
-                    print('%s has cleanup' % name)
-                    prog.cleanup()
-                    done.add(prog)
+        if not self.loop.is_closed():
+            asyncio.run_coroutine_threadsafe(self.logout(), self.loop)
 
-            self.loop.run_until_complete(self._logout())
-
-            pending = asyncio.Task.all_tasks(self.loop)
-            gathered = asyncio.gather(*pending, self.loop)
-
-            gathered.cancel()
-            self.loop.run_until_complete(gathered)
-            gathered.exception()
-        except Exception as e:
-            print('Ignored Exception in cleanup: %s' % e)
-            pass  # Ignore any exceptions
-
-    async def _logout(self):
-        await self._disconnect_voice_clients()
-        await super().logout()
-
-    async def _disconnect_voice_clients(self):
-        for vc in self.voice_clients:
-            await vc.disconnect()
-
-    @staticmethod
-    def _load_plugins():
+    def _load_plugins(self):
         # Generate portable pathway to plugins
         plugin_dir = os.path.dirname(os.path.dirname(__file__))
         plugin_dir = os.path.join(plugin_dir, 'plugins')
@@ -135,45 +122,38 @@ class DougBot(discord.Client):
         # Add plugin package to where the system looks for files.
         sys.path.append(plugin_dir)
 
-        plugins = {}
+        if self._plugins is None:
+            self._plugins = {}
 
-        # Go through every file in the plugins folder
-        for plugin in os.listdir(plugin_dir):
-            if plugin.endswith('.py') and not plugin == 'example.py' and not plugin == 'pluginbase.py':
-                plugin_name = plugin.split('.')[0].lower()
-                # Import the plugin module
-                prog = __import__(str(plugin_name))
-
-                # If the plugin wants to be known by other names, use those names instead.
-                if hasattr(prog, 'ALIASES') and len(prog.ALIASES) > 0:
-                    for alias in prog.ALIASES:
-                        norm_alias = alias.lower()
-
-                        if norm_alias in plugins:
-                            raise CommandConflictError(plugins[norm_alias], norm_alias)
-
-                        plugins[norm_alias] = prog
-                else:
-                    if plugin_name in plugins:
-                        raise CommandConflictError(plugins[plugin_name], plugin_name)
-                    plugins[plugin_name] = prog
+        # Search each element within the plugins folder.
+        for package in os.listdir(plugin_dir):
+            package_dir = os.path.join(plugin_dir, package)
+            # Base module of plugin is 'name of package.py'
+            if os.path.isdir(package_dir) and package + '.py' in os.listdir(package_dir):
+                prog = importlib.import_module('dougbot.plugins.' + package + '.' + package)
+                # Find all subclasses of Plugin
+                for attr_str in dir(prog):
+                    attr = getattr(prog, attr_str)
+                    if inspect.isclass(attr) and issubclass(attr, Plugin) and not attr == Plugin:
+                        plugin_instance = attr()
+                        plugin_instance.bot = self
+                        plugin_name = plugin_instance.__class__.__name__
+                        if plugin_name in self._plugins.keys():
+                            raise Exception('Plugin %s from %s was already added or shares names with %s'
+                                            % (plugin_name, type(plugin_instance), self._plugins[plugin_name]))
+                        self._plugins[plugin_instance.__class__.__name__] = plugin_instance
 
         sys.path.remove(plugin_dir)
 
-        return plugins
+    def _create_commands_regex(self):
+        commands_regex = ''
 
-    @staticmethod
-    def _parse_command(message: str, prefix: str):
-        if message is not None and prefix is not None and message.startswith(prefix):
-            tokens = message.split()
-            command = (tokens[0])[len(prefix):len(tokens[0])]  # Strip the prefix off the command
-            arguments = tokens[1:len(tokens)]
-        else:
-            # TODO RAISE COMMAND ERROR
-            command = ''
-            arguments = []
+        spacer = ''
+        for command in self.commands:
+            commands_regex += spacer + command.get_regex()
+            spacer = '|'
 
-        return command, arguments
+        return commands_regex
 
 
 if __name__ == '__main__':
