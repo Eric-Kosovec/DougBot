@@ -2,11 +2,9 @@ from dougbot.plugins.plugin import Plugin
 
 
 class Example(Plugin):
-    def __init__(self):
-        super().__init__()
 
-    @Plugin.command('test', 'best', '<content:str>', '<love:int>')
-    def test(self, event, cotent, love):
+    @Plugin.command('test', 'best', '<content:str>')
+    def test(self, event, content):
         print("Tested")
         return
 
@@ -14,7 +12,3 @@ class Example(Plugin):
     def test2(self, event, the):
         print("Test2")
         return
-
-
-if __name__ == '__main__':
-    ex = Example()

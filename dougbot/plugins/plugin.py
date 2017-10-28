@@ -14,6 +14,7 @@ class PluginDecor:
         def wrapper(func):
             cls._append_element(func, 'command', *args, **kwargs)
             return func
+
         return wrapper
 
     @classmethod
@@ -21,6 +22,7 @@ class PluginDecor:
         def wrapper(func):
             cls._append_element(func, 'listen', *args, **kwargs)
             return func
+
         return wrapper
 
     @classmethod
@@ -39,6 +41,7 @@ class Plugin(PluginDecor):
     def __init__(self):
         super().__init__()
 
+        self.bot = None
         self._commands = []
         self.listeners = []
 
@@ -48,10 +51,6 @@ class Plugin(PluginDecor):
             if hasattr(func, _PLUGIN_ELEMENT_VAR):
                 for element in getattr(func, _PLUGIN_ELEMENT_VAR):
                     self._delegate_element(element, func)
-
-        #for command in self.commands:
-        #    print(command)
-        #    print()
 
     def get_commands(self):
         for command in self._commands:
@@ -69,6 +68,3 @@ class Plugin(PluginDecor):
 
     def _add_command(self, func, *args, **kwargs):
         self._commands.append(Command(self, func, *args, **kwargs))
-
-    def print_commands(self):
-        print([i for i in self._commands])
