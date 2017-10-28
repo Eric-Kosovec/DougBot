@@ -127,6 +127,9 @@ class DougBot(discord.Client):
 
         # Search each element within the plugins folder.
         for package in os.listdir(plugin_dir):
+            if package == 'example':
+                continue
+
             package_dir = os.path.join(plugin_dir, package)
             # Base module of plugin is 'name of package.py'
             if os.path.isdir(package_dir) and package + '.py' in os.listdir(package_dir):
