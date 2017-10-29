@@ -88,13 +88,20 @@ class SoundPlayer(Plugin):
         #response.set_thumbnail(url=event.bot.avatar_url)
 
         clips = self._get_clipslist()
+
+        i = 0
         msg = ''
+        msg += ('-' * 60) + '\n'
         for clip in clips:
-            msg += clip + '\n'
-
+            msg += clip
+            msg += ' ' * (40 - len(clip) * 2)
+            i += 1
+            if i == 3:
+                msg += '\n'
+                i = 0
+        msg += 'a' + '\n'
         await event.reply(msg)
-
-        #response.add_field(name='Sound Clips', value=table)
+        #response.add_field(name='Sound Clips', value=msg)
         #response.set_footer(text='Play clip using command d!sb clipnamehere')
         #await event.reply(embed=response)
 

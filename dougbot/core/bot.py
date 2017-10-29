@@ -158,5 +158,5 @@ class DougBot(discord.Client):
 
 
 if __name__ == '__main__':
-    dougbot = DougBot('../config/config.ini')
+    dougbot = DougBot('../../config/config.ini')
     dougbot.run()
