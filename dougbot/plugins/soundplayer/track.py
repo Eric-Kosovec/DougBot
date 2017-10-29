@@ -21,7 +21,11 @@ class Track:
 
     @staticmethod
     def _create_path(audio, clip_base):
-        return os.path.join(clip_base, f'{audio}.mp3')
+        for directory in os.listdir(clip_base):
+            if '.' not in directory:
+                if f'{audio}.mp3' in os.listdir(os.path.join(clip_base, directory)):
+                    return os.path.join(clip_base, directory, f'{audio}.mp3')
+        return None
 
     @staticmethod
     def _is_link(audio):
