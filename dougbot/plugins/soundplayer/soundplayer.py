@@ -82,18 +82,21 @@ class SoundPlayer(Plugin):
 
     @Plugin.command('clips')
     async def clipslist(self, event):
-        # TODO
-        print('HERE')
         # List of clips can use
-        response = discord.Embed(color=0x8B0000, icon_url=event.bot.avatar_url)
-        response.set_author(name='A Sad Doug', icon_url=event.bot.avatar_url)
+        #response = discord.Embed(color=0x8B0000, icon_url=event.bot.avatar_url)
+        #response.set_author(name='A Sad Doug', icon_url=event.bot.avatar_url)
         #response.set_thumbnail(url=event.bot.avatar_url)
 
         clips = self._get_clipslist()
+        msg = ''
+        for clip in clips:
+            msg += clip + '\n'
+
+        await event.reply(msg)
 
         #response.add_field(name='Sound Clips', value=table)
-        response.set_footer(text='Play clip using command d!sb clipnamehere')
-        event.reply(embed=response)
+        #response.set_footer(text='Play clip using command d!sb clipnamehere')
+        #await event.reply(embed=response)
 
     def _get_clipslist(self):
         clips = []
@@ -189,9 +192,8 @@ class SoundPlayer(Plugin):
 
     def _get_player(self, vc, track):
         if not track.is_link:
-            print(track.path)
             player = vc.create_ffmpeg_player(track.path, after=self._soundplayer_finished)
         else:
             player = vc.create_ytdl_player(track.audio, after=self._soundplayer_finished)
-        player.volume = self.volume
+        #player.volume = self.volume
         return player

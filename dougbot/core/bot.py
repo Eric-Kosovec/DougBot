@@ -146,8 +146,6 @@ class DougBot(discord.Client):
                                             % (plugin_name, type(plugin_instance), self._plugins[plugin_name]))
                         self._plugins[plugin_instance.__class__.__name__] = plugin_instance
 
-        sys.path.remove(plugin_dir)
-
     def _create_commands_regex(self):
         commands_regex = ''
 
