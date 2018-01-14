@@ -4,7 +4,6 @@ import inspect
 import os
 import re
 import sys
-from threading import Thread
 
 import discord.client
 
@@ -33,25 +32,11 @@ class DougBot(discord.Client):
 
     def run(self, *args, **kwargs):
         try:
-            # TODO CAUSES ISSUES WITH ASYNCRONOUS SOUND PLAYING
-            # Create thread to read console for exit command.
-            #self._cmd_thread = Thread(target=self._console_cmd_parse, daemon=True)
-            #self._cmd_thread.start()
-
             # Blocking function that does not return until the bot is done.
             super().run(*(self.config.token, *args), **kwargs)
         except Exception as e:
             print('Exception while running bot: %s' % e)
             self.cleanup()
-
-    def _console_cmd_parse(self):
-        bot_exit = False
-        while not bot_exit:
-            line = input()
-            if line is not None and line.lower() == 'exit':
-                bot_exit = True
-        self.cleanup()
-        sys.exit(0)
 
     async def on_ready(self):
         print('Bot online')
@@ -83,6 +68,7 @@ class DougBot(discord.Client):
         match = self._commands_matcher.match(msg)
 
         if match is None:
+            await self.confusion(message)
             return
 
         commands_triggered = self._get_command_matches(msg)
@@ -94,16 +80,6 @@ class DougBot(discord.Client):
                 print('Error in running command %s' % e)
                 await self.confusion(message)
 
-    def _get_command_matches(self, msg):
-        commands = []
-
-        for command in self.commands:
-            match_obj = command.command_matcher.fullmatch(msg)
-            if match_obj is not None:
-                commands.append((command, match_obj))
-
-        return commands
-
     @property
     def commands(self):
         for plugin, mdl in self._plugins.items():
@@ -113,6 +89,16 @@ class DougBot(discord.Client):
     def cleanup(self):
         if not self.loop.is_closed():
             asyncio.run_coroutine_threadsafe(self.logout(), self.loop)
+
+    def _get_command_matches(self, msg):
+        commands = []
+
+        for command in self.commands:
+            match_obj = command.command_matcher.fullmatch(msg)
+            if match_obj is not None:
+                commands.append((command, match_obj))
+
+        return commands
 
     def _load_plugins(self):
         # Generate portable pathway to plugins
