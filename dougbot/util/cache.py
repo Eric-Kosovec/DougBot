@@ -21,17 +21,6 @@ class LRUCache:
             self._evict()
         self._cache[key] = self._Node(value)
 
-    def _evict(self):
-        lru_key = None
-        lru_time = None
-
-        for key in self._cache.keys():
-            if lru_key is None or self._cache[key].time_used < lru_time:
-                lru_time = self._cache[key].time_used
-                lru_key = key
-
-        self.remove(lru_key)
-
     def get(self, key):
         try:
             node = self._cache[key]
@@ -49,3 +38,20 @@ class LRUCache:
 
     def size(self):
         return len(self._cache)
+
+    def _evict(self):
+        lru_key = None
+        lru_time = None
+
+        for key in self._cache.keys():
+            if lru_key is None or self._cache[key].time_used < lru_time:
+                lru_time = self._cache[key].time_used
+                lru_key = key
+
+        self.remove(lru_key)
+
+    def __getitem__(self, item):
+        return self.get(item)
+
+    def __len__(self):
+        return self.size()

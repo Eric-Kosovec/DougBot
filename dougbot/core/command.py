@@ -1,10 +1,8 @@
-import asyncio
-import inspect
-import re
 from enum import Enum
 
-import dougbot.core.argument
+import dougbot.core.argument as argument
 from dougbot.core.argument import ArgumentSet
+from dougbot.util.customargparse import NoErrorMessageArgumentParser
 
 
 class CommandLevel(Enum):
@@ -15,130 +13,126 @@ class CommandLevel(Enum):
     NULL = 1
 
 
-_ARG_REGEX = r'<[a-zA-Z]+[0-9]*([_]*[a-zA-Z]*[0-9]*)*:(str|int|float|bool)(...)?>'
-_ALIAS_REGEX = r'[a-zA-Z]+[0-9]*'
-_argument_match = re.compile(_ARG_REGEX)
-_alias_match = re.compile(_ALIAS_REGEX)
-
-
 class CommandError(Exception):
+
     def __init__(self, msg):
         self.msg = msg
 
 
 class Command:
-    _DEFAULT_LEVEL = CommandLevel.USER
+
+    _PARSER_PROG_NAME = 'COMMAND'
+    _PARSER_COMMAND_ARG_NAME = 'command_name'
+    _ARG_NAME = 'arg'
 
     def __init__(self, plugin, func, *args, **kwargs):
         self.plugin = plugin
         self.func = func
         self.args = args
         self.kwargs = kwargs
-        self.level = CommandLevel.NULL
-        self.regex = None
-        self.aliases = []
-        self.argset = None
 
-        self._set_level(**kwargs)
-
-        # Parse arguments, kwargs
-        self._parse_aliases(*args)
-        self._parse_arguments(*args)
-        self.get_regex()
-        self.command_matcher = re.compile(self.get_regex())
-
-    def get_regex(self):
-        if self.regex is not None:
-            return self.regex
-
-        self.regex = r'('
-        or_expr = r''
-        for alias in self.aliases:
-            self.regex += or_expr + alias
-            or_expr = r'|'
-        argset_regex = self.argset.get_regex()
-        self.regex += r')'
-        if argset_regex and len(argset_regex) > 0:
-            self.regex += dougbot.core.argument.WHITESPACE_MATCH + self.argset.get_regex()
-
-        return self.regex
+        self.aliases, args_start = self._parse_aliases(*args)
+        self.argset = self._parse_arguments(args_start, *args)
+        self.parser = self._create_parser(self.aliases, self.argset)
 
     async def execute(self, event):
-        # Grab each argument and send it to the function
-        sig = inspect.signature(self.func)
+        await self.func(event, *event.args)
 
-        args = ()
-        first = True
-        for parameter in sig.parameters.keys():
+    def is_match(self, message):
+        if message is None:
+            return False
+
+        try:
+            result = self.parser.parse_args(message.split())
+        except SystemExit:
+            result = None
+
+        if result is None:
+            return False
+
+        return True
+
+    def extract_arguments(self, message):
+        if not self.is_match(message):
+            return {}
+
+        args = self.parser.parse_args(message.split())
+
+        argcount = 0
+
+        arglist = []
+
+        args = vars(args)
+
+        while True:
             try:
-                if first:
-                    first = False
-                    continue
-                args = (*args, event.args[parameter])
-            except KeyError as e:
-                print('Error in getting parameter from parsed arguments: %s' % e)
-                # TODO
-
-        await self.func(event, *args)
-
-    def _parse_arguments(self, *args):
-        arguments = []
-        for arg in args:
-            if _argument_match.match(arg) is not None:
-                arguments.append(arg)
-        self.argset = ArgumentSet(arguments)
-
-    def _parse_aliases(self, *args):
-        for arg in args:
-            # If not an argument, must be an alias
-            if _alias_match.match(arg) is not None:
-                self.aliases.append(arg)
-
-    def _set_level(self, **kwargs):
-        if 'level' in kwargs.keys():
-            try:
-                self.level = CommandLevel[kwargs['level'].upper()]
+                arglist.append(args[f'{self._ARG_NAME}{argcount}'])
+                argcount += 1
             except KeyError:
-                # TODO
-                pass
-        else:
-            self.level = self._DEFAULT_LEVEL
+                break
 
-    def __str__(self):
-        as_str = 'Plugin: ' + str(self.plugin) + '\n'
-        as_str += 'Function: ' + str(self.func) + '\n'
-        as_str += 'Args: '
-        for arg in self.args:
-            as_str += str(arg) + ' '
-        as_str += '\nKwargs: '
-        for tupl in self.kwargs.items():
-            as_str += str(tupl) + ' '
-        return as_str
+        return arglist
+
+    def _create_parser(self, aliases, argset):
+        parser = NoErrorMessageArgumentParser(prog=self._PARSER_PROG_NAME)
+
+        # First required argument will be one of the command's aliases
+        parser.add_argument(self._PARSER_COMMAND_ARG_NAME, nargs=1, choices=aliases)
+
+        argcount = 0
+
+        for arg in argset:
+            kwargs = {'type': arg.type}
+            if arg.required:
+                kwargs['nargs'] = '?'
+                kwargs['default'] = None
+            parser.add_argument(f'{self._ARG_NAME}{argcount}', **kwargs)
+            argcount += 1
+
+        return parser
+
+    @staticmethod
+    def _parse_arguments(args_start, *args):
+        if args_start <= 0 or args is None:
+            return None
+
+        return ArgumentSet(args[args_start:])
+
+    @staticmethod
+    def _parse_aliases(*args):
+        if args is None:
+            return []
+
+        end = 0
+
+        if len(args) > 0 and type(args[0]) == list:
+            return args[0], end + 1
+
+        aliases = []
+
+        for arg in args:
+            if arg not in argument.ARGUMENTS:
+                end += 1
+                aliases.append(arg)
+            else:
+                break
+
+        return aliases, end
 
 
 class CommandEvent:
-    def __init__(self, command, message, content, match, bot):
-        self.command = command
-        self.message = message
-        self.content = content
-        self.match = match
+
+    def __init__(self, bot, command, args, message):
         self.bot = bot
-        self.args = command.argset.parse(content)
+        self.event_loop = self.bot.loop
+        self.command = command  # Command class of the initiated command
+        self.args = args  # Raw arguments given to the command
+        self.message = message  # Discord message object that initiated the command
+        self.channel = self.message.channel
+        self.author = self.message.author
+        self.server = self.message.server
 
-    def author(self):
-        return self.message.author
-
-    def bot(self):
-        return self.bot
-
-    def channel(self):
-        return self.message.channel
-
-    def server(self):
-        return self.message.server
-
-    async def reply(self, content=None, **kwargs):
-        await self.send_message(self.message.channel, content, **kwargs)
-
-    async def send_message(self, destination, content=None, **kwargs):
-        await self.bot.send_message(destination, content, **kwargs)
+    async def reply(self, message):
+        if not message:
+            return
+        await self.bot.send_message(self.channel, message)

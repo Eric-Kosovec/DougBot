@@ -5,7 +5,7 @@ class Links(Plugin):
 
     _SDT_LINK = 'https://cytu.be/r/SadDoug'
 
-    @Plugin.command('sdt', 'theater', 'saddougtheater', 'cytube')
+    @Plugin.command('sdt', 'cytube')
     async def theater_link(self, event):
         await event.reply(self._SDT_LINK)
 
