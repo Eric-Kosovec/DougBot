@@ -1,10 +1,8 @@
 import Lib.enum as enum
 import inspect
-import argparse
 
-from dougbot.core.command import Command
+from dougbot.core.command import Command, CommandSpecError
 from dougbot.core.listener import Listener
-
 
 _PLUGIN_ELEMENT_ATTR = '_dougbot_plugin_element'
 
@@ -37,6 +35,9 @@ class _PluginDecor:
 
     @classmethod
     def _append_element(cls, func, element_type, *args, **kwargs):
+        if cls is None or func is None or element_type is None or args is None or kwargs is None:
+            return
+
         if not hasattr(func, _PLUGIN_ELEMENT_ATTR):
             func._dougbot_plugin_element = []
 
@@ -80,7 +81,10 @@ class Plugin(_PluginDecor):
             self._add_listener(func, *element['args'], **element['kwargs'])
 
     def _add_command(self, func, *args, **kwargs):
-        self._commands.append(Command(self, func, *args, **kwargs))
+        try:
+            self._commands.append(Command(self, func, *args, **kwargs))
+        except CommandSpecError as e:
+            print(f'Error in command \'{func}\' specification: {e}')
 
     def _add_listener(self, func, *args, **kwargs):
         self._listeners.append(Listener(self, func, *args, **kwargs))

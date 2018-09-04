@@ -7,7 +7,8 @@ import sys
 import discord.client
 
 from dougbot.config import Config
-from dougbot.core.command import CommandEvent
+from dougbot.core.command import CommandEvent, CommandError
+from dougbot.core.commandparser import CommandParser
 from dougbot.plugins.plugin import Plugin
 
 
@@ -23,8 +24,12 @@ class DougBot(discord.Client):
 
         # Dictionary of plugin name to Plugin class instance
         self._plugins = self._load_plugins()
-        self.commands = self._command_list()
-        self.listeners = self._listener_list()
+        self._commands = self._command_list()
+        self._listeners = self._listener_list()
+        self._command_parser = CommandParser()
+
+        for command in self._commands:
+            self._command_parser.add_command(command)
 
         # self.logger = get_logger()
 
@@ -56,44 +61,32 @@ class DougBot(discord.Client):
     async def on_message(self, message):
         await self.wait_until_ready()
 
-        if not message or message.author.bot or not message.content.startswith(self.command_prefix):
+        if message is None or message.author is None or \
+                message.author.bot is None or not message.content.startswith(self.command_prefix):
             return
 
-        import threading
-        print(f'on_message: {threading.currentThread}')
-        raw_msg = message.content[len(self.command_prefix):].strip()
+        normalized_message = message.content[len(self.command_prefix):].strip()
 
-        for command, args in self._get_matching_commands(raw_msg):
+        matches = self._command_parser.parse_args(normalized_message)
+
+        if matches is None or len(matches) <= 0:
+            print(f'Command \'{normalized_message}\' does not match a command')
+            await self.confusion(message)
+            return
+
+        for match in matches:
             try:
+                command = match[0]  # command
+                args = match[1]  # arguments to command from user
                 await command.execute(CommandEvent(self, command, args, message))
-            except Exception as e:
-                print(f'Error in running command {e}')
+            except CommandError as e:
+                print(f'Error in running command \'{command.aliases}\': {e}')
                 await self.confusion(message)
-
-    async def on_message_delete(self, message):
-        return
 
     def cleanup(self):
         # TODO MAKE SURE THIS WORKS
         if not self.loop.is_closed():
             asyncio.run_coroutine_threadsafe(self.logout(), self.loop)
-
-    def _find_waiting_listeners(self):
-        listeners = []
-
-        # TODO
-        for listener in self.listeners:
-            break
-
-        return listeners
-
-    def _get_matching_commands(self, msg):
-        if msg is None:
-            return []
-
-        for command in self.commands:
-            if command.is_match(msg):
-                yield command, command.extract_arguments(msg)
 
     def _command_list(self):
         commands = []

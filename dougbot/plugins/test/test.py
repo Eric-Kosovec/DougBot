@@ -8,6 +8,6 @@ class Test(Plugin):
     def __init__(self):
         super().__init__()
 
-    @Plugin.command('test', )
+    @Plugin.command('test')
     async def print_test_message(self, event):
         await event.reply(self._TEST_MESSAGE)

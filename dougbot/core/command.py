@@ -1,8 +1,8 @@
+import inspect
 from enum import Enum
 
-import dougbot.core.argument as argument
-from dougbot.core.argument import ArgumentSet
-from dougbot.util.customargparse import NoErrorMessageArgumentParser
+from dougbot.core import argument
+from dougbot.core.argument import Argument
 
 
 class CommandLevel(Enum):
@@ -19,105 +19,116 @@ class CommandError(Exception):
         self.msg = msg
 
 
-class Command:
+class CommandSpecError(CommandError):
 
-    _PARSER_PROG_NAME = 'COMMAND'
-    _PARSER_COMMAND_ARG_NAME = 'command_name'
-    _ARG_NAME = 'arg'
+    def __init__(self, msg):
+        super().__init__(msg)
+
+
+class Command:
 
     def __init__(self, plugin, func, *args, **kwargs):
         self.plugin = plugin
         self.func = func
         self.args = args
         self.kwargs = kwargs
+        self.aliases, arg_start = self._parse_aliases(*args)
 
-        self.aliases, args_start = self._parse_aliases(*args)
-        self.argset = self._parse_arguments(args_start, *args)
-        self.parser = self._create_parser(self.aliases, self.argset)
+        if len(self.aliases) <= 0:
+            raise CommandSpecError('Command requires at least one alias')
+
+        self.arguments = self._parse_arguments(arg_start, self._get_optional_list(self.func), *args)
 
     async def execute(self, event):
-        await self.func(event, *event.args)
-
-    def is_match(self, message):
-        if message is None:
-            return False
-
         try:
-            result = self.parser.parse_args(message.split())
-        except SystemExit:
-            result = None
-
-        if result is None:
-            return False
-
-        return True
-
-    def extract_arguments(self, message):
-        if not self.is_match(message):
-            return {}
-
-        args = self.parser.parse_args(message.split())
-
-        argcount = 0
-
-        arglist = []
-
-        args = vars(args)
-
-        while True:
-            try:
-                arglist.append(args[f'{self._ARG_NAME}{argcount}'])
-                argcount += 1
-            except KeyError:
-                break
-
-        return arglist
-
-    def _create_parser(self, aliases, argset):
-        parser = NoErrorMessageArgumentParser(prog=self._PARSER_PROG_NAME)
-
-        # First required argument will be one of the command's aliases
-        parser.add_argument(self._PARSER_COMMAND_ARG_NAME, nargs=1, choices=aliases)
-
-        argcount = 0
-
-        for arg in argset:
-            kwargs = {'type': arg.type}
-            if arg.required:
-                kwargs['nargs'] = '?'
-                kwargs['default'] = None
-            parser.add_argument(f'{self._ARG_NAME}{argcount}', **kwargs)
-            argcount += 1
-
-        return parser
+            await self.func(event, *event.args)
+        except Exception as e:
+            raise CommandError(e)
 
     @staticmethod
-    def _parse_arguments(args_start, *args):
-        if args_start <= 0 or args is None:
-            return None
+    def _get_optional_list(func):
+        optional_list = []
 
-        return ArgumentSet(args[args_start:])
+        skip = True
+
+        function_sig = inspect.signature(func)
+
+        for parameter in function_sig.parameters:
+            if skip:  # Skip over first parameter, which is a place for the CommandEvent object
+                skip = False
+                continue
+            optional_list.append(function_sig.parameters[parameter].default != inspect.Parameter.empty)
+
+        return optional_list
+
+    @staticmethod
+    def _parse_arguments(args_start, arg_optional, *args):
+        if args_start is None or arg_optional is None or args is None:
+            raise CommandError('Parse arguments was given None')
+        if args_start < 0:
+            raise CommandError('Argument start was negative')
+
+        if args_start >= len(args):  # There were only aliases
+            return []
+        if len(args) - args_start > len(arg_optional):
+            raise CommandSpecError('More types than parameters')
+        elif len(args) - args_start < len(arg_optional):
+            raise CommandSpecError('More parameters than types')
+
+        argument_list = []
+
+        for i in range(args_start, len(args)):
+            try:
+                argument_list.append(Argument(args[i], arg_optional[i - args_start]))
+            except TypeError as e:
+                raise CommandError(f'Invalid argument specification for command: {e}')
+
+        saw_optional_arg = False
+        saw_string = False
+        # Check the arguments are well-formed to specification
+        for i in range(len(argument_list)):
+            # Make sure optional arguments follow non-optional arguments
+            if argument_list[i].optional:
+                saw_optional_arg = True
+            elif saw_optional_arg:
+                raise CommandSpecError('Non-optional argument follows optional argument')
+
+            # Make sure strings are at the end and only one of them
+            if argument_list[i].arg_type == str and saw_string:
+                raise CommandSpecError('Only one string allowed. Must do your own parsing of the string.')
+            elif argument_list[i].arg_type == str:
+                saw_string = True
+            if saw_string and argument_list[i].arg_type != str:
+                raise CommandSpecError('String can only be at the end of the specification')
+
+        return argument_list
 
     @staticmethod
     def _parse_aliases(*args):
         if args is None:
-            return []
+            raise CommandError("Command's argument list is None")
 
-        end = 0
+        given_alias_list = False  # Indicate if the aliases are within a list
+        given_aliases = args
 
         if len(args) > 0 and type(args[0]) == list:
-            return args[0], end + 1
+            given_aliases = args[0]
+            given_alias_list = True
 
-        aliases = []
+        alias_list = []
 
-        for arg in args:
-            if arg not in argument.ARGUMENTS:
-                end += 1
-                aliases.append(arg)
+        for alias in given_aliases:
+            if alias not in argument.VALID_ARGUMENTS:
+                alias_list.append(alias)
+            elif given_alias_list:
+                raise CommandSpecError('Each alias in the list given must be valid')
             else:
                 break
 
-        return aliases, end
+        if given_alias_list:
+            return alias_list, 1
+
+        return alias_list, len(alias_list)
 
 
 class CommandEvent:
@@ -133,6 +144,5 @@ class CommandEvent:
         self.server = self.message.server
 
     async def reply(self, message):
-        if not message:
-            return
-        await self.bot.send_message(self.channel, message)
+        if message is not None:
+            await self.bot.send_message(self.channel, message)
