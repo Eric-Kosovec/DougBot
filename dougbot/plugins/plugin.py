@@ -7,6 +7,12 @@ from dougbot.core.listener import Listener
 _PLUGIN_ELEMENT_ATTR = '_dougbot_plugin_element'
 
 
+class PluginError(Exception):
+
+    def __init__(self, msg):
+        super().__init__(msg)
+
+
 class _PluginElementType(enum.Enum):
     COMMAND = 'command'
     LISTENER = 'listener'

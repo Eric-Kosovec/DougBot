@@ -8,6 +8,6 @@ class Test(Plugin):
     def __init__(self):
         super().__init__()
 
-    @Plugin.command('test')
-    async def print_test_message(self, event):
-        await event.reply(self._TEST_MESSAGE)
+    @Plugin.command('test', int, float)
+    async def print_test_message(self, event, i, f=5.0):
+        await event.reply(f'int is {i}; float is {f}')

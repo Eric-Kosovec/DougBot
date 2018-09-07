@@ -17,7 +17,7 @@ class SoundPlayer(Plugin):
 
     def __init__(self):
         super().__init__()
-        self.path_cache = LRUCache(10)
+        self.path_cache = LRUCache(15)
         self.sound_queue = Queue()
         self.play_lock = None
         self.first_play = True
@@ -48,11 +48,13 @@ class SoundPlayer(Plugin):
 
         # TODO CLEANUP
 
-        self.play_lock.release()
-        self.play_lock = None
+        if self.play_lock is not None:
+            self.play_lock.release()
+            self.play_lock = None
 
-        await self.voice.disconnect()
-        self.voice = None
+        if self.voice is not None:
+            await self.voice.disconnect()
+            self.voice = None
 
         if self.player is not None:
             self.player.stop()
@@ -80,36 +82,49 @@ class SoundPlayer(Plugin):
 
         await self._play_top_track()
 
-    @Plugin.command(['volume'], int)
+    @Plugin.command('volume', int)
     async def volume(self, event, volume):
         self.volume = max(0.0, min(100.0, float(volume))) / 100.0
-        try:  # TODO MIGHT BRING A RACE CONDITION, SO JUST IGNORE VOLUME CHANGE IF THIS HAPPENS
+        try:  # Might bring a race condition, so just ignore volume change if this occurs. Doesn't really matter.
             if self.player is not None:
                 self.player.volume = self.volume
         except AttributeError:
             pass
 
-    @Plugin.command(['stop'])
+    @Plugin.command('stop')
     async def stop(self, event):
         self.sound_queue.clear()
-        if self.player is not None:
-            self.player.stop()
-        await self.leave(event)
+        try:
+            if self.player is not None:
+                self.player.stop()
+        except AttributeError:
+            pass
+        finally:
+            await self.leave(event)
 
-    @Plugin.command(['pause'])
+    @Plugin.command('pause')
     async def pause(self):
-        if self.player is not None:
-            self.player.pause()
+        try:
+            if self.player is not None:
+                self.player.pause()
+        except AttributeError:
+            pass
 
-    @Plugin.command(['resume'])
+    @Plugin.command('resume')
     async def resume(self):
-        if self.player is not None:
-            self.player.resume()
+        try:
+            if self.player is not None:
+                self.player.resume()
+        except AttributeError:
+            pass
 
-    @Plugin.command(['skip'])
+    @Plugin.command('skip')
     async def skip(self, event):
-        if self.player is not None:
-            self.player.stop()
+        try:
+            if self.player is not None:
+                self.player.stop()
+        except AttributeError:
+            pass
 
     @Plugin.command(['list', 'clips'])
     async def clipslist(self, event):
@@ -162,10 +177,10 @@ class SoundPlayer(Plugin):
         if vc is None or track is None:
             return None
 
-        if not track.is_link():
-            player = vc.create_ffmpeg_player(track.get_source(), after=self._soundplayer_finished)
+        if not track.is_link:
+            player = vc.create_ffmpeg_player(track.src, after=self._soundplayer_finished)
         else:
-            player = await vc.create_ytdl_player(track.get_source(), after=self._soundplayer_finished)
+            player = await vc.create_ytdl_player(track.src, after=self._soundplayer_finished)
 
         return player
 

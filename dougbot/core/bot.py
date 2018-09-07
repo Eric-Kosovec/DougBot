@@ -12,9 +12,6 @@ from dougbot.core.commandparser import CommandParser
 from dougbot.plugins.plugin import Plugin
 
 
-# TODO LOGGING
-
-
 class DougBot(discord.Client):
 
     def __init__(self, config_file):
@@ -22,16 +19,12 @@ class DougBot(discord.Client):
         self.config = Config(config_file)
         self.command_prefix = self.config.command_prefix
 
-        # Dictionary of plugin name to Plugin class instance
-        self._plugins = self._load_plugins()
+        # TODO PROTECT SYSTEM DIRECTORIES FROM PLUGINS - CROSS-PLATFORM
+
+        self._plugins = self._load_plugins()  # Dictionary of plugin name to Plugin class instance
         self._commands = self._command_list()
         self._listeners = self._listener_list()
-        self._command_parser = CommandParser()
-
-        for command in self._commands:
-            self._command_parser.add_command(command)
-
-        # self.logger = get_logger()
+        self._command_parser = CommandParser(self._commands)
 
     def run(self, *args, **kwargs):
         try:
@@ -61,8 +54,8 @@ class DougBot(discord.Client):
     async def on_message(self, message):
         await self.wait_until_ready()
 
-        if message is None or message.author is None or \
-                message.author.bot is None or not message.content.startswith(self.command_prefix):
+        if message is None or message.author is None or message.author.bot is None \
+                or not message.content.startswith(self.command_prefix):
             return
 
         normalized_message = message.content[len(self.command_prefix):].strip()
@@ -70,7 +63,7 @@ class DougBot(discord.Client):
         matches = self._command_parser.parse_args(normalized_message)
 
         if matches is None or len(matches) <= 0:
-            print(f'Command \'{normalized_message}\' does not match a command')
+            print(f"Command '{normalized_message}' does not match a command")
             await self.confusion(message)
             return
 
@@ -80,7 +73,7 @@ class DougBot(discord.Client):
                 args = match[1]  # arguments to command from user
                 await command.execute(CommandEvent(self, command, args, message))
             except CommandError as e:
-                print(f'Error in running command \'{command.aliases}\': {e}')
+                print(f"Error in running command '{command.aliases}': {e}")
                 await self.confusion(message)
 
     def cleanup(self):
