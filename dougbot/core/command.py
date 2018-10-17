@@ -142,7 +142,3 @@ class CommandEvent:
         self.channel = self.message.channel
         self.author = self.message.author
         self.server = self.message.server
-
-    async def reply(self, message):
-        if message is not None:
-            await self.bot.send_message(self.channel, message)

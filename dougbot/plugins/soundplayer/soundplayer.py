@@ -3,9 +3,9 @@ import subprocess
 from asyncio.locks import Semaphore
 from subprocess import CalledProcessError
 
+from dougbot.plugins.listento import ListenTo
 from dougbot.plugins.plugin import Plugin
 from dougbot.plugins.soundplayer.track import Track
-from dougbot.plugins.util.join import bot_join, bot_leave
 from dougbot.util.cache import LRUCache
 from dougbot.util.queue import Queue
 
@@ -14,6 +14,8 @@ class SoundPlayer(Plugin):
 
     _CLIPS_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
     _CLIPS_DIR = os.path.join(_CLIPS_DIR, 'res', 'sbsounds')
+
+    SUPPORTED_FILE_TYPES = ['.mp3', '.m4a']
 
     def __init__(self):
         super().__init__()
@@ -31,40 +33,39 @@ class SoundPlayer(Plugin):
         if event is None or event.channel.is_private or self.voice is not None:
             return
 
-        self.voice = await bot_join(event)
+        user_voice_channel = event.author.voice.voice_channel
+
+        # Commander is not in a voice channel, or bot is already in a voice channel on the server
+        if user_voice_channel is None or event.bot.voice_client_in(event.server) is not None:
+            return
+
+        self.voice = await event.bot.join_channel(user_voice_channel)
         self.player = None
         self.playing = False
         self.first_play = True
         self.play_lock = Semaphore(0, loop=event.event_loop)
+        self.sound_queue.clear()
 
     @Plugin.command('leave')
     async def leave(self, event):
         if event is None or event.channel.is_private:
             return
 
+        user_voice_channel = event.author.voice.voice_channel
+
         # User is not in a voice channel
-        if not event.author.voice.voice_channel:
+        if user_voice_channel is None:
             return
 
-        # TODO CLEANUP
+        bot_voice_client = event.bot.voice_client_in(event.server)
 
-        if self.play_lock is not None:
-            self.play_lock.release()
-            self.play_lock = None
+        # Bot not in a voice channel or user is not in the same voice channel
+        if bot_voice_client is None or bot_voice_client.channel != user_voice_channel:
+            return
 
-        if self.voice is not None:
-            await self.voice.disconnect()
-            self.voice = None
+        await self._reset_state()
 
-        if self.player is not None:
-            self.player.stop()
-
-        self.player = None
-        self.playing = False
-
-        self.sound_queue.clear()
-
-        await bot_leave(event)
+        await event.bot.leave_channel(bot_voice_client.channel)
 
     @Plugin.command(['sb', 'play'], str)
     async def play(self, event, audio):
@@ -75,6 +76,14 @@ class SoundPlayer(Plugin):
 
         self.sound_queue.enqueue(self._create_track(audio))
 
+        '''
+        A Semaphore must be used due to a race condition on the 'playing' boolean variable and to get a non-async 
+        callback to play nice with asyncs.
+        Playing a web link or sound file runs in a separate thread than ours, so the callback method 
+        '_soundplayer_finished' gets called and ran in a separate thread. This method sets playing to False, and 
+        it previously allowed playing of the next track in the queue. This caused multiple tracks to be played at once, 
+        as before one thread could set 'playing' to True, the other saw it as False.
+        '''
         if not self.first_play:
             await self.play_lock.acquire()
         else:
@@ -85,7 +94,8 @@ class SoundPlayer(Plugin):
     @Plugin.command('volume', int)
     async def volume(self, event, volume):
         self.volume = max(0.0, min(100.0, float(volume))) / 100.0
-        try:  # Might bring a race condition, so just ignore volume change if this occurs. Doesn't really matter.
+        # Might bring a race condition, so just ignore volume change if this occurs. Doesn't matter in our context.
+        try:
             if self.player is not None:
                 self.player.volume = self.volume
         except AttributeError:
@@ -135,10 +145,10 @@ class SoundPlayer(Plugin):
         for file in os.listdir(self._CLIPS_DIR):
             if os.path.isdir(os.path.join(self._CLIPS_DIR, file)):
                 for track in os.listdir(os.path.join(self._CLIPS_DIR, file)):
-                    if track.endswith('.mp3'):
-                        clips.append(track[:-len('.mp3')])
-            elif file.endswith('.mp3'):
-                clips.append(file[:-len('.mp3')])
+                    if self._is_audio_track(track):
+                        clips.append(track[:track.rfind('.')])
+            elif self._is_audio_track(file):
+                clips.append(file[:file.rfind('.')])
 
         enter = ''
         clip_message = ''
@@ -147,9 +157,17 @@ class SoundPlayer(Plugin):
             clip_message += enter + clip
             enter = '\n'
 
-        await event.reply(clip_message)
+        await event.bot.send_message(event.channel, clip_message)
 
-    @Plugin.command(['refresh'])
+    def _is_audio_track(self, candidate):
+        if type(candidate) != str:
+            return False
+        for ending in self.SUPPORTED_FILE_TYPES:
+            if candidate.endswith(ending):
+                return True
+        return False
+
+    @Plugin.command('refresh')
     async def refresh_clips(self, event):
         cwd = os.getcwd()
         os.chdir('../..')
@@ -160,12 +178,42 @@ class SoundPlayer(Plugin):
         finally:
             os.chdir(cwd)
 
+    @Plugin.listen(ListenTo.ON_VOICE_STATE_UPDATE)
+    async def _check_for_users_left(self, event, before, after):
+        if event is None or before is None or after is None or self.voice is None:
+            return
+
+        if before.voice_channel.id == after.voice_channel.id:
+            return
+
+        if before.voice_channel.id == self.voice.channel.id and len(self.voice.channel.voice_members) <= 1:
+            await self._reset_state()
+            await event.bot.leave_channel(before.voice_channel)
+
+    async def _reset_state(self):
+        self.sound_queue.clear()
+
+        if self.play_lock is not None:
+            self.play_lock.release()
+            self.play_lock = None
+
+        if self.player is not None:
+            self.player.stop()
+
+        if self.voice is not None:
+            await self.voice.disconnect()
+            self.voice = None
+
+        self.player = None
+        self.playing = False
+
     def _soundplayer_finished(self):
         self.playing = False
-        self.play_lock.release()
+        if self.play_lock is not None:
+            self.play_lock.release()
 
     async def _play_top_track(self):
-        if self.playing or self.sound_queue.size() <= 0:
+        if self.playing or len(self.sound_queue) <= 0:
             return
 
         self.playing = True
@@ -191,12 +239,11 @@ class SoundPlayer(Plugin):
             is_link = True
 
         if not is_link:
-            src = SoundPlayer._create_path(src, self._CLIPS_DIR, self.path_cache)
+            src = self._create_path(src, self._CLIPS_DIR, self.path_cache)
 
         return Track(src, is_link)
 
-    @staticmethod
-    def _create_path(audio, clip_base, path_cache):
+    def _create_path(self, audio, clip_base, path_cache):
         if audio is None or clip_base is None or path_cache is None:
             return
 
@@ -205,16 +252,18 @@ class SoundPlayer(Plugin):
 
         audio_path = None
 
-        if f'{audio}.mp3' in os.listdir(clip_base):
-            audio_path = os.path.join(clip_base, f'{audio}.mp3')
-            path_cache.insert(audio, audio_path)
-            return audio_path
+        for ending in self.SUPPORTED_FILE_TYPES:
+            if f'{audio}{ending}' in os.listdir(clip_base):
+                audio_path = os.path.join(clip_base, f'{audio}{ending}')
+                path_cache.insert(audio, audio_path)
+                return audio_path
 
         for file in os.listdir(clip_base):
             if os.path.isdir(os.path.join(clip_base, file)):
-                if f'{audio}.mp3' in os.listdir(os.path.join(clip_base, file)):
-                    audio_path = os.path.join(clip_base, file, f'{audio}.mp3')
-                    break
+                for ending in self.SUPPORTED_FILE_TYPES:
+                    if f'{audio}{ending}' in os.listdir(os.path.join(clip_base, file)):
+                        audio_path = os.path.join(clip_base, file, f'{audio}{ending}')
+                        break
 
         if audio_path is not None:
             path_cache.insert(audio, audio_path)

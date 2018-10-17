@@ -7,8 +7,8 @@ class Links(Plugin):
 
     @Plugin.command('sdt', 'cytube')
     async def theater_link(self, event):
-        await event.reply(self._SDT_LINK)
+        await event.bot.send_message(event.channel, self._SDT_LINK)
 
     @Plugin.command('git', 'github')
     async def github_link(self, event):
-        await event.reply(event.bot.config.source_code)
+        await event.bot.send_message(event.channel, event.bot.config.source_code)

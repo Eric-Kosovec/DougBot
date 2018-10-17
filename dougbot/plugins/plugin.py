@@ -1,8 +1,8 @@
-import Lib.enum as enum
 import inspect
+from enum import Enum
 
 from dougbot.core.command import Command, CommandSpecError
-from dougbot.core.listener import Listener
+from dougbot.core.listener import Listener, ListenerSpecError
 
 _PLUGIN_ELEMENT_ATTR = '_dougbot_plugin_element'
 
@@ -13,7 +13,7 @@ class PluginError(Exception):
         super().__init__(msg)
 
 
-class _PluginElementType(enum.Enum):
+class _PluginElementType(Enum):
     COMMAND = 'command'
     LISTENER = 'listener'
 
@@ -60,7 +60,7 @@ class Plugin(_PluginDecor):
         super().__init__()
 
         self._commands = []
-        self._listeners = []
+        self._event_listeners = []
 
         # Goes through each method of the Plugin class and all subclasses
         # in form (name, function)
@@ -68,7 +68,7 @@ class Plugin(_PluginDecor):
             if hasattr(func, _PLUGIN_ELEMENT_ATTR):
                 for element in getattr(func, _PLUGIN_ELEMENT_ATTR):
                     self._delegate_element(element, func)
-                # TODO CLEANUP THE ATTRIBUTE WE CREATED
+                # TODO CLEANUP THE ATTRIBUTE WE CREATED; NOT A BIG DEAL, BUT CLEANER THAT WAY
 
     @property
     def commands(self):
@@ -76,9 +76,8 @@ class Plugin(_PluginDecor):
             yield command
 
     @property
-    def listeners(self):
-        for listener in self._listeners:
-            yield listener
+    def event_listeners(self):
+        return self._event_listeners
 
     def _delegate_element(self, element, func):
         if element['type'] == _PluginElementType.COMMAND:
@@ -90,7 +89,10 @@ class Plugin(_PluginDecor):
         try:
             self._commands.append(Command(self, func, *args, **kwargs))
         except CommandSpecError as e:
-            print(f'Error in command \'{func}\' specification: {e}')
+            print(f"Error in command '{func}' specification: {e}")
 
     def _add_listener(self, func, *args, **kwargs):
-        self._listeners.append(Listener(self, func, *args, **kwargs))
+        try:
+            self._event_listeners.append(Listener(self, func, *args, **kwargs))
+        except ListenerSpecError as e:
+            print(f"Error in listener '{func}' specification: {e}")

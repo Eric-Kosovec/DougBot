@@ -3,9 +3,10 @@ import string
 
 class Token:
 
-    def __init__(self, token_type, value):
+    def __init__(self, token_type, raw_value):
         self.token_type = token_type
-        self.value = value
+        self.value = self.token_type(raw_value)
+        self.raw_value = raw_value
 
     def is_match(self, a_type):
         return a_type == self.token_type
@@ -107,7 +108,7 @@ class CommandParser:
             elif arguments[i].arg_type == str:  # Take the rest of the tokens as the string
                 complete_str = ''
                 while i < len(tokens):
-                    complete_str += str(tokens[i].value) + ' '
+                    complete_str += str(tokens[i].raw_value) + ' '
                     i += 1
                 arg_values.append(complete_str.strip())
             else:  # Not a match
@@ -116,8 +117,6 @@ class CommandParser:
 
         if i < len(tokens):  # Not all tokens have been consumed, so doesn't match
             return None
-
-        print(arg_values)
 
         return arg_values
 
@@ -163,7 +162,7 @@ class CommandParser:
         if cursor < len(message) and self._peek(message, cursor) not in string.whitespace:
             return start
 
-        tokens.append(Token(token_type, token_type(message[start:cursor])))
+        tokens.append(Token(token_type, message[start:cursor]))
 
         return cursor
 
