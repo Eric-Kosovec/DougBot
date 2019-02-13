@@ -49,18 +49,3 @@ def long_message(message, limit=limits.MESSAGE_CHARACTER_LIMIT):
         shorter_messages.append(message[window_min:len(message)].strip())
 
     return shorter_messages
-
-
-def main():
-    # 012345678901234567890123456
-    # this is a test of my system
-    test_str = 'this is a   test   of my   system'
-    limit = 5
-
-    print(long_message(test_str, limit))
-
-    return 0
-
-
-if __name__ == '__main__':
-    main()

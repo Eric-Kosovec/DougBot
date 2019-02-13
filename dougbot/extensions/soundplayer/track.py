@@ -1,7 +1,4 @@
 
-from dougbot.core.command import CommandError
-
-
 class Track:
 
     def __init__(self, src, is_link):
@@ -13,4 +10,6 @@ class Track:
                 with open(self.src, 'r'):
                     pass
             except IOError:
-                raise CommandError(f'Track {self.src} does not exist')
+                pass
+                # TODO
+                #raise CommandError(f'Track {self.src} does not exist')

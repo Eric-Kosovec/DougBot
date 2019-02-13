@@ -3,26 +3,23 @@ from collections import deque
 
 class Queue:
 
-    def __init__(self, queue_list=None):
-        if queue_list is None:
-            self._q = deque()
-        else:
-            self._q = deque(queue_list)
+    def __init__(self):
+        self.items = deque()
 
-    def enqueue(self, element):
-        self._q.append(element)
+    async def put(self, item):
+        if item is not None:
+            self.items.append(item)
 
-    def dequeue(self):
-        return self._q.popleft()
+    async def get(self):
+        if len(self.items) <= 0:
+            return None
+        return self.items.popleft()
 
-    def remove(self, element):
-        self._q.remove(element)
+    async def clear(self):
+        self.items.clear()
 
-    def clear(self):
-        self._q.clear()
-
-    def is_empty(self):
-        return len(self) == 0
+    async def empty(self):
+        return len(self.items) <= 0
 
     def __len__(self):
-        return len(self._q)
+        return len(self.items)
