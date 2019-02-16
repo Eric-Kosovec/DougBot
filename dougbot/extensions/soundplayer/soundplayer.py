@@ -96,8 +96,9 @@ class SoundPlayer:
             self.player.stop()
 
     @commands.command(pass_context=True, no_pm=True)
-    async def addclip(self, ctx, dest: str, *, url: str=None):
-        if '..' in dest or (url is not None and '..' in url):
+    async def addclip(self, ctx, dest: str, filename: str, *, url: str=None):
+        # TODO For now, disallow going into subfolders until cliplisting and finding can do the same.
+        if '..' in dest or '/' in dest:
             await self.bot.confusion(ctx.message)
             return
 
@@ -108,15 +109,40 @@ class SoundPlayer:
             return
 
         if url is None:
+            # If no url was provided, then there has to be an audio attachment.
+            if len(ctx.message.attachments) <= 0:
+                await self.bot.confusion(ctx.message)
+                return
             url = ctx.message.attachments[0]['url']
 
-        filename = url[url.rfind('/') + 1:]
-        file = await self.download_file(url)
-        path = os.path.join(self._CLIPS_DIR, f'{dest}')
-        path = os.path.join(path, filename)
+        if '.' in filename and not filename[filename.rfind('.'):] in self.SUPPORTED_FILE_TYPES:
+            await self.bot.confusion(ctx.message)
+            return
+        elif '.' not in filename:
+            filename += url[url.rfind('.'):]
 
-        with open(path, 'wb') as out_file:
-            shutil.copyfileobj(file.raw, out_file)
+        file = await self.download_file(url)
+
+        if file is None:
+            await self.bot.confusion(ctx.message)
+            return
+
+        path = os.path.join(self._CLIPS_DIR, f'{dest}')
+
+        if not os.path.exists(path):
+            await self.bot.confusion(ctx.message)
+            return
+
+        path = os.path.join(path, filename.lower())
+
+        try:
+            with open(path, 'wb') as out_file:
+                shutil.copyfileobj(file.raw, out_file)
+        except Exception as e:
+            await self.bot.confusion(ctx.message)
+            return
+
+        await self.bot.confirmation(ctx.message)
 
     async def check_url(self, url):
         if url is None:
@@ -130,6 +156,7 @@ class SoundPlayer:
     async def download_file(self, url):
         if not await self.check_url(url):
             return None
+        # TODO ASYNC
         return requests.get(url, stream=True)
 
     @commands.command(aliases=['list'])
@@ -139,7 +166,7 @@ class SoundPlayer:
         base_folders = [self._CLIPS_DIR] + list(filter(lambda f: os.path.isdir(os.path.join(self._CLIPS_DIR, f)),
                                                        os.listdir(self._CLIPS_DIR)))
 
-        if category in ['category', 'categories']:
+        if category in ['cat', 'category', 'categories']:
             enter = ''
             clip_message = 'Categories:\n'
             for folder in base_folders[1:]:
@@ -166,7 +193,7 @@ class SoundPlayer:
         enter = ''
         clip_message = ''
 
-        clips.sort()
+        clips = sorted(clips, key=lambda s: s.casefold())
 
         for clip in clips:
             clip_message += enter + clip
@@ -180,6 +207,7 @@ class SoundPlayer:
         os.chdir('../..')
         try:
             subprocess.check_call(['git', 'checkout', 'master', 'dougbot/res/audio'])
+            subprocess.check_call(['git', 'checkout', 'master', 'dougbot/res/image'])
         except subprocess.CalledProcessError:
             await self.bot.confusion(ctx.message)
         finally:
@@ -268,7 +296,7 @@ class SoundPlayer:
 
         # Search for clip in the base directory, but not in a folder
         for ending in self.SUPPORTED_FILE_TYPES:
-            if f'{audio}{ending}' in os.listdir(clip_base):
+            if f'{audio}{ending}'.lower() in self._lower_case_dir_listing(clip_base):
                 audio_path = os.path.join(clip_base, f'{audio}{ending}')
                 await path_cache.insert(audio, audio_path)
                 return audio_path
@@ -277,7 +305,7 @@ class SoundPlayer:
         for file in os.listdir(clip_base):
             if os.path.isdir(os.path.join(clip_base, file)):
                 for ending in self.SUPPORTED_FILE_TYPES:
-                    if f'{audio}{ending}' in os.listdir(os.path.join(clip_base, file)):
+                    if f'{audio}{ending}'.lower() in self._lower_case_dir_listing(os.path.join(clip_base, file)):
                         audio_path = os.path.join(clip_base, file, f'{audio}{ending}')
                         break
             if audio_path is not None:
@@ -287,6 +315,11 @@ class SoundPlayer:
             await path_cache.insert(audio, audio_path)
 
         return audio_path
+
+    @staticmethod
+    def _lower_case_dir_listing(path):
+        for item in os.listdir(path):
+            yield item.lower()
 
 
 def setup(bot):

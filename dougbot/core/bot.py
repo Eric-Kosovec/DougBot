@@ -64,6 +64,11 @@ class DougBot(discord.ext.commands.Bot):
             question_emoji = '\U00002753'
             await self.add_reaction(message, question_emoji)
 
+    async def confirmation(self, message):
+        if message is not None:
+            ok_hand_emoji = '\U0001F44C'
+            await self.add_reaction(message, ok_hand_emoji)
+
     '''async def send_message(self, destination, content=None, *, tts=False, embed=None):
         for shorter_message in long_message(content):
             await super().send_message(destination, content=shorter_message, tts=tts, embed=embed)
@@ -91,6 +96,10 @@ class DougBot(discord.ext.commands.Bot):
 
         if vc is not None and vc.channel == channel:
             await vc.disconnect()
+
+    async def be_terrible(self):
+
+        pass
 
     def cleanup(self):
         if self.loop is not None and not self.loop.is_closed():
