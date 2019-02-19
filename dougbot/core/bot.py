@@ -27,15 +27,6 @@ class DougBot(discord.ext.commands.Bot):
         finally:
             self.cleanup()
 
-    # TODO FIX
-    '''def say(self, *args, **kwargs):
-        if args is None:
-            return
-        if len(args) > limits.MESSAGE_CHARACTER_LIMIT:
-            self.whisper(args)
-        else:
-            super().say(args)'''
-
     async def on_ready(self):
         print('\nBot online')
         print(f'Name: {self.user.name}')
@@ -101,24 +92,27 @@ class DougBot(discord.ext.commands.Bot):
             asyncio.run_coroutine_threadsafe(self.logout(), self.loop).result()
 
     def _load_extensions(self):
-        extensions_dir = os.path.dirname(os.path.dirname(__file__))
-        extensions_dir = os.path.join(extensions_dir, 'extensions')
+        extensions_base = os.path.dirname(os.path.dirname(__file__))
+        extensions_base = os.path.join(extensions_base, 'extensions')
+
+        if not os.path.exists(extensions_base):
+            print(f"Path to extensions, '{extensions_base},' does not exist.", file=sys.stderr)
+            return
 
         # Add extension package to where the system looks for files.
-        sys.path.append(extensions_dir)
+        sys.path.append(extensions_base)
 
-        for extension in os.listdir(extensions_dir):
-            if extension == 'example':
+        for dirpath, dirnames, filenames in os.walk(extensions_base):
+            # Skip example extensions and Python system directories.
+            if os.path.basename(dirpath) == 'example' or os.path.basename(dirpath).startswith('__'):
                 continue
 
-            extension_dir = os.path.join(extensions_dir, extension)
-
-            if os.path.isdir(extension_dir) and f'{extension}.py' in os.listdir(extension_dir):
-                try:
-                    self.load_extension(f'dougbot.extensions.{extension}.{extension}')
-                except Exception:
-                    print(f'Failed to load extension {extension}.', file=sys.stderr)
-                    traceback.print_exc()
+            for filename in filenames:
+                if not filename.startswith('__') and not filename.startswith('example') and filename.endswith('.py'):
+                    try:
+                        self.load_extension(f"dougbot.extensions.{os.path.basename(dirpath)}.{filename[:-len('.py')]}")
+                    except discord.ClientException:
+                        print(f"{os.path.basename(dirpath)}.{filename[:-len('.py')]} has no setup function.")
 
 
 if __name__ == '__main__':
