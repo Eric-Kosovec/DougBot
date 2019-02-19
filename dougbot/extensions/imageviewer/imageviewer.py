@@ -39,6 +39,9 @@ class ImageViewer:
         if image is None:
             return None
 
+        if '..' in image:
+            return None
+
         for file in os.listdir(self._IMG_DIR):
             if file.startswith(f'{image}.'):
                 return os.path.join(self._IMG_DIR, file)

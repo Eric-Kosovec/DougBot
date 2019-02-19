@@ -151,12 +151,12 @@ class Graph:
             vertex.decor['VISITED'] = True
             yield vertex
 
+        # TODO
         while len(frontier) > 0:
             if bfs:
                 curr = frontier.popleft()
             else:
                 curr = frontier.pop()
-
 
 
             frontier.extend(filter(lambda v: not v.decor['VISITED'], self.neighbors(curr)))
