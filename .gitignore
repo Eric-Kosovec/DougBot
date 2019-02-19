@@ -1,8 +1,7 @@
-/.idea
-*/__pycache__/*
-*/__pycache__
-/discord.log
+__pycache__/
+.idea
+*.py[cod]
+*$py.class
+
 */discord.log
-/config/config.ini
-__pycache__
-./__pycache__
+*/config.ini
