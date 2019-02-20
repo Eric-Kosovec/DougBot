@@ -100,19 +100,20 @@ class DougBot(discord.ext.commands.Bot):
             return
 
         # Add extension package to where the system looks for files.
-        sys.path.append(extensions_base)
+        if extensions_base not in sys.path:
+            sys.path.append(extensions_base)
 
         for dirpath, dirnames, filenames in os.walk(extensions_base):
-            # Skip example extensions and Python system directories.
-            if os.path.basename(dirpath) == 'example' or os.path.basename(dirpath).startswith('__'):
+            # Skip Python system directories and example extensions.
+            if os.path.basename(dirpath).startswith('__') or os.path.basename(dirpath).startswith('example'):
                 continue
 
             for filename in filenames:
                 if not filename.startswith('__') and not filename.startswith('example') and filename.endswith('.py'):
                     try:
-                        self.load_extension(f"dougbot.extensions.{os.path.basename(dirpath)}.{filename[:-len('.py')]}")
+                        self.load_extension(f'dougbot.extensions.{os.path.basename(dirpath)}.{filename[:-3]}')
                     except discord.ClientException:
-                        print(f"{os.path.basename(dirpath)}.{filename[:-len('.py')]} has no setup function.")
+                        print(f'{os.path.basename(dirpath)}.{filename[:-3]} has no setup function.')
 
 
 if __name__ == '__main__':
