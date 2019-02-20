@@ -1,2 +1,2 @@
-CMD /k py.exe run.py
+CMD /C py.exe run.py
 EXIT
