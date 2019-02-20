@@ -8,7 +8,6 @@ from discord.ext import commands
 
 from dougbot.config import Config
 
-# COMMENT TEST OF A DELIVERY SYSTEM
 
 class DougBot(discord.ext.commands.Bot):
 
