@@ -28,8 +28,6 @@ class ContinuousDeliverySystem:
 
             # Restart ourself
             pid = os.getpid()
-            print('THESIS')
-            print(pid)
 
             p = subprocess.Popen(['reset.bat', str(pid)], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             p.wait()
@@ -51,7 +49,6 @@ class ContinuousDeliverySystem:
 
             # Restart ourself
             pid = os.getpid()
-            print(pid)
 
             p = subprocess.Popen(['reset.bat', str(pid)], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             p.wait()
