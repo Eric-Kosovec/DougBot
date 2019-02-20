@@ -10,11 +10,12 @@ from dougbot.config import Config
 
 
 class DougBot(discord.ext.commands.Bot):
+    ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+    ROOT_DIR = os.path.dirname(os.path.dirname(ROOT_DIR))
 
     def __init__(self, config_file):
         self.config = Config(config_file)
         super().__init__(self.config.command_prefix)
-        self.test_var = 11
         self._load_extensions()
 
     def run(self, *args, **kwargs):
