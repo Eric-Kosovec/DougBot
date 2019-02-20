@@ -17,7 +17,7 @@ class ContinuousDeliverySystem:
         cwd = os.getcwd()
         os.chdir('../..')
         try:
-            subprocess.check_call(['git', 'checkout', '-f', 'master'])
+            subprocess.check_call(['git', 'pull'])
         except subprocess.CalledProcessError:
             await self.bot.confusion(ctx.message)
         finally:
@@ -26,8 +26,16 @@ class ContinuousDeliverySystem:
         # Pull from github
         # Restart ourself
 
-    @staticmethod
-    async def _are_updates():
+    async def _are_updates(self, ctx=None):
+        cwd = os.getcwd()
+        os.chdir('../..')
+        try:
+            subprocess.check_call(['git', 'status', '--porcelain'])
+        except subprocess.CalledProcessError:
+            if ctx is not None:
+                await self.bot.confusion(ctx.message)
+        finally:
+            os.chdir(cwd)
         pass
 
 
