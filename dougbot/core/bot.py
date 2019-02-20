@@ -8,13 +8,13 @@ from discord.ext import commands
 
 from dougbot.config import Config
 
-# TEST
 
 class DougBot(discord.ext.commands.Bot):
 
     def __init__(self, config_file):
         self.config = Config(config_file)
         super().__init__(self.config.command_prefix)
+        self.test_var = 11
         self._load_extensions()
 
     def run(self, *args, **kwargs):
