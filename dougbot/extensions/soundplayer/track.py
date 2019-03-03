@@ -1,3 +1,5 @@
+from dougbot.extensions.error.error import TrackNotExistError
+
 
 class Track:
 
@@ -10,6 +12,4 @@ class Track:
                 with open(self.src, 'r'):
                     pass
             except IOError:
-                pass
-                # TODO
-                #raise CommandError(f'Track {self.src} does not exist')
+                raise TrackNotExistError()

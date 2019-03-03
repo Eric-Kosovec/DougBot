@@ -106,12 +106,15 @@ class DougBot(discord.ext.commands.Bot):
             sys.path.append(extensions_base)
 
         for dirpath, dirnames, filenames in os.walk(extensions_base):
-            # Skip Python system directories and example extensions.
-            if os.path.basename(dirpath).startswith('__') or os.path.basename(dirpath).startswith('example'):
+            # Skip Python system directories and utility/example extensions.
+            if os.path.basename(dirpath).startswith('__') or os.path.basename(dirpath).startswith('example') or \
+                    os.path.basename(dirpath).startswith('util') or os.path.basename(dirpath).startswith('error'):
                 continue
 
             for filename in filenames:
-                if not filename.startswith('__') and not filename.startswith('example') and filename.endswith('.py'):
+                # The != 'extensions' skips over files in the extensions base directory.
+                if not filename.startswith('__') and not filename.startswith('example') and filename.endswith('.py') \
+                        and os.path.basename(dirpath) != 'extensions':
                     try:
                         self.load_extension(f'dougbot.extensions.{os.path.basename(dirpath)}.{filename[:-3]}')
                     except discord.ClientException:
