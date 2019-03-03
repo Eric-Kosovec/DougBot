@@ -59,6 +59,20 @@ class DeliverySystem:
     # TODO CONSOLIDATE CODE
 
     @commands.command(pass_context=True)
+    async def push(self):
+        cwd = os.getcwd()
+        os.chdir(self.bot.ROOT_DIR)
+        try:
+            subprocess.check_call(['git', 'add', 'dougbot/res'])
+            subprocess.check_call(['git', 'commit', '-m', 'Pushed resources by bot.'])
+            subprocess.check_call(['git', 'push'])
+        except subprocess.CalledProcessError:
+            if ctx is not None:
+                await self.bot.confusion(ctx.message)
+        finally:
+            os.chdir(cwd)
+
+    @commands.command(pass_context=True)
     async def update(self, ctx):
         cwd = os.getcwd()
         os.chdir(self.bot.ROOT_DIR)
