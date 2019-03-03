@@ -59,7 +59,7 @@ class DeliverySystem:
     # TODO CONSOLIDATE CODE
 
     @commands.command(pass_context=True)
-    async def push(self):
+    async def push(self, ctx):
         cwd = os.getcwd()
         os.chdir(self.bot.ROOT_DIR)
         try:
