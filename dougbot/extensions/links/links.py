@@ -6,12 +6,12 @@ class Link:
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(name='sdt')
-    async def theater_link(self):
+    @commands.command()
+    async def sdt(self):
         await self.bot.say('https://cytu.be/r/SadDoug')
 
-    @commands.command(name='git')
-    async def github_link(self):
+    @commands.command()
+    async def git(self):
         await self.bot.say(self.bot.config.source_code)
 
 
