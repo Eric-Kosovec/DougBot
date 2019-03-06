@@ -5,7 +5,7 @@ import requests
 from discord.ext import commands
 
 
-class ClipManager:
+class SoundManager:
     _CLIPS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'res', 'audio')
 
     SUPPORTED_FILE_TYPES = ['.mp3', '.m4a']
@@ -16,7 +16,7 @@ class ClipManager:
     @commands.command(pass_context=True, no_pm=True)
     async def renameclip(self, ctx, from_clip: str, *, to_clip: str):
         # TODO
-        '''if not await self._is_admin(ctx.message.author.roles):
+        """if not await self._is_admin(ctx.message.author.roles):
             await self.bot.confusion(ctx.message, "Command 'deleteclip' is only for users with Admin role.")
             return
 
@@ -36,7 +36,7 @@ class ClipManager:
             os.rename(from_path, to_path)
         except OSError:
             await self.bot.confusion(ctx.message)
-            return'''
+            return"""
         pass
 
     @commands.command(pass_context=True, no_pm=True)
@@ -180,4 +180,4 @@ class ClipManager:
 
 
 def setup(bot):
-    bot.add_cog(ClipManager(bot))
+    bot.add_cog(SoundManager(bot))
