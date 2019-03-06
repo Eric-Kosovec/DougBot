@@ -10,7 +10,7 @@ from dougbot.extensions.util.admin_check import admin_command
 class SoundManager:
     _CLIPS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'res', 'audio')
 
-    SUPPORTED_FILE_TYPES = ['.mp3', '.m4a']
+    SUPPORTED_FILE_TYPES = ['.mp1', '.mp2', '.mp3', '.mp4', '.m4a', '.3gp', '.aac', '.flac', '.wav', '.aif']
 
     def __init__(self, bot):
         self.bot = bot
@@ -24,10 +24,6 @@ class SoundManager:
     @commands.command(pass_context=True, no_pm=True)
     @admin_command()
     async def deleteclip(self, ctx, *, clip: str):
-        if '..' in clip or os.path.isabs(clip):
-            await self.bot.confusion(ctx.message)
-            return
-
         path = await self._get_clip_path(clip)
 
         if path is None:
@@ -44,10 +40,6 @@ class SoundManager:
 
     @commands.command(pass_context=True)
     async def getclip(self, ctx, *, clip: str):
-        if '..' in clip or os.path.isabs(clip):
-            await self.bot.confusion(ctx.message)
-            return
-
         path = await self._get_clip_path(clip)
 
         if path is None:
@@ -58,7 +50,7 @@ class SoundManager:
 
     @commands.command(pass_context=True)
     async def addclip(self, ctx, dest: str, filename: str, *, url: str = None):
-        if '..' in dest or os.path.isabs(dest):
+        if not await self._safe_path(dest):
             await self.bot.confusion(ctx.message)
             return
 
@@ -82,7 +74,7 @@ class SoundManager:
         elif '.' not in filename:
             filename += url[url.rfind('.'):]
 
-        file = await self.download_file(url)
+        file = await self._download_file(url)
 
         if file is None:
             await self.bot.confusion(ctx.message)
@@ -126,6 +118,10 @@ class SoundManager:
         if len(message) > 0:
             await self.bot.say(message)
 
+    @staticmethod
+    async def _safe_path(path):
+        return path is not None and '..' not in path and not os.path.isabs(path)
+
     async def _get_clip_path(self, clip):
         for dirpath, dirnames, filenames in os.walk(self._CLIPS_DIR):
             for file in filenames:
@@ -147,7 +143,7 @@ class SoundManager:
         return url is not None and await self._is_link(url) and '.' in url \
                and url[url.rfind('.'):] in self.SUPPORTED_FILE_TYPES
 
-    async def download_file(self, url):
+    async def _download_file(self, url):
         if not await self._check_url(url):
             return None
         # TODO ASYNC

@@ -13,7 +13,7 @@ from dougbot.util.queue import Queue
 class SoundPlayer:
     _CLIPS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'res', 'audio')
 
-    SUPPORTED_FILE_TYPES = ['.mp3', '.m4a']
+    SUPPORTED_FILE_TYPES = ['.mp1', '.mp2', '.mp3', '.mp4', '.m4a', '.3gp', '.aac', '.flac', '.wav', '.aif']
 
     def __init__(self, bot):
         self.bot = bot
