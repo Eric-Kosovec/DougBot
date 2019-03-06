@@ -7,6 +7,7 @@ import discord.ext.commands
 from discord.ext import commands
 
 from dougbot.config import Config
+from dougbot.core.db.kvstore import KVStore
 
 
 class DougBot(discord.ext.commands.Bot):
@@ -17,23 +18,26 @@ class DougBot(discord.ext.commands.Bot):
         self.config = Config(config_file)
         super().__init__(self.config.command_prefix)
         self._load_extensions()
+        self.kvstore = KVStore()
 
     def run(self, *args, **kwargs):
         try:
-            print('Starting bot...')
+            print("I'm starting...")
             # Blocking function that does not return until the bot is done.
             super().run(*(self.config.token, *args), **kwargs)
         except Exception as e:
             print(f'Uncaught exception while running bot: {e}')
             traceback.print_exc()
         finally:
+            print("I'm dying...")
             self.cleanup()
 
     async def on_ready(self):
-        print('\nBot online')
+        print('\nDoug Online')
         print(f'Name: {self.user.name}')
         print(f'ID: {self.user.id}')
         print('-' * (len(self.user.id) + len('ID: ')))
+        print()
 
     async def on_command_error(self, ctx, error):
         if ctx is None or error is None:
@@ -71,7 +75,6 @@ class DougBot(discord.ext.commands.Bot):
             return None
 
         vc = self.voice_client_in(channel.server)
-
         if vc is not None and vc.channel == channel:
             return vc
         elif vc is not None:
@@ -85,7 +88,6 @@ class DougBot(discord.ext.commands.Bot):
             return
 
         vc = self.voice_client_in(channel.server)
-
         if vc is not None and vc.channel == channel:
             await vc.disconnect()
 
@@ -106,19 +108,32 @@ class DougBot(discord.ext.commands.Bot):
             sys.path.append(extensions_base)
 
         for dirpath, dirnames, filenames in os.walk(extensions_base):
-            # Skip Python system directories and utility/example extensions.
-            if os.path.basename(dirpath).startswith('__') or os.path.basename(dirpath).startswith('example') or \
-                    os.path.basename(dirpath).startswith('util') or os.path.basename(dirpath).startswith('error'):
+            if not self._is_extension_package(dirpath):
                 continue
 
             for filename in filenames:
-                # The != 'extensions' skips over files in the extensions base directory.
-                if not filename.startswith('__') and not filename.startswith('example') and filename.endswith('.py') \
-                        and os.path.basename(dirpath) != 'extensions':
+                if self._is_extension_module(dirpath, filename):
                     try:
                         self.load_extension(f'dougbot.extensions.{os.path.basename(dirpath)}.{filename[:-3]}')
                     except discord.ClientException:
                         print(f'{os.path.basename(dirpath)}.{filename[:-3]} has no setup function.')
+                    except Exception as e:
+                        print(f'{os.path.basename(dirpath)}.{filename[:-3]} extension failed to load: {e}',
+                              file=sys.stderr)
+
+    @staticmethod
+    def _is_extension_module(path, filename):
+        if path is None or filename is None:
+            return False
+        return os.path.basename(path) != 'extensions' and filename.endswith('.py') \
+            and not (filename.startswith('__') or filename.startswith('example'))
+
+    @staticmethod
+    def _is_extension_package(path):
+        if path is None:
+            return False
+        return not (os.path.basename(path).startswith('__') or os.path.basename(path).startswith('example') or
+                    os.path.basename(path).startswith('util'))
 
 
 if __name__ == '__main__':

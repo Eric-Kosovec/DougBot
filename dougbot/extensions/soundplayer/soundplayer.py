@@ -1,19 +1,22 @@
 import asyncio
+import heapq
 import os
 import shutil
+import sys
+import time
 
 import requests
 from discord.ext import commands
 
+import dougbot.extensions.limits as limits
+from dougbot.extensions.soundplayer.error import TrackNotExistError
 from dougbot.extensions.soundplayer.track import Track
-from dougbot.extensions.error.error import TrackNotExistError
 from dougbot.util.cache import LRUCache
 from dougbot.util.queue import Queue
 
 
 class SoundPlayer:
-    _CLIPS_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-    _CLIPS_DIR = os.path.join(_CLIPS_DIR, 'res', 'audio')
+    _CLIPS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'res', 'audio')
 
     SUPPORTED_FILE_TYPES = ['.mp3', '.m4a']
 
@@ -44,40 +47,34 @@ class SoundPlayer:
     async def leave(self, ctx):
         if ctx.message.author.voice is None:
             return
-
         bot_voice_client = self.bot.voice_client_in(ctx.message.server)
-
         # Bot not in a voice channel or user is not in the same voice channel
         if bot_voice_client is None or bot_voice_client.channel != ctx.message.author.voice.voice_channel:
             return
-
-        await self._quit_playing()
-        await self.bot.leave_channel(bot_voice_client.channel)
+        await self._quit_playing(bot_voice_client.channel)
 
     # Synchronized code
     @commands.command(aliases=['sb'], pass_context=True, no_pm=True)
     async def play(self, ctx, *, audio: str):
-        # The '*' denotes consume rest, which will take all text after command name to be the argument
+        # The '*' denotes consume rest, which will take all text after that point to be the argument
 
         if self._voice is None:
-            # Note: you cannot just call a different command's method, so you need a create common method, if necessary.
+            # Note: Cannot call other commands; e.g., cannot just call the join command here.
             self._voice = await self.bot.join_channel(ctx.message.author.voice.voice_channel)
-
-        try:
-            await self._sound_queue.put(await self._create_track(audio))
-        except TrackNotExistError:
-            await self.bot.confusion(ctx.message)
-            return
 
         # Acquire lock so only one thread will play at once; otherwise, sounds will interleave.
         await self._play_lock.acquire()
 
         # Start of the Critical Section
         try:
+            await self._sound_queue.put(await self._create_track(audio))  # TODO BETTER IN HERE OR OUTSIDE THE CS?
             await self._play_top_track()
-        except Exception as e:
+        except TrackNotExistError:
+            await self.bot.confusion(ctx.message)
             self._play_lock.release()
-            raise e
+        except Exception as e:
+            print('ERROR: Exception raised in SoundPlayer method play: {e}', file=sys.stderr)
+            self._play_lock.release()
 
     def _soundplayer_finished(self):
         try:
@@ -111,7 +108,32 @@ class SoundPlayer:
         if self._player is not None:
             self._player.stop()
 
-    @commands.command(pass_context=True, no_pm=True)
+    async def _quit_playing(self, channel):
+        await self._play_lock.acquire()
+        try:
+            await self._sound_queue.clear()
+
+            if self._player is not None:
+                self._player.stop()
+                self._player = None
+
+            if self._voice is not None:
+                tmp = self._voice
+                self._voice = None  # Null out the field before giving away control through await.
+                await tmp.disconnect()
+
+            await self.bot.leave_channel(channel)
+        finally:  # Release the lock upon any unexpected exceptions, too.
+            self._play_lock.release()
+
+    async def _play_top_track(self):
+        if self._voice is None or await self._sound_queue.empty():
+            return
+        self._player = await self._get_player(self._voice, await self._sound_queue.get())
+        self._player.volume = self._volume
+        self._player.start()
+
+    @commands.command(pass_context=True)
     async def addclip(self, ctx, dest: str, filename: str, *, url: str=None):
         if '..' in dest or os.path.isabs(dest):
             await self.bot.confusion(ctx.message)
@@ -122,7 +144,7 @@ class SoundPlayer:
 
         # TODO PUT A LIMIT ON SIZE OF SOUND CLIP FOLDER
 
-        if url is not None and not await self.check_url(url):
+        if url is not None and not await self._check_url(url):
             await self.bot.confusion(ctx.message)
             return
 
@@ -145,18 +167,24 @@ class SoundPlayer:
             await self.bot.confusion(ctx.message)
             return
 
-        path = os.path.join(self._CLIPS_DIR, f'{dest}')
+        print(file.content)
+        print(file.headers)
+        print(len(file.raw))
+        mb_per_byte = 1000000
+        if len(file.raw) / mb_per_byte > limits.GITHUB_FILE_SIZE_LIMIT:
+            await self.bot.confusion(ctx.message, f'File cannot be more than {limits.GITHUB_FILE_SIZE_LIMIT} MB.')
+            return
 
+        path = os.path.join(self._CLIPS_DIR, f'{dest}')
         if not os.path.exists(path):
             await self.bot.confusion(ctx.message)
             return
 
         path = os.path.join(path, filename.lower())
-
         try:
             with open(path, 'wb') as out_file:
                 shutil.copyfileobj(file.raw, out_file)
-        except Exception as e:
+        except Exception:
             await self.bot.confusion(ctx.message)
             return
 
@@ -164,51 +192,77 @@ class SoundPlayer:
 
         await self.bot.confirmation(ctx.message)
 
-    async def check_url(self, url):
-        if url is None:
-            return False
-        if not await self._is_link(url):
-            return False
-        if '.' in url and url[url.rfind('.'):] not in self.SUPPORTED_FILE_TYPES:
-            return False
-        return True
+    async def _check_url(self, url):
+        return url is not None and await self._is_link(url) and '.' in url \
+               and url[url.rfind('.'):] in self.SUPPORTED_FILE_TYPES
 
     async def download_file(self, url):
-        if not await self.check_url(url):
+        if not await self._check_url(url):
             return None
         # TODO ASYNC
         return requests.get(url, stream=True)
 
     @commands.command(aliases=['list'])
-    async def clips(self, category: str=None):
+    async def clips(self, *, category: str=None):
+        cur_time = time.time()
+
+        to_print = []
         if category in ['cats', 'cat', 'category', 'categories']:
-            enter = ''
-            clip_message = 'Categories:\n'
-            base_folders = [self._CLIPS_DIR] + list(filter(lambda f: os.path.isdir(os.path.join(self._CLIPS_DIR, f)),
-                                                           os.listdir(self._CLIPS_DIR)))
-            for folder in base_folders[1:]:
-                clip_message += enter + folder
-                enter = '\n'
+            to_print = filter(lambda f: os.path.isdir(os.path.join(self._CLIPS_DIR, f)), os.listdir(self._CLIPS_DIR))
+        else:
+            base = os.path.join(self._CLIPS_DIR, category) if category is not None else self._CLIPS_DIR
+            for dirpath, dirnames, filenames in os.walk(base):
+                for file in filenames:
+                    if await self._is_audio_track(file):
+                        to_print.append(file[:file.rfind('.')])
 
-            await self.bot.say(clip_message)
-            return
+        # TODO TIME THIS VERSUS OUR OWN SORTING ALGORITHM - MERGE K SORTED LISTS
+        to_print = sorted(to_print, key=lambda s: s.casefold())
 
-        base = os.path.join(self._CLIPS_DIR, category) if category is not None else self._CLIPS_DIR
-        clips = []
-        for dirpath, dirnames, filenames in os.walk(base):
-            for file in filenames:
-                if await self._is_audio_track(file):
-                    clips.append(file[:file.rfind('.')])
+        end_time = time.time()
+        print(f'list {end_time - cur_time}')
 
-        clips = sorted(clips, key=lambda s: s.casefold())
         enter = ''
-        clip_message = ''
+        message = ''
 
-        for clip in clips:
-            clip_message += enter + clip
+        for printee in to_print:
+            message += enter + printee
             enter = '\n'
 
-        await self.bot.say(clip_message)
+        if len(message) > 0:
+            await self.bot.say(message)
+
+    @commands.command(aliases=['listy'])
+    async def clips_test(self, *, category: str = None):
+        cur_time = time.time()
+
+        to_print = []
+        if category in ['cats', 'cat', 'category', 'categories']:
+            to_print = filter(lambda f: os.path.isdir(os.path.join(self._CLIPS_DIR, f)), os.listdir(self._CLIPS_DIR))
+        else:
+            base = os.path.join(self._CLIPS_DIR, category) if category is not None else self._CLIPS_DIR
+            for dirpath, dirnames, filenames in os.walk(base):
+                cur_list = []
+                for file in filenames:
+                    if await self._is_audio_track(file):
+                        cur_list.append(file[:file.rfind('.')])
+                if len(cur_list) > 0:
+                    to_print.append(cur_list)
+
+        to_print = heapq.merge(*to_print, key=lambda s: s.casefold())
+
+        end_time = time.time()
+        print(f'listy {end_time - cur_time}')
+
+        enter = ''
+        message = ''
+
+        for printee in to_print:
+            message += enter + printee
+            enter = '\n'
+
+        if len(message) > 0:
+            await self.bot.say(message)
 
     # Listening for events will be registered just by making a method with prefix 'on_voice.'
     async def on_voice_state_update(self, before, after):
@@ -218,48 +272,16 @@ class SoundPlayer:
         if before.voice_channel is None or before.voice_channel == after.voice_channel:
             return
 
-        if before.voice_channel == self._voice.channel and await self._are_human_members(self._voice.channel):
-            await self._quit_playing()
-            await self.bot.leave_channel(before.voice_channel)
+        if before.voice_channel == self._voice.channel and not await self._has_human_members(self._voice.channel):
+            await self._quit_playing(before.voice_channel)
 
     @staticmethod
-    async def _are_human_members(channel):
-        human_count = 0
-        if channel is None:
-            return False
-        for member in channel.voice_members:
-            if not member.bot:
-                human_count += 1
-        return human_count >= 1
+    async def _has_human_members(channel):
+        # If there is a hit of an item with bot variable being false, then there is a human in the channel.
+        return next(filter(lambda m: not m.bot, channel.voice_members), None) is not None
 
-    async def _quit_playing(self):
-        await self._sound_queue.clear()
-
-        if self._player is not None:
-            self._player.stop()
-            self._player = None
-
-        if self._voice is not None:
-            await self._voice.disconnect()
-            self._voice = None
-
-    async def _play_top_track(self):
-        if await self._sound_queue.empty():
-            return
-
-        self._player = await self._get_player(self._voice, await self._sound_queue.get())
-        self._player.volume = self._volume
-        self._player.start()
-
-    async def _is_audio_track(self, candidate):
-        if type(candidate) != str:
-            return False
-
-        for ending in self.SUPPORTED_FILE_TYPES:
-            if candidate.endswith(ending):
-                return True
-
-        return False
+    async def _is_audio_track(self, file):
+        return type(file) == str and '.' in file and file[file.rfind('.'):] in self.SUPPORTED_FILE_TYPES
 
     @staticmethod
     async def _is_link(candidate):
@@ -281,22 +303,22 @@ class SoundPlayer:
     async def _create_track(self, src):
         is_link = await self._is_link(src)
         if not is_link:
-            src = await self._create_path(src, self._CLIPS_DIR, self._path_cache)
+            src = await self._create_path(src)
         return Track(src, is_link)
 
-    async def _create_path(self, audio, clip_base, path_cache):
-        if audio is None or clip_base is None or path_cache is None:
+    async def _create_path(self, audio):
+        if audio is None:
             return None
 
-        audio_path = await path_cache.get(audio)
+        audio_path = await self._path_cache.get(audio)
         if audio_path is not None:
             return audio_path
 
-        for dirpath, dirnames, filenames in os.walk(clip_base):
+        for dirpath, dirnames, filenames in os.walk(self._CLIPS_DIR):
             for ending in self.SUPPORTED_FILE_TYPES:
                 if f'{audio}{ending}'.lower() in self._lowercase_gen(filenames):
                     audio_path = os.path.join(dirpath, f'{audio}{ending}')
-                    await path_cache.insert(audio, audio_path)
+                    await self._path_cache.insert(audio, audio_path)
                     return audio_path
 
         return None
