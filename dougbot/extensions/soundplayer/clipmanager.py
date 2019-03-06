@@ -4,8 +4,6 @@ import shutil
 import requests
 from discord.ext import commands
 
-import dougbot.extensions.limits as limits
-
 
 class ClipManager:
     _CLIPS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'res', 'audio')
@@ -15,13 +13,69 @@ class ClipManager:
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(pass_context=True)
-    async def deleteclip(self, ctx, *, victim: str):
+    @commands.command(pass_context=True, no_pm=True)
+    async def renameclip(self, ctx, from_clip: str, *, to_clip: str):
+        # TODO
+        '''if not await self._is_admin(ctx.message.author.roles):
+            await self.bot.confusion(ctx.message, "Command 'deleteclip' is only for users with Admin role.")
+            return
+
+        if '..' in from_clip or os.path.isabs(from_clip) or '..' in to_clip or os.path.isabs(to_clip):
+            await self.bot.confusion(ctx.message)
+            return
+
+        from_path = await self._get_clip_path(from_clip)
+
+        if from_path is None:
+            await self.bot.confusion(ctx.message)
+            return
+
+        to_path =
+
+        try:
+            os.rename(from_path, to_path)
+        except OSError:
+            await self.bot.confusion(ctx.message)
+            return'''
         pass
+
+    @commands.command(pass_context=True, no_pm=True)
+    async def deleteclip(self, ctx, *, clip: str):
+        if not await self._is_admin(ctx.message.author.roles):
+            await self.bot.confusion(ctx.message, "Command 'deleteclip' is only for users with Admin role.")
+            return
+
+        if '..' in clip or os.path.isabs(clip):
+            await self.bot.confusion(ctx.message)
+            return
+
+        path = await self._get_clip_path(clip)
+
+        if path is None:
+            await self.bot.confusion(ctx.message)
+            return
+
+        try:
+            os.remove(path)
+        except OSError:
+            await self.bot.confusion(ctx.message)
+            return
+
+        await self.bot.confirmation(ctx.message)
 
     @commands.command(pass_context=True)
     async def getclip(self, ctx, *, clip: str):
-        pass
+        if '..' in clip or os.path.isabs(clip):
+            await self.bot.confusion(ctx.message)
+            return
+
+        path = await self._get_clip_path(clip)
+
+        if path is None:
+            await self.bot.confusion(ctx.message)
+            return
+
+        await self.bot.upload(path)
 
     @commands.command(pass_context=True)
     async def addclip(self, ctx, dest: str, filename: str, *, url: str = None):
@@ -31,8 +85,6 @@ class ClipManager:
 
         if not os.path.exists(os.path.join(self._CLIPS_DIR, dest)):
             os.makedirs(os.path.join(self._CLIPS_DIR, dest), exist_ok=True)
-
-        # TODO PUT A LIMIT ON SIZE OF SOUND CLIP FOLDER
 
         if url is not None and not await self._check_url(url):
             await self.bot.confusion(ctx.message)
@@ -55,14 +107,6 @@ class ClipManager:
 
         if file is None:
             await self.bot.confusion(ctx.message)
-            return
-
-        print(file.content)
-        print(file.headers)
-        print(len(file.raw))
-        mb_per_byte = 1000000
-        if len(file.raw) / mb_per_byte > limits.GITHUB_FILE_SIZE_LIMIT:
-            await self.bot.confusion(ctx.message, f'File cannot be more than {limits.GITHUB_FILE_SIZE_LIMIT} MB.')
             return
 
         path = os.path.join(self._CLIPS_DIR, f'{dest}')
@@ -102,6 +146,17 @@ class ClipManager:
 
         if len(message) > 0:
             await self.bot.say(message)
+
+    @staticmethod
+    async def _is_admin(roles):
+        return roles is not None and next(filter(lambda role: role.name == 'Admin', roles), None) is not None
+
+    async def _get_clip_path(self, clip):
+        for dirpath, dirnames, filenames in os.walk(self._CLIPS_DIR):
+            for file in filenames:
+                if '.' in file and file[:file.rfind('.')] == clip:
+                    return os.path.join(dirpath, file)
+        return None
 
     async def _is_audio_track(self, file):
         return type(file) == str and '.' in file and file[file.rfind('.'):] in self.SUPPORTED_FILE_TYPES
