@@ -1,14 +1,9 @@
 import asyncio
-import heapq
 import os
-import shutil
 import sys
-import time
 
-import requests
 from discord.ext import commands
 
-import dougbot.extensions.limits as limits
 from dougbot.extensions.soundplayer.error import TrackNotExistError
 from dougbot.extensions.soundplayer.track import Track
 from dougbot.util.cache import LRUCache
@@ -55,8 +50,10 @@ class SoundPlayer:
 
     # Synchronized code
     @commands.command(aliases=['sb'], pass_context=True, no_pm=True)
-    async def play(self, ctx, *, audio: str):
+    async def play(self, ctx, audio: str, times: int = 1):
         # The '*' denotes consume rest, which will take all text after that point to be the argument
+        if times <= 0:
+            return
 
         if self._voice is None:
             # Note: Cannot call other commands; e.g., cannot just call the join command here.
@@ -133,137 +130,6 @@ class SoundPlayer:
         self._player.volume = self._volume
         self._player.start()
 
-    @commands.command(pass_context=True)
-    async def addclip(self, ctx, dest: str, filename: str, *, url: str=None):
-        if '..' in dest or os.path.isabs(dest):
-            await self.bot.confusion(ctx.message)
-            return
-
-        if not os.path.exists(os.path.join(self._CLIPS_DIR, dest)):
-            os.makedirs(os.path.join(self._CLIPS_DIR, dest), exist_ok=True)
-
-        # TODO PUT A LIMIT ON SIZE OF SOUND CLIP FOLDER
-
-        if url is not None and not await self._check_url(url):
-            await self.bot.confusion(ctx.message)
-            return
-
-        if url is None:
-            # If no url was provided, then there has to be an audio attachment.
-            if len(ctx.message.attachments) <= 0:
-                await self.bot.confusion(ctx.message)
-                return
-            url = ctx.message.attachments[0]['url']
-
-        if '.' in filename and not filename[filename.rfind('.'):] in self.SUPPORTED_FILE_TYPES:
-            await self.bot.confusion(ctx.message)
-            return
-        elif '.' not in filename:
-            filename += url[url.rfind('.'):]
-
-        file = await self.download_file(url)
-
-        if file is None:
-            await self.bot.confusion(ctx.message)
-            return
-
-        print(file.content)
-        print(file.headers)
-        print(len(file.raw))
-        mb_per_byte = 1000000
-        if len(file.raw) / mb_per_byte > limits.GITHUB_FILE_SIZE_LIMIT:
-            await self.bot.confusion(ctx.message, f'File cannot be more than {limits.GITHUB_FILE_SIZE_LIMIT} MB.')
-            return
-
-        path = os.path.join(self._CLIPS_DIR, f'{dest}')
-        if not os.path.exists(path):
-            await self.bot.confusion(ctx.message)
-            return
-
-        path = os.path.join(path, filename.lower())
-        try:
-            with open(path, 'wb') as out_file:
-                shutil.copyfileobj(file.raw, out_file)
-        except Exception:
-            await self.bot.confusion(ctx.message)
-            return
-
-        # TODO PUSH TO GITHUB
-
-        await self.bot.confirmation(ctx.message)
-
-    async def _check_url(self, url):
-        return url is not None and await self._is_link(url) and '.' in url \
-               and url[url.rfind('.'):] in self.SUPPORTED_FILE_TYPES
-
-    async def download_file(self, url):
-        if not await self._check_url(url):
-            return None
-        # TODO ASYNC
-        return requests.get(url, stream=True)
-
-    @commands.command(aliases=['list'])
-    async def clips(self, *, category: str=None):
-        cur_time = time.time()
-
-        to_print = []
-        if category in ['cats', 'cat', 'category', 'categories']:
-            to_print = filter(lambda f: os.path.isdir(os.path.join(self._CLIPS_DIR, f)), os.listdir(self._CLIPS_DIR))
-        else:
-            base = os.path.join(self._CLIPS_DIR, category) if category is not None else self._CLIPS_DIR
-            for dirpath, dirnames, filenames in os.walk(base):
-                for file in filenames:
-                    if await self._is_audio_track(file):
-                        to_print.append(file[:file.rfind('.')])
-
-        # TODO TIME THIS VERSUS OUR OWN SORTING ALGORITHM - MERGE K SORTED LISTS
-        to_print = sorted(to_print, key=lambda s: s.casefold())
-
-        end_time = time.time()
-        print(f'list {end_time - cur_time}')
-
-        enter = ''
-        message = ''
-
-        for printee in to_print:
-            message += enter + printee
-            enter = '\n'
-
-        if len(message) > 0:
-            await self.bot.say(message)
-
-    @commands.command(aliases=['listy'])
-    async def clips_test(self, *, category: str = None):
-        cur_time = time.time()
-
-        to_print = []
-        if category in ['cats', 'cat', 'category', 'categories']:
-            to_print = filter(lambda f: os.path.isdir(os.path.join(self._CLIPS_DIR, f)), os.listdir(self._CLIPS_DIR))
-        else:
-            base = os.path.join(self._CLIPS_DIR, category) if category is not None else self._CLIPS_DIR
-            for dirpath, dirnames, filenames in os.walk(base):
-                cur_list = []
-                for file in filenames:
-                    if await self._is_audio_track(file):
-                        cur_list.append(file[:file.rfind('.')])
-                if len(cur_list) > 0:
-                    to_print.append(cur_list)
-
-        to_print = heapq.merge(*to_print, key=lambda s: s.casefold())
-
-        end_time = time.time()
-        print(f'listy {end_time - cur_time}')
-
-        enter = ''
-        message = ''
-
-        for printee in to_print:
-            message += enter + printee
-            enter = '\n'
-
-        if len(message) > 0:
-            await self.bot.say(message)
-
     # Listening for events will be registered just by making a method with prefix 'on_voice.'
     async def on_voice_state_update(self, before, after):
         if before is None or after is None or self._voice is None:
@@ -279,9 +145,6 @@ class SoundPlayer:
     async def _has_human_members(channel):
         # If there is a hit of an item with bot variable being false, then there is a human in the channel.
         return next(filter(lambda m: not m.bot, channel.voice_members), None) is not None
-
-    async def _is_audio_track(self, file):
-        return type(file) == str and '.' in file and file[file.rfind('.'):] in self.SUPPORTED_FILE_TYPES
 
     @staticmethod
     async def _is_link(candidate):
