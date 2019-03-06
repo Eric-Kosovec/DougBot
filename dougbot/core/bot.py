@@ -22,7 +22,7 @@ class DougBot(discord.ext.commands.Bot):
 
     def run(self, *args, **kwargs):
         try:
-            print("I'm starting...")
+            print("\nI'm starting...")
             # Blocking function that does not return until the bot is done.
             super().run(*(self.config.token, *args), **kwargs)
         except Exception as e:
@@ -39,13 +39,17 @@ class DougBot(discord.ext.commands.Bot):
         print('-' * (len(self.user.id) + len('ID: ')))
         print()
 
-    async def on_command_error(self, ctx, error):
-        if ctx is None or error is None:
+    async def on_command_error(self, error, ctx):
+        if error is None or ctx is None:
             return
+        if isinstance(error, commands.errors.MissingRequiredArgument):
+            await self.confusion(ctx.message, 'Missing required argument.')
+        if isinstance(error, commands.CheckFailure):
+            await self.confusion(ctx.message, 'You do not have permissions for this command.')
         if isinstance(error, commands.NoPrivateMessage):
-            await ctx.author.send('This command cannot be used in private messages.')
+            await self.send_message(ctx.message.channel, 'This command cannot be used in private messages.')
         elif isinstance(error, commands.DisabledCommand):
-            await ctx.author.send('This command is disabled and cannot be used.')
+            await self.send_message(ctx.message.channel, 'This command is disabled and cannot be used.')
         elif isinstance(error, commands.CommandInvokeError):
             traceback.print_tb(error.original.__traceback__)
 
@@ -60,7 +64,7 @@ class DougBot(discord.ext.commands.Bot):
             await self.add_reaction(message, question_emoji)
 
             if error_msg is not None:
-                await self.reply(error_msg)
+                await self.send_message(message.channel, error_msg)
 
     async def confirmation(self, message, confirm_msg=None):
         if message is not None:
@@ -68,7 +72,7 @@ class DougBot(discord.ext.commands.Bot):
             await self.add_reaction(message, ok_hand_emoji)
 
             if confirm_msg is not None:
-                await self.reply(confirm_msg)
+                await self.send_message(message.channel, confirm_msg)
 
     async def join_channel(self, channel):
         if channel is None or channel.is_private:

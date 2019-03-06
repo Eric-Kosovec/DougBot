@@ -1,8 +1,9 @@
 import os
 import subprocess
-import sys
 
 from discord.ext import commands
+
+from dougbot.extensions.util.admin_check import admin_command
 
 
 class Delivery:
@@ -11,74 +12,44 @@ class Delivery:
         self.bot = bot
 
     @commands.command(pass_context=True)
-    async def push(self, ctx):
-        cwd = os.getcwd()
-        os.chdir(self.bot.ROOT_DIR)
-        try:
-            subprocess.check_call(['git', 'add', 'dougbot/res'])
-            subprocess.check_call(['git', 'commit', '-m', 'Pushed resources by bot.'])
-            subprocess.check_call(['git', 'push'])
-        except subprocess.CalledProcessError or subprocess.SubprocessError:
-            if ctx is not None:
-                await self.bot.confusion(ctx.message)
-        finally:
-            os.chdir(cwd)
-
-    @commands.command(pass_context=True)
+    @admin_command()
     async def update(self, ctx):
-        cwd = os.getcwd()
-        os.chdir(self.bot.ROOT_DIR)
-        try:
-            subprocess.check_call(['git', 'pull'])
-
-            pid = os.getpid()
-
-            # Restart ourself
-            p = subprocess.Popen(['reset.bat', str(pid)], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            p.wait()
-        except subprocess.CalledProcessError:
-            if ctx is not None:
-                await self.bot.confusion(ctx.message)
-        finally:
-            os.chdir(cwd)
-
-    def _soft_update(self):
-        # TODO ISSUE IS WE LOSE THE SCHEDULE IF DONE, SO NEED A KVSTORE
-        cwd = os.getcwd()
-        os.chdir(self.bot.ROOT_DIR)
-        try:
-            subprocess.check_call(['git', 'pull'])
-
-            pid = os.getpid()
-
-            # Restart ourself
-            p = subprocess.Popen(['reset.bat', str(pid)], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            p.wait()
-        except subprocess.CalledProcessError:
-            print('Scheduled soft update failed.', file=sys.stderr)
-        finally:
-            os.chdir(cwd)
+        if ctx is None:
+            return
+        self._update(ctx, ['git', 'pull'])
 
     @commands.command(pass_context=True)
+    @admin_command()
     async def force_update(self, ctx):
         if ctx is None:
             return
+        self._update(ctx, ['git', 'fetch', '--all'], ['git', 'reset', '--hard', 'origin/master'])
 
+    def _update(self, ctx, *cmds):
+        if ctx is None or cmds is None:
+            return
         cwd = os.getcwd()
         os.chdir(self.bot.ROOT_DIR)
         try:
-            subprocess.check_call(['git', 'fetch', '--all'])
-            subprocess.check_call(['git', 'reset', '--hard', 'origin/master'])
-
-            pid = os.getpid()
-
-            # Restart ourself
-            p = subprocess.Popen(['reset.bat', str(pid)], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            p.wait()
+            self._process_commands(cmds)
+            self._restart_bot()
         except subprocess.CalledProcessError:
-            await self.bot.confusion(ctx.message)
+            if ctx is not None:
+                self.bot.confusion(ctx.message)
         finally:
             os.chdir(cwd)
+
+    @staticmethod
+    def _restart_bot():
+        p = subprocess.Popen(['reset.bat', str(os.getpid())], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p.wait()
+
+    @staticmethod
+    def _process_commands(*cmds):
+        if cmds is None:
+            return
+        for command in cmds:
+            subprocess.check_call(command)
 
 
 def setup(bot):

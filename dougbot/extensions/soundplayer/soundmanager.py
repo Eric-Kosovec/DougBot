@@ -4,6 +4,8 @@ import shutil
 import requests
 from discord.ext import commands
 
+from dougbot.extensions.util.admin_check import admin_command
+
 
 class SoundManager:
     _CLIPS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'res', 'audio')
@@ -14,37 +16,14 @@ class SoundManager:
         self.bot = bot
 
     @commands.command(pass_context=True, no_pm=True)
+    @admin_command()
     async def renameclip(self, ctx, from_clip: str, *, to_clip: str):
         # TODO
-        """if not await self._is_admin(ctx.message.author.roles):
-            await self.bot.confusion(ctx.message, "Command 'deleteclip' is only for users with Admin role.")
-            return
-
-        if '..' in from_clip or os.path.isabs(from_clip) or '..' in to_clip or os.path.isabs(to_clip):
-            await self.bot.confusion(ctx.message)
-            return
-
-        from_path = await self._get_clip_path(from_clip)
-
-        if from_path is None:
-            await self.bot.confusion(ctx.message)
-            return
-
-        to_path =
-
-        try:
-            os.rename(from_path, to_path)
-        except OSError:
-            await self.bot.confusion(ctx.message)
-            return"""
         pass
 
     @commands.command(pass_context=True, no_pm=True)
+    @admin_command()
     async def deleteclip(self, ctx, *, clip: str):
-        if not await self._is_admin(ctx.message.author.roles):
-            await self.bot.confusion(ctx.message, "Command 'deleteclip' is only for users with Admin role.")
-            return
-
         if '..' in clip or os.path.isabs(clip):
             await self.bot.confusion(ctx.message)
             return
@@ -146,10 +125,6 @@ class SoundManager:
 
         if len(message) > 0:
             await self.bot.say(message)
-
-    @staticmethod
-    async def _is_admin(roles):
-        return roles is not None and next(filter(lambda role: role.name == 'Admin', roles), None) is not None
 
     async def _get_clip_path(self, clip):
         for dirpath, dirnames, filenames in os.walk(self._CLIPS_DIR):
