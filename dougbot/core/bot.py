@@ -4,7 +4,6 @@ import sys
 import traceback
 
 import discord.ext.commands
-from discord.channel import ChannelType
 from discord.ext import commands
 
 from dougbot.config import Config
@@ -37,9 +36,8 @@ class DougBot(discord.ext.commands.Bot):
         print('\nDoug Online')
         print(f'Name: {self.user.name}')
         print(f'ID: {self.user.id}')
-        print('-' * (len(self.user.id) + len('ID: ')) + '\n')
-        for text_channel in filter(lambda c: c.type == ChannelType.text, self.get_all_channels()):
-            await self.send_message(text_channel, 'I am sad.')
+        print('-' * (len(self.user.id) + len('ID: ')))
+        print()
 
     async def on_command_error(self, error, ctx):
         if error is None or ctx is None:

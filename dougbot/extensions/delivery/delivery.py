@@ -13,13 +13,6 @@ class Delivery:
 
     @commands.command(pass_context=True)
     @admin_command()
-    async def restart(self, ctx):
-        if ctx is None:
-            return
-        self._restart_bot()
-
-    @commands.command(pass_context=True)
-    @admin_command()
     async def update(self, ctx):
         if ctx is None:
             return
@@ -52,7 +45,7 @@ class Delivery:
         p.wait()
 
     @staticmethod
-    def _process_commands(cmds):
+    def _process_commands(*cmds):
         if cmds is None:
             return
         for command in cmds:
