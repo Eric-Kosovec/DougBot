@@ -24,6 +24,7 @@ class SoundManager:
             return
 
         clip_basename = os.path.basename(clip_path)
+
         dest_path = clip_path[:-len(clip_basename)]
         dest_path = os.path.join(dest_path, f"{to_clip}{clip_basename[clip_basename.rfind('.'):]}")
 
@@ -32,6 +33,9 @@ class SoundManager:
         except OSError:
             await self.bot.confusion(ctx.message)
             return
+        except Exception as e:
+            # TODO REMOVE LATER
+            print(f'ERROR UNHANDLED EXCEPTION {e}', file=sys.stderr)
 
     @commands.command(pass_context=True)
     @admin_command()

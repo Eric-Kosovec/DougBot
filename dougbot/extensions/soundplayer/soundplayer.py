@@ -7,7 +7,6 @@ from discord.ext import commands
 from dougbot.extensions.soundplayer.error import TrackNotExistError
 from dougbot.extensions.soundplayer.track import Track
 from dougbot.util.cache import LRUCache
-from dougbot.util.queue import Queue
 
 
 class SoundPlayer:
@@ -18,8 +17,8 @@ class SoundPlayer:
     def __init__(self, bot):
         self.bot = bot
         self._path_cache = LRUCache(15)
-        self._play_lock = asyncio.Lock()
-        self._sound_queue = Queue()
+        self._play_lock = asyncio.Lock()  # TODO WRITE WHAT FOR
+        self._done_playing_notify = asyncio.Semaphore(0)  # For notifying thread is done playing clip
         self._volume = 1.0
         self._player = None
         self._voice = None
@@ -53,37 +52,49 @@ class SoundPlayer:
     async def play(self, ctx, audio: str, times: int = 1):
         # The '*' denotes consume rest, which will take all text after that point to be the argument
         if times <= 0:
+            await self.bot.confusion(ctx.message)
             return
 
         if self._voice is None:
             # Note: Cannot call other commands; e.g., cannot just call the join command here.
             self._voice = await self.bot.join_channel(ctx.message.author.voice.voice_channel)
 
-        # Acquire lock so only one thread will play at once; otherwise, sounds will interleave.
+        # Acquire lock so only one thread will play the clips; otherwise, sounds will interleave.
+        # This solution at the moment has the possibility of sounds not playing in the order they were
+        # commanded in, stemming from the use of the below lock, as the awaiters on the lock may not necessarily
+        # acquire in order of arrival. A correct solution will not depend upon the scheduling of the underlying system.
+        # To be properly implemented later.
         await self._play_lock.acquire()
 
-        # Start of the Critical Section
         try:
-            await self._sound_queue.put(await self._create_track(audio))  # TODO BETTER IN HERE OR OUTSIDE THE CS?
-            await self._play_top_track()
+            track = await self._create_track(audio)
+            if track is None:
+                await self.bot.confusion(ctx.message)
+                return
+
+            for _ in range(times):
+                await self._play_track(track)
+                await self._done_playing_notify.acquire()
         except TrackNotExistError:
             await self.bot.confusion(ctx.message)
-            self._play_lock.release()
         except Exception as e:
-            print('ERROR: Exception raised in SoundPlayer method play: {e}', file=sys.stderr)
+            await self.bot.confusion(ctx.message)
+            print(f'ERROR: Exception raised in SoundPlayer method play: {e}', file=sys.stderr)
+        finally:
             self._play_lock.release()
 
     def _soundplayer_finished(self):
         try:
             asyncio.run_coroutine_threadsafe(self._unlock_play_lock(), self.bot.loop).result()
         except Exception as e:
+            # TODO BETTER HANDLING
             raise e
 
     async def _unlock_play_lock(self):
-        self._play_lock.release()
-        # End of the Critical Section
+        self._done_playing_notify.release()
 
-    @commands.command(aliases=['volume'], no_pm=True)
+    # Volume is already a superclass' method, so coder beware.
+    @commands.command(name='volume', aliases=['vol'], no_pm=True)
     async def vol(self, volume: float):
         self._volume = max(0.0, min(100.0, volume)) / 100.0
         if self._player is not None:
@@ -101,32 +112,27 @@ class SoundPlayer:
 
     @commands.command(no_pm=True)
     async def skip(self):
-        # Cause the player to stop and call the registered callback, which will start the next track.
         if self._player is not None:
             self._player.stop()
 
     async def _quit_playing(self, channel):
-        await self._play_lock.acquire()
-        try:
-            await self._sound_queue.clear()
+        # TODO ANY SYNCHRONIZATION ISSUES? - FIRST GLANCE NO, BUT LOOK LATER
+        if self._player is not None:
+            self._player.stop()
+            self._player = None
 
-            if self._player is not None:
-                self._player.stop()
-                self._player = None
+        if self._voice is not None:
+            tmp = self._voice
+            self._voice = None  # Null out the field before giving away control through await.
+            await tmp.disconnect()
 
-            if self._voice is not None:
-                tmp = self._voice
-                self._voice = None  # Null out the field before giving away control through await.
-                await tmp.disconnect()
+        await self.bot.leave_channel(channel)
 
-            await self.bot.leave_channel(channel)
-        finally:  # Release the lock upon any unexpected exceptions, too.
-            self._play_lock.release()
-
-    async def _play_top_track(self):
-        if self._voice is None or await self._sound_queue.empty():
+    async def _play_track(self, track):
+        if track is None or self._voice is None:
+            self._done_playing_notify.release()
             return
-        self._player = await self._get_player(self._voice, await self._sound_queue.get())
+        self._player = await self._get_player(self._voice, track)
         self._player.volume = self._volume
         self._player.start()
 
@@ -140,6 +146,8 @@ class SoundPlayer:
 
         if before.voice_channel == self._voice.channel and not await self._has_human_members(self._voice.channel):
             await self._quit_playing(before.voice_channel)
+
+    # Utility Methods
 
     @staticmethod
     async def _has_human_members(channel):
@@ -158,7 +166,7 @@ class SoundPlayer:
             return None
         callback = self._soundplayer_finished
         if not track.is_link:
-            player = vc.create_ffmpeg_player(track.src, after=callback)
+            player = vc.create_ffmpeg_player(track.src, options='-loglevel quiet', after=callback)
         else:
             player = await vc.create_ytdl_player(track.src, after=callback)
         return player
