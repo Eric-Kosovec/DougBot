@@ -52,7 +52,7 @@ class Delivery:
         p.wait()
 
     @staticmethod
-    def _process_commands(*cmds):
+    def _process_commands(cmds):
         if cmds is None:
             return
         for command in cmds:
