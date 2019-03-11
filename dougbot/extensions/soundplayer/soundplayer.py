@@ -18,17 +18,15 @@ class SoundPlayer:
         self.bot = bot
         self._path_cache = LRUCache(15)
         self._play_lock = asyncio.Lock()  # TODO WRITE WHAT FOR
-        self._done_playing_notify = asyncio.Semaphore(0)  # For notifying thread is done playing clip
+        self._notify_done_playing = asyncio.Semaphore(0)  # For notifying thread is done playing clip
         self._volume = 1.0
         self._player = None
         self._voice = None
 
-    '''
-    Context (CTX) variables: 'args', 'bot', 'cog',
-    'command', 'invoke', 'invoked_subcommand',
-    'invoked_with', 'kwargs', 'message', 'prefix',
-    'subcommand_passed', 'view'
-    '''
+    # Context (CTX) variables: 'args', 'bot', 'cog',
+    # 'command', 'invoke', 'invoked_subcommand',
+    # 'invoked_with', 'kwargs', 'message', 'prefix',
+    # 'subcommand_passed', 'view'
     @commands.command(pass_context=True, no_pm=True)
     async def join(self, ctx):
         # Commander is not in a voice channel, or bot is already in a voice channel on the server
@@ -50,7 +48,6 @@ class SoundPlayer:
     # Synchronized code
     @commands.command(aliases=['sb'], pass_context=True, no_pm=True)
     async def play(self, ctx, audio: str, times: int = 1):
-        # The '*' denotes consume rest, which will take all text after that point to be the argument
         if times <= 0:
             await self.bot.confusion(ctx.message)
             return
@@ -62,8 +59,8 @@ class SoundPlayer:
         # Acquire lock so only one thread will play the clips; otherwise, sounds will interleave.
         # This solution at the moment has the possibility of sounds not playing in the order they were
         # commanded in, stemming from the use of the below lock, as the awaiters on the lock may not necessarily
-        # acquire in order of arrival. A correct solution will not depend upon the scheduling of the underlying system.
-        # To be properly implemented later.
+        # acquire in order of arrival. A correct solution should not depend upon the scheduling of the underlying
+        # system. To be properly implemented later.
         await self._play_lock.acquire()
 
         try:
@@ -74,7 +71,7 @@ class SoundPlayer:
 
             for _ in range(times):
                 await self._play_track(track)
-                await self._done_playing_notify.acquire()
+                await self._notify_done_playing.acquire()
         except TrackNotExistError:
             await self.bot.confusion(ctx.message)
         except Exception as e:
@@ -91,7 +88,7 @@ class SoundPlayer:
             raise e
 
     async def _unlock_play_lock(self):
-        self._done_playing_notify.release()
+        self._notify_done_playing.release()
 
     # Volume is already a superclass' method, so coder beware.
     @commands.command(name='volume', aliases=['vol'], no_pm=True)
@@ -130,11 +127,13 @@ class SoundPlayer:
 
     async def _play_track(self, track):
         if track is None or self._voice is None:
-            self._done_playing_notify.release()
+            self._notify_done_playing.release()
             return
         self._player = await self._get_player(self._voice, track)
         self._player.volume = self._volume
         self._player.start()
+
+    # Listeners
 
     # Listening for events will be registered just by making a method with prefix 'on_voice.'
     async def on_voice_state_update(self, before, after):
