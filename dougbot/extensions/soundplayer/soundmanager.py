@@ -5,12 +5,12 @@ import sys
 import requests
 from discord.ext import commands
 
+from dougbot.extensions.soundplayer.supportedformats import PLAYER_FILE_TYPES
 from dougbot.extensions.util.admin_check import admin_command
 
 
 class SoundManager:
     CLIPS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'res', 'audio')
-    SUPPORTED_FILE_TYPES = ['.mp1', '.mp2', '.mp3', '.mp4', '.m4a', '.3gp', '.aac', '.flac', '.wav', '.aif']
 
     def __init__(self, bot):
         self.bot = bot
@@ -110,7 +110,7 @@ class SoundManager:
             await self.bot.confusion(ctx.message)
             return
 
-        if '.' in filename and filename[filename.rfind('.'):] not in self.SUPPORTED_FILE_TYPES:
+        if '.' in filename and filename[filename.rfind('.'):] not in PLAYER_FILE_TYPES:
             await self.bot.confusion(ctx.message, f"{filename[filename.rfind('.'):]} unsupported file type.")
             return
         elif '.' not in filename:
@@ -167,7 +167,7 @@ class SoundManager:
         return None
 
     async def _is_audio_track(self, file):
-        return type(file) == str and '.' in file and file[file.rfind('.'):] in self.SUPPORTED_FILE_TYPES
+        return type(file) == str and '.' in file and file[file.rfind('.'):] in PLAYER_FILE_TYPES
 
     @staticmethod
     async def _is_link(candidate):
@@ -178,7 +178,7 @@ class SoundManager:
 
     async def _check_url(self, url):
         return url is not None and await self._is_link(url) and '.' in url \
-               and url[url.rfind('.'):] in self.SUPPORTED_FILE_TYPES
+               and url[url.rfind('.'):] in PLAYER_FILE_TYPES
 
     async def _download_file(self, url):
         if not await self._check_url(url):

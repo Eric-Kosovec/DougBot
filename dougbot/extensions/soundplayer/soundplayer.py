@@ -5,6 +5,7 @@ import sys
 from discord.ext import commands
 
 from dougbot.extensions.soundplayer.error import TrackNotExistError
+from dougbot.extensions.soundplayer.supportedformats import PLAYER_FILE_TYPES
 from dougbot.extensions.soundplayer.track import Track
 from dougbot.util.cache import LRUCache
 
@@ -12,12 +13,10 @@ from dougbot.util.cache import LRUCache
 class SoundPlayer:
     _CLIPS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'res', 'audio')
 
-    SUPPORTED_FILE_TYPES = ['.mp1', '.mp2', '.mp3', '.mp4', '.m4a', '.3gp', '.aac', '.flac', '.wav', '.aif']
-
     def __init__(self, bot):
         self.bot = bot
         self._path_cache = LRUCache(15)
-        self._play_lock = asyncio.Lock()  # TODO WRITE WHAT FOR
+        self._play_lock = asyncio.Lock()  # Stop multiple threads from being created and playing audio over each other.
         self._notify_done_playing = asyncio.Semaphore(0)  # For notifying thread is done playing clip
         self._volume = 1.0
         self._player = None
@@ -57,10 +56,6 @@ class SoundPlayer:
             self._voice = await self.bot.join_channel(ctx.message.author.voice.voice_channel)
 
         # Acquire lock so only one thread will play the clips; otherwise, sounds will interleave.
-        # This solution at the moment has the possibility of sounds not playing in the order they were
-        # commanded in, stemming from the use of the below lock, as the awaiters on the lock may not necessarily
-        # acquire in order of arrival. A correct solution should not depend upon the scheduling of the underlying
-        # system. To be properly implemented later.
         await self._play_lock.acquire()
 
         try:
@@ -69,8 +64,10 @@ class SoundPlayer:
                 await self.bot.confusion(ctx.message)
                 return
 
+            # Begin clip block.
             for _ in range(times):
                 await self._play_track(track)
+                # Wait until thread is done playing current audio before playing the next in the clip block.
                 await self._notify_done_playing.acquire()
         except TrackNotExistError:
             await self.bot.confusion(ctx.message)
@@ -113,7 +110,6 @@ class SoundPlayer:
             self._player.stop()
 
     async def _quit_playing(self, channel):
-        # TODO ANY SYNCHRONIZATION ISSUES? - FIRST GLANCE NO, BUT LOOK LATER
         if self._player is not None:
             self._player.stop()
             self._player = None
@@ -185,7 +181,7 @@ class SoundPlayer:
             return audio_path
 
         for dirpath, dirnames, filenames in os.walk(self._CLIPS_DIR):
-            for ending in self.SUPPORTED_FILE_TYPES:
+            for ending in PLAYER_FILE_TYPES:
                 if f'{audio}{ending}'.lower() in self._lowercase_gen(filenames):
                     audio_path = os.path.join(dirpath, f'{audio}{ending}')
                     await self._path_cache.insert(audio, audio_path)
