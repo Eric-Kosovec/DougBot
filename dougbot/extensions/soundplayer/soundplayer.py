@@ -48,7 +48,7 @@ class SoundPlayer:
         await self._quit_playing(bot_voice_client.channel)
 
     # Synchronized code
-    @commands.command(aliases=['sb'], pass_context=True, no_pm=True)
+    @commands.command(help='[args...] = [clip name or url] [optional times]', aliases=['sb'], pass_context=True, no_pm=True)
     async def play(self, ctx, *args):
         # Due to parsing issues in the current discordpy library, arguments here need to be manually parsed.
         if len(args) <= 0:
