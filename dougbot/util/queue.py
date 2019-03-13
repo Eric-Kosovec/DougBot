@@ -21,5 +21,8 @@ class Queue:
     async def empty(self):
         return len(self.items) <= 0
 
+    async def size(self):
+        return len(self)
+
     def __len__(self):
         return len(self.items)

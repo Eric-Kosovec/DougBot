@@ -49,10 +49,38 @@ class SoundPlayer:
 
     # Synchronized code
     @commands.command(aliases=['sb'], pass_context=True, no_pm=True)
-    async def play(self, ctx, audio: str, times: int = 1):
+    async def play(self, ctx, *args):
+        # Due to parsing issues in the current discordpy library, arguments here need to be manually parsed.
+        if len(args) <= 0:
+            await self.bot.confusion(ctx.message)
+            return
+
+        had_times = True
+
+        # Attempt to use the last argument as the amount of times to play.
+        try:
+            times = int(args[len(args) - 1])
+        except ValueError:
+            had_times = False
+            times = 1
+
         if times <= 0:
             await self.bot.confusion(ctx.message)
             return
+
+        # If the only argument was the amount of times, then there is no clip specified to play.
+        if had_times and len(args) <= 1:
+            await self.bot.confusion(ctx.message)
+            return
+
+        # Construct the clip to play from the arguments, minus the 'times' argument, if need be.
+        audio = ''
+        space = ''
+        for i in range(len(args)):
+            if had_times and i == len(args) - 1:
+                break
+            audio += space + args[i]
+            space = ' '
 
         if self._voice is None:
             # Note: Cannot call other commands; e.g., cannot just call the join command here.

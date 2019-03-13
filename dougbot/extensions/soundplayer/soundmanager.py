@@ -33,9 +33,6 @@ class SoundManager:
         except OSError:
             await self.bot.confusion(ctx.message)
             return
-        except Exception as e:
-            # TODO REMOVE LATER
-            print(f'ERROR UNHANDLED EXCEPTION {e}', file=sys.stderr)
 
     @commands.command(pass_context=True)
     @admin_command()
@@ -92,28 +89,12 @@ class SoundManager:
             await self.bot.confusion(ctx.message)
             return
 
-        if not os.path.exists(os.path.join(self.CLIPS_DIR, folder.strip())):
+        if not os.path.exists(os.path.join(self.CLIPS_DIR, folder)):
             try:
-                os.makedirs(os.path.join(self.CLIPS_DIR, folder.strip()), exist_ok=True)
+                os.makedirs(os.path.join(self.CLIPS_DIR, folder), exist_ok=True)
             except Exception as e:
                 await self.bot.confusion(ctx.message)
                 return
-
-        # If a clip name has spaces in it, it will bleed into the url variable.
-        # Thus, find a url in the url if possible and append all before the url to the clip name.
-        if url is not None:
-            url_start = await self._find_url(url)
-            # No url, so all of it must be for the clip name
-            if url_start < 0:
-                clip_name += ' ' + url
-                url = ''
-            else:
-                if url_start > 0:
-                    clip_name += ' ' + url[:url_start]
-                url = url[url_start:]
-            url.strip()
-
-        clip_name.strip()
 
         if url is None or len(url) <= 0:
             # If no url was provided, then there has to be an audio attachment.
@@ -171,20 +152,6 @@ class SoundManager:
         if len(message) > 0:
             await self.bot.say(message)
 
-    async def _find_url(self, text):
-        if text is None:
-            return -1
-        if await self._is_link(text):
-            return 0
-        if ' ' not in text:
-            return -1
-        url_start = text.rfind(' ') + 1
-        if url_start >= len(text):
-            return -1
-        if await self._is_link(text[url_start:]):
-            return url_start
-        return -1
-
     @staticmethod
     async def _safe_path(path):
         return path is not None and '..' not in path and not os.path.isabs(path)
@@ -196,7 +163,8 @@ class SoundManager:
                     return os.path.join(dirpath, file)
         return None
 
-    async def _is_audio_track(self, file):
+    @staticmethod
+    async def _is_audio_track(file):
         return type(file) == str and '.' in file and file[file.rfind('.'):] in PLAYER_FILE_TYPES
 
     @staticmethod
