@@ -8,6 +8,7 @@ from dougbot.extensions.soundplayer.error import TrackNotExistError
 from dougbot.extensions.soundplayer.supportedformats import PLAYER_FILE_TYPES
 from dougbot.extensions.soundplayer.track import Track
 from dougbot.util.cache import LRUCache
+from dougbot.util.queue import Queue
 
 
 class SoundPlayer:
@@ -18,6 +19,8 @@ class SoundPlayer:
         self._path_cache = LRUCache(15)
         self._play_lock = asyncio.Lock()  # Stop multiple threads from being created and playing audio over each other.
         self._notify_done_playing = asyncio.Semaphore(0)  # For notifying thread is done playing clip
+        self._sound_queue = Queue()
+        self._queue_lock = asyncio.Lock()
         self._volume = 1.0
         self._player = None
         self._voice = None

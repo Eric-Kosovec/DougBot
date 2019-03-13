@@ -87,19 +87,35 @@ class SoundManager:
         await self.bot.upload(path)
 
     @commands.command(pass_context=True)
-    async def addclip(self, ctx, dest: str, filename: str, *, url: str = None):
-        if not await self._safe_path(dest):
+    async def addclip(self, ctx, folder: str, clip_name: str, *, url: str = None):
+        if not await self._safe_path(folder):
             await self.bot.confusion(ctx.message)
             return
 
-        if not os.path.exists(os.path.join(self.CLIPS_DIR, dest)):
+        if not os.path.exists(os.path.join(self.CLIPS_DIR, folder.strip())):
             try:
-                os.makedirs(os.path.join(self.CLIPS_DIR, dest), exist_ok=True)
+                os.makedirs(os.path.join(self.CLIPS_DIR, folder.strip()), exist_ok=True)
             except Exception as e:
                 await self.bot.confusion(ctx.message)
                 return
 
-        if url is None:
+        # If a clip name has spaces in it, it will bleed into the url variable.
+        # Thus, find a url in the url if possible and append all before the url to the clip name.
+        if url is not None:
+            url_start = await self._find_url(url)
+            # No url, so all of it must be for the clip name
+            if url_start < 0:
+                clip_name += ' ' + url
+                url = ''
+            else:
+                if url_start > 0:
+                    clip_name += ' ' + url[:url_start]
+                url = url[url_start:]
+            url.strip()
+
+        clip_name.strip()
+
+        if url is None or len(url) <= 0:
             # If no url was provided, then there has to be an audio attachment.
             if len(ctx.message.attachments) <= 0:
                 await self.bot.confusion(ctx.message)
@@ -110,18 +126,18 @@ class SoundManager:
             await self.bot.confusion(ctx.message)
             return
 
-        if '.' in filename and filename[filename.rfind('.'):] not in PLAYER_FILE_TYPES:
-            await self.bot.confusion(ctx.message, f"{filename[filename.rfind('.'):]} unsupported file type.")
+        if '.' in clip_name and clip_name[clip_name.rfind('.'):] not in PLAYER_FILE_TYPES:
+            await self.bot.confusion(ctx.message, f"{clip_name[clip_name.rfind('.'):]} unsupported file type.")
             return
-        elif '.' not in filename:
-            filename += url[url.rfind('.'):]
+        elif '.' not in clip_name:
+            clip_name += url[url.rfind('.'):]
 
         file = await self._download_file(url)
         if file is None:
             await self.bot.confusion(ctx.message)
             return
 
-        path = os.path.join(self.CLIPS_DIR, f'{dest}', filename.lower())
+        path = os.path.join(self.CLIPS_DIR, f'{folder}', clip_name.lower())
         try:
             with open(path, 'wb') as out_file:
                 shutil.copyfileobj(file.raw, out_file)
@@ -155,6 +171,20 @@ class SoundManager:
         if len(message) > 0:
             await self.bot.say(message)
 
+    async def _find_url(self, text):
+        if text is None:
+            return -1
+        if await self._is_link(text):
+            return 0
+        if ' ' not in text:
+            return -1
+        url_start = text.rfind(' ') + 1
+        if url_start >= len(text):
+            return -1
+        if await self._is_link(text[url_start:]):
+            return url_start
+        return -1
+
     @staticmethod
     async def _safe_path(path):
         return path is not None and '..' not in path and not os.path.isabs(path)
@@ -171,6 +201,7 @@ class SoundManager:
 
     @staticmethod
     async def _is_link(candidate):
+        print(candidate)
         if type(candidate) != str:
             return False
         # Rudimentary link detection
