@@ -64,9 +64,11 @@ class SoundManager:
     @commands.command(pass_context=True, aliases=['removeclip'], no_pm=True)
     @admin_command()
     async def deleteclip(self, ctx, *, clip: str):
+        self.bot.say(self.CLIPS_DIR)
+        self.bot.say(clip)
         path = await self._get_clip_path(clip)
         if path is None:
-            await self.bot.confusion(ctx.message)
+            await self.bot.confusion(ctx.message, "Path is None")
             return
 
         try:
