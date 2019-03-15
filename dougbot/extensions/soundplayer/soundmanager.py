@@ -71,8 +71,8 @@ class SoundManager:
 
         try:
             os.remove(path)
-        except OSError as e:
-            await self.bot.confusion(ctx.message, f'{e}')
+        except OSError:
+            await self.bot.confusion(ctx.message)
             return
 
         await self.bot.confirmation(ctx.message)
@@ -163,6 +163,7 @@ class SoundManager:
     async def _get_clip_path(self, clip):
         for dirpath, dirnames, filenames in os.walk(self.CLIPS_DIR):
             for file in filenames:
+                self.bot.say(file)
                 if '.' in file and file[:file.rfind('.')] == clip:
                     return os.path.join(dirpath, file)
         return None
