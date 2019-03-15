@@ -34,6 +34,8 @@ class SoundManager:
             await self.bot.confusion(ctx.message)
             return
 
+        await self.bot.confirmation(ctx.message)
+
     @commands.command(pass_context=True)
     @admin_command()
     async def moveclip(self, ctx, clip: str, *, dest: str):
@@ -57,7 +59,9 @@ class SoundManager:
             await self.bot.confusion(ctx.message)
             return
 
-    @commands.command(pass_context=True, no_pm=True)
+        await self.bot.confirmation(ctx.message)
+
+    @commands.command(pass_context=True, aliases=['removeclip'], no_pm=True)
     @admin_command()
     async def deleteclip(self, ctx, *, clip: str):
         path = await self._get_clip_path(clip)
@@ -67,8 +71,8 @@ class SoundManager:
 
         try:
             os.remove(path)
-        except OSError:
-            await self.bot.confusion(ctx.message)
+        except OSError as e:
+            await self.bot.confusion(ctx.message, f'{e}')
             return
 
         await self.bot.confirmation(ctx.message)
