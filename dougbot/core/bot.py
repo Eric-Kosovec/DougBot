@@ -4,22 +4,20 @@ import sys
 import traceback
 
 import discord.ext.commands
-from discord.channel import ChannelType
+from discord.channel import TextChannel
 from discord.ext import commands
 
 from dougbot.config import Config
-from dougbot.core.db.kvstore import KVStore
 
 
-class DougBot(discord.ext.commands.Bot):
+class DougBot(commands.AutoShardedBot):
     ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
     ROOT_DIR = os.path.dirname(os.path.dirname(ROOT_DIR))
 
     def __init__(self, config_file):
         self.config = Config(config_file)
-        super().__init__(self.config.command_prefix)
+        super().__init__(self.config.command_prefix, case_insensitive=True)
         self._load_extensions()
-        self.kvstore = KVStore()
 
     def run(self, *args, **kwargs):
         try:
@@ -37,11 +35,15 @@ class DougBot(discord.ext.commands.Bot):
         print('\nDoug Online')
         print(f'Name: {self.user.name}')
         print(f'ID: {self.user.id}')
-        print('-' * (len(self.user.id) + len('ID: ')) + '\n')
-        for text_channel in filter(lambda c: c.type == ChannelType.text, self.get_all_channels()):
-            await self.send_message(text_channel, 'I am sad.')
+        print('-' * (len(str(self.user.id)) + 4))
+        for text_channel in filter(lambda gc: isinstance(gc, TextChannel), self.get_all_channels()):
+            pass
+            #await text_channel.send('I am sad.')
 
-    async def on_command_error(self, error, ctx):
+    async def on_command_error(self, ctx, error):
+        print('PRINTING ERROR')
+        print(error)
+        # TODO EXPAND
         if error is None or ctx is None:
             return
         if isinstance(error, commands.errors.MissingRequiredArgument):
@@ -49,57 +51,47 @@ class DougBot(discord.ext.commands.Bot):
         if isinstance(error, commands.CheckFailure):
             await self.confusion(ctx.message, 'You do not have permissions for this command.')
         if isinstance(error, commands.NoPrivateMessage):
-            await self.send_message(ctx.message.channel, 'This command cannot be used in private messages.')
+            await ctx.message.channel.send('This command cannot be used in private messages.')
         elif isinstance(error, commands.DisabledCommand):
-            await self.send_message(ctx.message.channel, 'This command is disabled and cannot be used.')
+            await ctx.message.channel.send('This command is disabled and cannot be used.')
         elif isinstance(error, commands.CommandInvokeError):
             traceback.print_tb(error.original.__traceback__)
 
-    async def confusion(self, message, error_msg=None):
-        """
-        Adds a question mark emoji to a user's message to indicate something went wrong in some way.
-        :param message: The offending message
-        :param error_msg: Optional message to send to the channel responsible.
-        """
+    @staticmethod
+    async def confusion(message, error_msg=None):
         if message is not None:
             question_emoji = '\U00002753'
-            await self.add_reaction(message, question_emoji)
+            await message.add_reaction(question_emoji)
 
             if error_msg is not None:
-                await self.send_message(message.channel, error_msg)
+                await message.channel.send(error_msg)
 
-    async def confirmation(self, message, confirm_msg=None):
+    @staticmethod
+    async def confirmation(message, confirm_msg=None):
         if message is not None:
             ok_hand_emoji = '\U0001F44C'
-            await self.add_reaction(message, ok_hand_emoji)
+            await message.add_reaction(ok_hand_emoji)
 
             if confirm_msg is not None:
-                await self.send_message(message.channel, confirm_msg)
+                await message.channel.send(confirm_msg)
 
-    async def join_channel(self, channel):
-        if channel is None or channel.is_private:
-            return None
+    @staticmethod
+    async def join_channel(channel):
+        if channel:
+            return await channel.connect()
+        return None
 
-        vc = self.voice_client_in(channel.server)
-        if vc is not None and vc.channel == channel:
-            return vc
-        elif vc is not None:
-            await self.leave_channel(vc.channel)
-
-        # If there is a warning here, ignore it. Works perfectly fine.
-        return await self.join_voice_channel(channel)
-
-    async def leave_channel(self, channel):
-        if channel is None or channel.is_private:
-            return
-
-        vc = self.voice_client_in(channel.server)
-        if vc is not None and vc.channel == channel:
-            await vc.disconnect()
+    @staticmethod
+    async def leave_channel(voice):
+        if voice:
+            await voice.disconnect()
 
     def cleanup(self):
         if self.loop is not None and not self.loop.is_closed():
             asyncio.run_coroutine_threadsafe(self.logout(), self.loop).result()
+            self.loop.stop()
+            self.loop.close()
+            self.loop = None
 
     def _load_extensions(self):
         extensions_base = os.path.dirname(os.path.dirname(__file__))

@@ -1,17 +1,18 @@
 import asyncio
 import os
 import sys
+import typing
 
+import discord
 from discord.ext import commands
 
 from dougbot.extensions.soundplayer.error import TrackNotExistError
 from dougbot.extensions.soundplayer.supportedformats import PLAYER_FILE_TYPES
 from dougbot.extensions.soundplayer.track import Track
 from dougbot.util.cache import LRUCache
-from dougbot.util.queue import Queue
 
 
-class SoundPlayer:
+class SoundPlayer(commands.Cog):
     _CLIPS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'res', 'audio')
 
     def __init__(self, bot):
@@ -19,78 +20,26 @@ class SoundPlayer:
         self._path_cache = LRUCache(15)
         self._play_lock = asyncio.Lock()  # Stop multiple threads from being created and playing audio over each other.
         self._notify_done_playing = asyncio.Semaphore(0)  # For notifying thread is done playing clip
-        self._sound_queue = Queue()
-        self._queue_lock = asyncio.Lock()
-        self._volume = 1.0
-        self._player = None
         self._voice = None
+        self._volume = 1.0
 
-    # Context (CTX) variables: 'args', 'bot', 'cog',
-    # 'command', 'invoke', 'invoked_subcommand',
-    # 'invoked_with', 'kwargs', 'message', 'prefix',
-    # 'subcommand_passed', 'view'
-    @commands.command(pass_context=True, no_pm=True)
-    async def join(self, ctx):
-        # Commander is not in a voice channel, or bot is already in a voice channel on the server
-        if ctx.message.author.voice is None or self.bot.voice_client_in(ctx.message.server) is not None:
-            return
-        self._voice = await self.bot.join_channel(ctx.message.author.voice.voice_channel)
-
-    # Aliases are additional command names beyond the method name.
-    @commands.command(aliases=['stop'], pass_context=True, no_pm=True)
-    async def leave(self, ctx):
-        if ctx.message.author.voice is None:
-            return
-        bot_voice_client = self.bot.voice_client_in(ctx.message.server)
-        # Bot not in a voice channel or user is not in the same voice channel
-        if bot_voice_client is None or bot_voice_client.channel != ctx.message.author.voice.voice_channel:
-            return
-        await self._quit_playing(bot_voice_client.channel)
-
-    # Synchronized code
-    @commands.command(help='[args...] = [clip name or url] [optional times]', aliases=['sb'], pass_context=True, no_pm=True)
-    async def play(self, ctx, *args):
-        # Due to parsing issues in the current discordpy library, arguments here need to be manually parsed.
-        if len(args) <= 0:
-            await self.bot.confusion(ctx.message)
-            return
-
-        had_times = True
-
-        # Attempt to use the last argument as the amount of times to play.
-        try:
-            times = int(args[len(args) - 1])
-        except ValueError:
-            had_times = False
+    @commands.command(aliases=['sb'], no_pm=True)
+    async def play(self, ctx, times: typing.Optional[int], *, source: str):
+        if times is None:
             times = 1
 
-        if times <= 0:
-            await self.bot.confusion(ctx.message)
+        if not ctx.author.voice or (self._voice and ctx.author.voice.channel.id != self._voice.channel.id):
             return
-
-        # If the only argument was the amount of times, then there is no clip specified to play.
-        if had_times and len(args) <= 1:
-            await self.bot.confusion(ctx.message)
-            return
-
-        # Construct the clip to play from the arguments, minus the 'times' argument, if need be.
-        audio = ''
-        space = ''
-        for i in range(len(args)):
-            if had_times and i == len(args) - 1:
-                break
-            audio += space + args[i]
-            space = ' '
-
-        if self._voice is None:
-            # Note: Cannot call other commands; e.g., cannot just call the join command here.
-            self._voice = await self.bot.join_channel(ctx.message.author.voice.voice_channel)
 
         # Acquire lock so only one thread will play the clips; otherwise, sounds will interleave.
         await self._play_lock.acquire()
 
+        # Bot needs to join the voice channel.
+        if self._voice is None:
+            self._voice = await self.bot.join_channel(ctx.author.voice.channel)
+
         try:
-            track = await self._create_track(audio)
+            track = await self._create_track(source)
             if track is None:
                 await self.bot.confusion(ctx.message)
                 return
@@ -108,7 +57,53 @@ class SoundPlayer:
         finally:
             self._play_lock.release()
 
-    def _soundplayer_finished(self):
+    # Volume is already a superclass' method, so coder beware.
+    @commands.command(name='volume', aliases=['vol'], pass_context=False, no_pm=True)
+    async def vol(self, volume: float):
+        self._volume = max(0.0, min(100.0, volume)) / 100.0
+        if self._voice is not None and self._voice.is_playing():
+            self._voice.source.volume = self._volume
+
+    @commands.command(pass_context=False, no_pm=True)
+    async def pause(self):
+        if self._voice is not None and self._voice.is_playing():
+            self._voice.pause()
+
+    @commands.command(pass_context=False, no_pm=True)
+    async def resume(self):
+        if self._voice is not None and self._voice.is_playing():
+            self._voice.resume()
+
+    @commands.command(pass_context=False, no_pm=True)
+    async def skip(self):
+        if self._voice is not None and self._voice.is_playing():
+            self._voice.stop()
+
+    @commands.command()
+    async def join(self, ctx):
+        if not self._voice and ctx.author.voice:
+            self._voice = await self.bot.join_channel(ctx.author.voice.channel)
+
+    # Aliases are additional command names beyond the method name.
+    @commands.command(aliases=['stop'], no_pm=True)
+    async def leave(self, ctx):
+        if ctx.author.voice and self._voice and self._voice.channel.id == ctx.author.voice.channel.id:
+            await self._quit_playing()
+
+    async def _quit_playing(self):
+        await self._voice.disconnect()
+        self._voice = None
+
+    async def _play_track(self, track):
+        if track is None or self._voice is None:
+            self._notify_done_playing.release()
+            return
+        audio_source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(track.src))
+        audio_source.volume = self._volume
+        self._voice.play(audio_source, after=self._soundplayer_finished)
+
+    def _soundplayer_finished(self, error):
+        _ = error
         try:
             asyncio.run_coroutine_threadsafe(self._unlock_play_lock(), self.bot.loop).result()
         except Exception as e:
@@ -118,67 +113,11 @@ class SoundPlayer:
     async def _unlock_play_lock(self):
         self._notify_done_playing.release()
 
-    # Volume is already a superclass' method, so coder beware.
-    @commands.command(name='volume', aliases=['vol'], no_pm=True)
-    async def vol(self, volume: float):
-        self._volume = max(0.0, min(100.0, volume)) / 100.0
-        if self._player is not None:
-            self._player.volume = self._volume
-
-    @commands.command(no_pm=True)
-    async def pause(self):
-        if self._player is not None:
-            self._player.pause()
-
-    @commands.command(no_pm=True)
-    async def resume(self):
-        if self._player is not None:
-            self._player.resume()
-
-    @commands.command(no_pm=True)
-    async def skip(self):
-        if self._player is not None:
-            self._player.stop()
-
-    async def _quit_playing(self, channel):
-        if self._player is not None:
-            self._player.stop()
-            self._player = None
-
-        if self._voice is not None:
-            tmp = self._voice
-            self._voice = None  # Null out the field before giving away control through await.
-            await tmp.disconnect()
-
-        await self.bot.leave_channel(channel)
-
-    async def _play_track(self, track):
-        if track is None or self._voice is None:
-            self._notify_done_playing.release()
-            return
-        self._player = await self._get_player(self._voice, track)
-        self._player.volume = self._volume
-        self._player.start()
-
-    # Listeners
-
-    # Listening for events will be registered just by making a method with prefix 'on_voice.'
-    async def on_voice_state_update(self, before, after):
-        if before is None or after is None or self._voice is None:
-            return
-
-        if before.voice_channel is None or before.voice_channel == after.voice_channel:
-            return
-
-        if before.voice_channel == self._voice.channel and not await self._has_human_members(self._voice.channel):
-            await self._quit_playing(before.voice_channel)
-
-    # Utility Methods
-
-    @staticmethod
-    async def _has_human_members(channel):
-        # If there is a hit of an item with bot variable being false, then there is a human in the channel.
-        return next(filter(lambda m: not m.bot, channel.voice_members), None) is not None
+    async def _create_track(self, source):
+        is_link = await self._is_link(source)
+        if not is_link:
+            source = await self._create_path(source)
+        return Track(source, is_link)
 
     @staticmethod
     async def _is_link(candidate):
@@ -186,22 +125,6 @@ class SoundPlayer:
             return False
         # Rudimentary link detection
         return candidate.startswith('https://') or candidate.startswith('http://') or candidate.startswith('www.')
-
-    async def _get_player(self, vc, track):
-        if vc is None or track is None:
-            return None
-        callback = self._soundplayer_finished
-        if not track.is_link:
-            player = vc.create_ffmpeg_player(track.src, options='-loglevel quiet', after=callback)
-        else:
-            player = await vc.create_ytdl_player(track.src, after=callback)
-        return player
-
-    async def _create_track(self, src):
-        is_link = await self._is_link(src)
-        if not is_link:
-            src = await self._create_path(src)
-        return Track(src, is_link)
 
     async def _create_path(self, audio):
         if audio is None:

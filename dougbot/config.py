@@ -14,7 +14,6 @@ class Config:
         self.owner = config_parser.get('Permissions', 'OwnerID')
         self.description = config_parser.get('General', 'Description')
         self.source_code = config_parser.get('General', 'SourceCode')
-        self.avatar_url = config_parser.get('General', 'AvatarURL')
 
 
 

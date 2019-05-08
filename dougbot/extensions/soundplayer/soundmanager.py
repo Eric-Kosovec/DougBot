@@ -9,13 +9,13 @@ from dougbot.extensions.soundplayer.supportedformats import PLAYER_FILE_TYPES
 from dougbot.extensions.util.admin_check import admin_command
 
 
-class SoundManager:
+class SoundManager(commands.Cog):
     CLIPS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'res', 'audio')
 
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(pass_context=True, no_pm=True)
+    @commands.command(no_pm=True)
     @admin_command()
     async def renameclip(self, ctx, from_clip: str, *, to_clip: str):
         clip_path = await self._get_clip_path(from_clip)
@@ -36,7 +36,7 @@ class SoundManager:
 
         await self.bot.confirmation(ctx.message)
 
-    @commands.command(pass_context=True)
+    @commands.command()
     @admin_command()
     async def moveclip(self, ctx, clip: str, *, dest: str):
         clip_path = await self._get_clip_path(clip)
@@ -61,7 +61,7 @@ class SoundManager:
 
         await self.bot.confirmation(ctx.message)
 
-    @commands.command(pass_context=True, aliases=['removeclip'], no_pm=True)
+    @commands.command(aliases=['removeclip'], no_pm=True)
     @admin_command()
     async def deleteclip(self, ctx, *, clip: str):
         path = await self._get_clip_path(clip)
@@ -77,7 +77,7 @@ class SoundManager:
 
         await self.bot.confirmation(ctx.message)
 
-    @commands.command(pass_context=True)
+    @commands.command()
     async def getclip(self, ctx, *, clip: str):
         path = await self._get_clip_path(clip)
 
@@ -87,7 +87,7 @@ class SoundManager:
 
         await self.bot.upload(path)
 
-    @commands.command(pass_context=True)
+    @commands.command()
     async def addclip(self, ctx, folder: str, clip_name: str, *, url: str = None):
         if not await self._safe_path(folder):
             await self.bot.confusion(ctx.message)
@@ -133,7 +133,7 @@ class SoundManager:
 
         await self.bot.confirmation(ctx.message)
 
-    @commands.command(aliases=['list'])
+    @commands.command(pass_context=False, aliases=['list'])
     async def clips(self, *, category: str = None):
         to_print = []
         if category in ['cats', 'cat', 'category', 'categories']:
