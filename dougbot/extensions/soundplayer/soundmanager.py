@@ -133,9 +133,8 @@ class SoundManager(commands.Cog):
 
         await self.bot.confirmation(ctx.message)
 
-    @commands.command(pass_context=False, aliases=['list'])
+    @commands.command(aliases=['list'])
     async def clips(self, ctx, *, category: str = None):
-        _ = ctx
         to_print = []
         if category in ['cats', 'cat', 'category', 'categories']:
             to_print = filter(lambda f: os.path.isdir(os.path.join(self.CLIPS_DIR, f)), os.listdir(self.CLIPS_DIR))
@@ -155,7 +154,7 @@ class SoundManager(commands.Cog):
             enter = '\n'
 
         if len(message) > 0:
-            await self.bot.say(message)
+            await ctx.send(message)
 
     @staticmethod
     async def _safe_path(path):
