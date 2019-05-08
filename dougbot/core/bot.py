@@ -37,8 +37,7 @@ class DougBot(commands.AutoShardedBot):
         print(f'ID: {self.user.id}')
         print('-' * (len(str(self.user.id)) + 4))
         for text_channel in filter(lambda gc: isinstance(gc, TextChannel), self.get_all_channels()):
-            pass
-            #await text_channel.send('I am sad.')
+            await text_channel.send('I am sad.')
 
     async def on_command_error(self, ctx, error):
         print('PRINTING ERROR')
