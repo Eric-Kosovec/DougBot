@@ -11,7 +11,7 @@ class FileManager(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(aliases=['getimg'], pass_context=True, no_pm=True)
+    @commands.command(aliases=['getimg'], no_pm=True)
     async def getfile(self, ctx, image: str):
         path = await self._find_file(image)
         if path is None:

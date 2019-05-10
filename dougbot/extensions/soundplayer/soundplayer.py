@@ -1,9 +1,11 @@
 import asyncio
+import io
 import os
 import sys
 import typing
 
 import discord
+import youtube_dl
 from discord.ext import commands
 
 from dougbot.extensions.soundplayer.error import TrackNotExistError
@@ -20,8 +22,11 @@ class SoundPlayer(commands.Cog):
         self._path_cache = LRUCache(15)
         self._play_lock = asyncio.Lock()  # Stop multiple threads from being created and playing audio over each other.
         self._notify_done_playing = asyncio.Semaphore(0)  # For notifying thread is done playing clip
+        self._notify_downloaded = asyncio.Semaphore(0)
+        self._yt_audio = None
         self._voice = None
         self._volume = 1.0
+        self.bot.event(self.on_voice_state_update)
 
     @commands.command(aliases=['sb'], no_pm=True)
     async def play(self, ctx, times: typing.Optional[int], *, source: str):
@@ -58,24 +63,24 @@ class SoundPlayer(commands.Cog):
             self._play_lock.release()
 
     # Volume is already a superclass' method, so coder beware.
-    @commands.command(name='volume', aliases=['vol'], pass_context=False, no_pm=True)
-    async def vol(self, volume: float):
+    @commands.command(name='volume', aliases=['vol'], no_pm=True)
+    async def vol(self, ctx, volume: float):
         self._volume = max(0.0, min(100.0, volume)) / 100.0
         if self._voice is not None and self._voice.is_playing():
             self._voice.source.volume = self._volume
 
-    @commands.command(pass_context=False, no_pm=True)
-    async def pause(self):
+    @commands.command(no_pm=True)
+    async def pause(self, ctx):
         if self._voice is not None and self._voice.is_playing():
             self._voice.pause()
 
-    @commands.command(pass_context=False, no_pm=True)
-    async def resume(self):
+    @commands.command(no_pm=True)
+    async def resume(self, ctx):
         if self._voice is not None and self._voice.is_playing():
             self._voice.resume()
 
-    @commands.command(pass_context=False, no_pm=True)
-    async def skip(self):
+    @commands.command(no_pm=True)
+    async def skip(self, ctx):
         if self._voice is not None and self._voice.is_playing():
             self._voice.stop()
 
@@ -90,6 +95,16 @@ class SoundPlayer(commands.Cog):
         if ctx.author.voice and self._voice and self._voice.channel.id == ctx.author.voice.channel.id:
             await self._quit_playing()
 
+    async def on_voice_state_update(self, member, before, after):
+        if member is None or before is None or after is None or before.channel is None or self._voice is None:
+            return
+        if (after.channel is not None and before.channel.id == after.channel.id) \
+                or (before.channel.id != self._voice.channel.id):
+            return
+        # Make sure there are no humans in the voice channel.
+        if next(filter(lambda m: not m.bot, before.channel.members), None) is None:
+            await self._quit_playing()
+
     async def _quit_playing(self):
         await self._voice.disconnect()
         self._voice = None
@@ -98,12 +113,64 @@ class SoundPlayer(commands.Cog):
         if track is None or self._voice is None:
             self._notify_done_playing.release()
             return
-        audio_source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(track.src))
+        self._voice.play(await self._create_audio_source(track), after=self._soundplayer_finished)
+
+    async def _create_audio_source(self, track):
+        if not track.is_link:
+            base_source = discord.FFmpegPCMAudio(track.src, options='-loglevel quiet')
+        else:
+            base_source = discord.PCMAudio(await self._download_yt(track.src))
+        audio_source = discord.PCMVolumeTransformer(base_source)
         audio_source.volume = self._volume
-        self._voice.play(audio_source, after=self._soundplayer_finished)
+        return audio_source
+
+    def _ydl_done_hook(self, d):
+        try:
+            if d['status'] == 'finished':
+                audio_path = os.path.join(os.path.dirname(self._CLIPS_DIR), 'tmp', d['filename'])
+                print(audio_path)
+                with open(audio_path, 'rb') as audio:
+                    self._yt_audio = audio.read()
+                #os.remove(audio_path)
+                self._notify_downloaded.release()
+            elif d['status'] == 'error':
+                self._yt_audio = None
+                self._notify_downloaded.release()
+        except Exception:  # Make sure the lock is released upon any problems.
+            self._notify_downloaded.release()
+
+    async def _download_yt(self, link):
+        if link is None:
+            return None
+
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'quiet': True,
+            'no_warnings': True,
+            'cachedir': False,
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '192',
+            }],
+            'progress_hooks': [self._ydl_done_hook]
+        }
+
+        cwd = os.getcwd()
+        os.chdir(os.path.join(os.path.dirname(self._CLIPS_DIR), 'tmp'))
+        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([link])
+            await self._notify_downloaded
+        os.chdir(cwd)
+
+        if self._yt_audio is None:
+            return None
+
+        byte_stream = io.BytesIO(self._yt_audio)
+        self._yt_audio = None
+        return byte_stream
 
     def _soundplayer_finished(self, error):
-        _ = error
         try:
             asyncio.run_coroutine_threadsafe(self._unlock_play_lock(), self.bot.loop).result()
         except Exception as e:

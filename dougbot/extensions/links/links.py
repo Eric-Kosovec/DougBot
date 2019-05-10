@@ -1,7 +1,7 @@
 from discord.ext import commands
 
 
-class Link(commands.Cog):
+class Links(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
@@ -16,4 +16,4 @@ class Link(commands.Cog):
 
 
 def setup(bot):
-    bot.add_cog(Link(bot))
+    bot.add_cog(Links(bot))
