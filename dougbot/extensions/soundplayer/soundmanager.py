@@ -15,7 +15,8 @@ class SoundManager(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(no_pm=True)
+    @commands.command()
+    @commands.guild_only()
     @admin_command()
     async def renameclip(self, ctx, from_clip: str, *, to_clip: str):
         clip_path = await self._get_clip_path(from_clip)
@@ -61,7 +62,8 @@ class SoundManager(commands.Cog):
 
         await self.bot.confirmation(ctx.message)
 
-    @commands.command(aliases=['removeclip'], no_pm=True)
+    @commands.command(aliases=['removeclip'])
+    @commands.guild_only()
     @admin_command()
     async def deleteclip(self, ctx, *, clip: str):
         path = await self._get_clip_path(clip)

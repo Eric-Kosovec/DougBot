@@ -40,8 +40,6 @@ class DougBot(commands.AutoShardedBot):
             await text_channel.send('I am sad.')
 
     async def on_command_error(self, ctx, error):
-        print('PRINTING ERROR')
-        print(error)
         # TODO EXPAND
         if error is None or ctx is None:
             return

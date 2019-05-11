@@ -5,7 +5,7 @@ DOUG_HOOK_URL = 'https://discordapp.com/api/webhooks/565341847417913354/' \
 
 DOUG_CHANNEL = 'https://discordapp.com/api/channels/245632003570008084/messages'
 
-USERNAME = 'DougHook'
+USERNAME = 'DimKaz'
 
 
 def main():

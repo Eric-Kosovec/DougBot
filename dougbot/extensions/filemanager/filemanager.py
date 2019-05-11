@@ -11,7 +11,7 @@ class FileManager(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(aliases=['getimg'], no_pm=True)
+    @commands.command(aliases=['getimg'])
     async def getfile(self, ctx, image: str):
         path = await self._find_file(image)
         if path is None:
@@ -19,7 +19,7 @@ class FileManager(commands.Cog):
         else:
             await ctx.channel.send(file=discord.File(path))
 
-    @commands.command(aliases=['images'], no_pm=True)
+    @commands.command(aliases=['images'])
     async def listfiles(self, ctx):
         enter = ''
         message = 'Files:\n'

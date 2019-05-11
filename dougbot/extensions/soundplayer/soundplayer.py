@@ -1,5 +1,4 @@
 import asyncio
-import io
 import os
 import sys
 import typing
@@ -22,13 +21,15 @@ class SoundPlayer(commands.Cog):
         self._path_cache = LRUCache(15)
         self._play_lock = asyncio.Lock()  # Stop multiple threads from being created and playing audio over each other.
         self._notify_done_playing = asyncio.Semaphore(0)  # For notifying thread is done playing clip
-        self._notify_downloaded = asyncio.Semaphore(0)
-        self._yt_audio = None
+        self._notify_downloaded = asyncio.Semaphore(0)  # For notifying YouTube video is done downloading.
+        self._link_audio_path = None
+        self._curr_track = None
         self._voice = None
         self._volume = 1.0
         self.bot.event(self.on_voice_state_update)
 
-    @commands.command(aliases=['sb'], no_pm=True)
+    @commands.command(aliases=['sb'])
+    @commands.guild_only()
     async def play(self, ctx, times: typing.Optional[int], *, source: str):
         if times is None:
             times = 1
@@ -47,13 +48,22 @@ class SoundPlayer(commands.Cog):
             track = await self._create_track(source)
             if track is None:
                 await self.bot.confusion(ctx.message)
+                self._play_lock.release()
                 return
+
+            self._curr_track = track
 
             # Begin clip block.
             for _ in range(times):
                 await self._play_track(track)
                 # Wait until thread is done playing current audio before playing the next in the clip block.
                 await self._notify_done_playing.acquire()
+
+            if self._curr_track is not None and self._curr_track.is_link:
+                os.remove(track.src)
+
+            self._curr_track = None
+
         except TrackNotExistError:
             await self.bot.confusion(ctx.message)
         except Exception as e:
@@ -63,34 +73,55 @@ class SoundPlayer(commands.Cog):
             self._play_lock.release()
 
     # Volume is already a superclass' method, so coder beware.
-    @commands.command(name='volume', aliases=['vol'], no_pm=True)
+    @commands.command(name='volume', aliases=['vol'])
+    @commands.guild_only()
     async def vol(self, ctx, volume: float):
         self._volume = max(0.0, min(100.0, volume)) / 100.0
         if self._voice is not None and self._voice.is_playing():
             self._voice.source.volume = self._volume
 
-    @commands.command(no_pm=True)
+    @commands.command()
+    @commands.guild_only()
     async def pause(self, ctx):
         if self._voice is not None and self._voice.is_playing():
             self._voice.pause()
 
-    @commands.command(no_pm=True)
+    @commands.command()
+    @commands.guild_only()
     async def resume(self, ctx):
         if self._voice is not None and self._voice.is_playing():
             self._voice.resume()
 
-    @commands.command(no_pm=True)
+    @commands.command()
+    @commands.guild_only()
     async def skip(self, ctx):
         if self._voice is not None and self._voice.is_playing():
             self._voice.stop()
 
     @commands.command()
-    async def join(self, ctx):
-        if not self._voice and ctx.author.voice:
-            self._voice = await self.bot.join_channel(ctx.author.voice.channel)
+    @commands.guild_only()
+    async def join(self, ctx, *, channel=None):
+        if self._voice is not None or (channel is None and ctx.author.voice is None):
+            return
+
+        voice_channel = None
+        if channel is not None:
+            for vc in ctx.message.guild.voice_channels:
+                if vc.name.lower() == channel.lower():
+                    voice_channel = vc
+                    break
+            if voice_channel is None:
+                await self.bot.confusion(ctx.message)
+                return
+
+        if channel is None and ctx.author.voice is not None:
+            voice_channel = ctx.author.voice.channel
+
+        self._voice = await self.bot.join_channel(voice_channel)
 
     # Aliases are additional command names beyond the method name.
-    @commands.command(aliases=['stop'], no_pm=True)
+    @commands.command(aliases=['stop'])
+    @commands.guild_only()
     async def leave(self, ctx):
         if ctx.author.voice and self._voice and self._voice.channel.id == ctx.author.voice.channel.id:
             await self._quit_playing()
@@ -108,6 +139,10 @@ class SoundPlayer(commands.Cog):
     async def _quit_playing(self):
         await self._voice.disconnect()
         self._voice = None
+        # Clear track's files.
+        if self._curr_track is not None and self._curr_track.is_link:
+            os.remove(self._curr_track.src)
+        self._curr_track = None
 
     async def _play_track(self, track):
         if track is None or self._voice is None:
@@ -116,30 +151,23 @@ class SoundPlayer(commands.Cog):
         self._voice.play(await self._create_audio_source(track), after=self._soundplayer_finished)
 
     async def _create_audio_source(self, track):
-        if not track.is_link:
-            base_source = discord.FFmpegPCMAudio(track.src, options='-loglevel quiet')
-        else:
-            base_source = discord.PCMAudio(await self._download_yt(track.src))
-        audio_source = discord.PCMVolumeTransformer(base_source)
+        audio_source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(track.src, options='-loglevel quiet'))
         audio_source.volume = self._volume
         return audio_source
 
     def _ydl_done_hook(self, d):
         try:
             if d['status'] == 'finished':
-                audio_path = os.path.join(os.path.dirname(self._CLIPS_DIR), 'tmp', d['filename'])
-                print(audio_path)
-                with open(audio_path, 'rb') as audio:
-                    self._yt_audio = audio.read()
-                #os.remove(audio_path)
+                filename = f"{d['filename'][:d['filename'].rfind('.')]}.mp3"
+                self._link_audio_path = os.path.join(os.path.dirname(self._CLIPS_DIR), 'tmp', filename)
                 self._notify_downloaded.release()
             elif d['status'] == 'error':
-                self._yt_audio = None
+                self._link_audio_path = None
                 self._notify_downloaded.release()
         except Exception:  # Make sure the lock is released upon any problems.
             self._notify_downloaded.release()
 
-    async def _download_yt(self, link):
+    async def _download_link(self, link):
         if link is None:
             return None
 
@@ -147,7 +175,6 @@ class SoundPlayer(commands.Cog):
             'format': 'bestaudio/best',
             'quiet': True,
             'no_warnings': True,
-            'cachedir': False,
             'postprocessors': [{
                 'key': 'FFmpegExtractAudio',
                 'preferredcodec': 'mp3',
@@ -163,18 +190,18 @@ class SoundPlayer(commands.Cog):
             await self._notify_downloaded
         os.chdir(cwd)
 
-        if self._yt_audio is None:
+        if self._link_audio_path is None:
             return None
 
-        byte_stream = io.BytesIO(self._yt_audio)
-        self._yt_audio = None
-        return byte_stream
+        tmp = self._link_audio_path
+        self._link_audio_path = None
+        return tmp
 
     def _soundplayer_finished(self, error):
         try:
             asyncio.run_coroutine_threadsafe(self._unlock_play_lock(), self.bot.loop).result()
         except Exception as e:
-            # TODO BETTER HANDLING
+            asyncio.run_coroutine_threadsafe(self._quit_playing(), self.bot.loop).result()
             raise e
 
     async def _unlock_play_lock(self):
@@ -184,6 +211,8 @@ class SoundPlayer(commands.Cog):
         is_link = await self._is_link(source)
         if not is_link:
             source = await self._create_path(source)
+        else:
+            source = await self._download_link(source)
         return Track(source, is_link)
 
     @staticmethod
