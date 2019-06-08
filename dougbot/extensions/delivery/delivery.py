@@ -15,8 +15,7 @@ class Delivery(commands.Cog):
     @commands.command(pass_context=False)
     @admin_command()
     async def restart(self, ctx):
-        _ = ctx
-        await self._restart_bot()
+        await self._restart_bot(ctx)
 
     @commands.command()
     @admin_command()
@@ -58,7 +57,7 @@ class Delivery(commands.Cog):
             if len(reload_extensions) > 0:
                 await self._process_commands(cmds)
             if restart_bot:
-                await self._restart_bot()
+                await self._restart_bot(ctx)
         except subprocess.CalledProcessError:
             if ctx is not None:
                 await self.bot.confusion(ctx.message)
@@ -76,7 +75,7 @@ class Delivery(commands.Cog):
                     # Is not a proper extension, so must be extension support.
                     # Could be a newly-added feature, which can be ignored, or a change in how existing support works,
                     # which means that the bot would have to be restarted to get all extensions that use it up to date.
-                    await self._restart_bot()
+                    await self._restart_bot(ctx)
                     break
                 except ExtensionFailed:
                     if ctx is not None:
@@ -85,7 +84,8 @@ class Delivery(commands.Cog):
         os.chdir(cwd)
 
     @staticmethod
-    async def _restart_bot():
+    async def _restart_bot(ctx):
+        await ctx.send('Restarting...')
         p = subprocess.Popen(['reset.bat', str(os.getpid())], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         p.wait()
 
