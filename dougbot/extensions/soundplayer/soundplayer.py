@@ -26,6 +26,7 @@ class SoundPlayer(commands.Cog):
         self._curr_track = None
         self._voice = None
         self._volume = 1.0
+        self._skip = False
         self.bot.event(self.on_voice_state_update)
 
     @commands.command(aliases=['sb'])
@@ -54,25 +55,29 @@ class SoundPlayer(commands.Cog):
             self._curr_track = track
 
             # Begin clip block.
-            for _ in range(times):
+            for i in range(times):
+                if self._skip:
+                    break
                 await self._play_track(track)
                 # Wait until thread is done playing current audio before playing the next in the clip block.
                 await self._notify_done_playing.acquire()
+
+            self._skip = False
 
             if self._curr_track is not None and self._curr_track.is_link:
                 os.remove(track.src)
 
             self._curr_track = None
-
+            self._play_lock.release()
         except TrackNotExistError:
             await self.bot.confusion(ctx.message)
+            self._play_lock.release()
         except Exception as e:
             await self.bot.confusion(ctx.message)
             print(f'ERROR: Exception raised in SoundPlayer method play: {e}', file=sys.stderr)
-        finally:
             self._play_lock.release()
 
-    # Volume is already a superclass' method, so coder beware.
+    # Volume is already a superclass' method, so beware.
     @commands.command(name='volume', aliases=['vol'])
     @commands.guild_only()
     async def vol(self, ctx, volume: float):
@@ -96,6 +101,7 @@ class SoundPlayer(commands.Cog):
     @commands.guild_only()
     async def skip(self, ctx):
         if self._voice is not None and self._voice.is_playing():
+            self._skip = True
             self._voice.stop()
 
     @commands.command()
@@ -117,6 +123,7 @@ class SoundPlayer(commands.Cog):
         if channel is None and ctx.author.voice is not None:
             voice_channel = ctx.author.voice.channel
 
+        self._skip = False
         self._voice = await self.bot.join_channel(voice_channel)
 
     # Aliases are additional command names beyond the method name.
@@ -137,6 +144,7 @@ class SoundPlayer(commands.Cog):
             await self._quit_playing()
 
     async def _quit_playing(self):
+        self._skip = True
         await self._voice.disconnect()
         self._voice = None
         # Clear track's files.
@@ -213,6 +221,8 @@ class SoundPlayer(commands.Cog):
             source = await self._create_path(source)
         else:
             source = await self._download_link(source)
+        if source is None:
+            return None
         return Track(source, is_link)
 
     @staticmethod

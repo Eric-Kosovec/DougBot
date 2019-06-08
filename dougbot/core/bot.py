@@ -10,6 +10,11 @@ from discord.ext import commands
 from dougbot.config import Config
 
 
+# TODO MAKE MORE ERROR RESILIENT
+# TODO SLEEPING UNTIL NEEDING TO PERFORM ACTIONS
+# TODO UPDATE WITHOUT RESTARTING
+
+
 class DougBot(commands.AutoShardedBot):
     ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
     ROOT_DIR = os.path.dirname(os.path.dirname(ROOT_DIR))
