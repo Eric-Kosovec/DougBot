@@ -55,7 +55,8 @@ class Delivery(commands.Cog):
                 break
 
         try:
-            await self._process_commands(cmds)
+            if len(reload_extensions) > 0:
+                await self._process_commands(cmds)
             if restart_bot:
                 await self._restart_bot()
         except subprocess.CalledProcessError:
