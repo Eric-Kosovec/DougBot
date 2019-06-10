@@ -35,7 +35,9 @@ class Delivery(commands.Cog):
         await self._restart_bot(ctx)
 
     async def test_function(self):
-        pass
+        x = 6
+        x = x + 1
+        return x
 
     async def _update(self, ctx, *cmds):
         if ctx is None or cmds is None:
