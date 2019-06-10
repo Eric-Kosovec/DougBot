@@ -20,7 +20,7 @@ class Delivery(commands.Cog):
     @commands.command()
     @admin_command()
     async def update(self, ctx):
-        await ctx.say('I AM FULLY UPDATED!')
+        await ctx.send('I AM FULLY UPDATED!')
         await self._update(ctx, ['git', 'pull'])
 
     @commands.command()
@@ -51,6 +51,7 @@ class Delivery(commands.Cog):
 
         reload_extensions = []
         restart_bot = False
+        print(changed)
         for changed_file in changed:
             changed_file = changed_file.strip()
             # Delivery code cannot update itself without issues.
