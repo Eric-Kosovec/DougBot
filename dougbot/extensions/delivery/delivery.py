@@ -31,6 +31,7 @@ class Delivery(commands.Cog):
     @admin_command()
     async def update_dependencies(self, ctx):
         await self._update(ctx, ['python', os.path.join(self.bot.ROOT_DIR, 'update_deps.py')])
+        await self._restart_bot(ctx)
 
     async def _update(self, ctx, *cmds):
         if ctx is None or cmds is None:
@@ -48,7 +49,11 @@ class Delivery(commands.Cog):
         restart_bot = False
         for changed_file in changed:
             changed_file = changed_file.strip()
-            if changed_file.startswith('dougbot/extensions/') and changed_file.endswith('.py'):
+            # Delivery code cannot update itself without issues.
+            if changed_file.startswith('dougbot/extensions/delivery'):
+                restart_bot = True
+                break
+            elif changed_file.startswith('dougbot/extensions/') and changed_file.endswith('.py'):
                 reload_extensions.append(changed_file)
             elif changed_file.endswith('.py'):
                 restart_bot = True
