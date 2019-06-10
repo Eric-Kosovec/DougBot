@@ -20,6 +20,7 @@ class Delivery(commands.Cog):
     @commands.command()
     @admin_command()
     async def update(self, ctx):
+        await ctx.say('I AM FULLY UPDATED!')
         await self._update(ctx, ['git', 'pull'])
 
     @commands.command()
@@ -32,6 +33,9 @@ class Delivery(commands.Cog):
     async def update_dependencies(self, ctx):
         await self._update(ctx, ['python', os.path.join(self.bot.ROOT_DIR, 'update_deps.py')])
         await self._restart_bot(ctx)
+
+    async def test_function(self):
+        pass
 
     async def _update(self, ctx, *cmds):
         if ctx is None or cmds is None:
