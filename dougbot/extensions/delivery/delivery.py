@@ -58,7 +58,7 @@ class Delivery(commands.Cog):
             elif changed_file.endswith('.py'):
                 restart_bot = True
                 break
-
+        # Test change using comment
         try:
             if len(reload_extensions) > 0:
                 await self._process_commands(cmds)
