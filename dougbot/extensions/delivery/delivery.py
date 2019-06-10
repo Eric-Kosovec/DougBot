@@ -47,6 +47,7 @@ class Delivery(commands.Cog):
         reload_extensions = []
         restart_bot = False
         for changed_file in changed:
+            changed_file = changed_file.strip()
             if changed_file.startswith('dougbot/extensions/') and changed_file.endswith('.py'):
                 reload_extensions.append(changed_file)
             elif changed_file.endswith('.py'):

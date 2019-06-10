@@ -45,6 +45,8 @@ class SoundPlayer(commands.Cog):
         if self._voice is None:
             self._voice = await self.bot.join_channel(ctx.author.voice.channel)
 
+        self._skip = False
+
         try:
             track = await self._create_track(source)
             if track is None:
@@ -123,7 +125,6 @@ class SoundPlayer(commands.Cog):
         if channel is None and ctx.author.voice is not None:
             voice_channel = ctx.author.voice.channel
 
-        self._skip = False
         self._voice = await self.bot.join_channel(voice_channel)
 
     # Aliases are additional command names beyond the method name.
@@ -206,6 +207,7 @@ class SoundPlayer(commands.Cog):
         return tmp
 
     def _soundplayer_finished(self, error):
+        _ = error
         try:
             asyncio.run_coroutine_threadsafe(self._unlock_play_lock(), self.bot.loop).result()
         except Exception as e:
