@@ -1,6 +1,6 @@
 import string
 
-import dougbot.core.limits as limits
+import dougbot.common.limits as limits
 
 
 def is_long_message(message, limit=limits.MESSAGE_CHARACTER_LIMIT):

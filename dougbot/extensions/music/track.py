@@ -1,4 +1,4 @@
-from dougbot.extensions.soundplayer.error import TrackNotExistError
+from dougbot.extensions.music.error import TrackNotExistError
 
 
 class Track:

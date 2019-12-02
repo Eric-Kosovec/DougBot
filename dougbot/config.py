@@ -12,6 +12,7 @@ class Config:
         self.token = config_parser.get('Credentials', 'Token')
         self.command_prefix = config_parser.get('Chat', 'CommandPrefix')
         self.owner = config_parser.get('Permissions', 'OwnerID')
+        self.admin_role = config_parser.get('Permissions', 'AdminRole')
         self.description = config_parser.get('General', 'Description')
         self.source_code = config_parser.get('General', 'SourceCode')
 

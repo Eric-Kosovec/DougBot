@@ -3,20 +3,20 @@ import shutil
 import sys
 
 import requests
+import discord
 from discord.ext import commands
 
-from dougbot.extensions.soundplayer.supportedformats import PLAYER_FILE_TYPES
+from dougbot.extensions.music.supportedformats import PLAYER_FILE_TYPES
 from dougbot.extensions.util.admin_check import admin_command
 
 
 class SoundManager(commands.Cog):
-    CLIPS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'res', 'audio')
+    _CLIPS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'res', 'audio')
 
     def __init__(self, bot):
         self.bot = bot
 
     @commands.command()
-    @commands.guild_only()
     @admin_command()
     async def renameclip(self, ctx, from_clip: str, *, to_clip: str):
         clip_path = await self._get_clip_path(from_clip)
@@ -45,7 +45,7 @@ class SoundManager(commands.Cog):
             await self.bot.confusion(ctx.message)
             return
 
-        dest_path = os.path.join(self.CLIPS_DIR, dest)
+        dest_path = os.path.join(self._CLIPS_DIR, dest)
         if not os.path.exists(dest_path):
             try:
                 os.makedirs(dest_path, exist_ok=True)
@@ -63,7 +63,6 @@ class SoundManager(commands.Cog):
         await self.bot.confirmation(ctx.message)
 
     @commands.command(aliases=['removeclip'])
-    @commands.guild_only()
     @admin_command()
     async def deleteclip(self, ctx, *, clip: str):
         path = await self._get_clip_path(clip)
@@ -87,7 +86,7 @@ class SoundManager(commands.Cog):
             await self.bot.confusion(ctx.message)
             return
 
-        await self.bot.upload(path)
+        await ctx.send(file=discord.File(path))
 
     @commands.command()
     async def addclip(self, ctx, folder: str, clip_name: str, *, url: str = None):
@@ -95,9 +94,9 @@ class SoundManager(commands.Cog):
             await self.bot.confusion(ctx.message)
             return
 
-        if not os.path.exists(os.path.join(self.CLIPS_DIR, folder)):
+        if not os.path.exists(os.path.join(self._CLIPS_DIR, folder)):
             try:
-                os.makedirs(os.path.join(self.CLIPS_DIR, folder), exist_ok=True)
+                os.makedirs(os.path.join(self._CLIPS_DIR, folder), exist_ok=True)
             except Exception as e:
                 await self.bot.confusion(ctx.message)
                 return
@@ -124,7 +123,7 @@ class SoundManager(commands.Cog):
             await self.bot.confusion(ctx.message)
             return
 
-        path = os.path.join(self.CLIPS_DIR, f'{folder}', clip_name.lower())
+        path = os.path.join(self._CLIPS_DIR, f'{folder}', clip_name.lower())
         try:
             with open(path, 'wb') as out_file:
                 shutil.copyfileobj(file.raw, out_file)
@@ -139,9 +138,9 @@ class SoundManager(commands.Cog):
     async def clips(self, ctx, *, category: str = None):
         to_print = []
         if category in ['cats', 'cat', 'category', 'categories']:
-            to_print = filter(lambda f: os.path.isdir(os.path.join(self.CLIPS_DIR, f)), os.listdir(self.CLIPS_DIR))
+            to_print = filter(lambda f: os.path.isdir(os.path.join(self._CLIPS_DIR, f)), os.listdir(self._CLIPS_DIR))
         else:
-            base = os.path.join(self.CLIPS_DIR, category) if category is not None else self.CLIPS_DIR
+            base = os.path.join(self._CLIPS_DIR, category) if category is not None else self._CLIPS_DIR
             for dirpath, dirnames, filenames in os.walk(base):
                 for file in filenames:
                     if await self._is_audio_track(file):
@@ -160,10 +159,11 @@ class SoundManager(commands.Cog):
 
     @staticmethod
     async def _safe_path(path):
+        # TODO BETTER CHECKING, I.E. UTF-8 ETC
         return path is not None and '..' not in path and not os.path.isabs(path)
 
     async def _get_clip_path(self, clip):
-        for dirpath, dirnames, filenames in os.walk(self.CLIPS_DIR):
+        for dirpath, dirnames, filenames in os.walk(self._CLIPS_DIR):
             for file in filenames:
                 if '.' in file and file[:file.rfind('.')] == clip:
                     return os.path.join(dirpath, file)

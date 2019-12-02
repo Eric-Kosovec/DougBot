@@ -1,7 +1,8 @@
 pip
 aiohttp
-git+https://github.com/Rapptz/discord.py@master#egg=discord.py
-git+https://github.com/Rapptz/discord.py@master#egg=discord.py[voice]
+discord.py
+discord.py[voice]
 PyNaCl
 youtube_dl
 requests
+requests-HTML
