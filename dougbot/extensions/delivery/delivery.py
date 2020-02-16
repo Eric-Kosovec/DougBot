@@ -43,7 +43,8 @@ class Delivery(commands.Cog):
 
         # Find which files will change - core files or extensions
         # Extensions can be reloaded, core files require restarting
-        changed = subprocess.check_output(['git', 'diff', '--name-only'])
+        await self._process_commands(['git', 'fetch'])
+        changed = subprocess.check_output(['git', 'diff', 'master', 'origin/master', '--name-only'])
         changed = str(changed, 'utf-8').split('\n')
         print(changed)
         return
