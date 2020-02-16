@@ -1,5 +1,6 @@
 import os
 import subprocess
+import sys
 
 from discord.ext import commands
 from discord.ext.commands.errors import *
@@ -29,14 +30,9 @@ class Delivery(commands.Cog):
 
     @commands.command()
     @admin_command()
-    async def update_dependencies(self, ctx):
-        await self._update(ctx, ['python', os.path.join(self.bot.ROOT_DIR, 'update_deps.py')])
+    async def update_pkgs(self, ctx):
+        await self._update(ctx, ['python', os.path.join(self.bot.ROOT_DIR, 'setup.py')])
         await self._restart_bot(ctx)
-
-    async def test_function(self):
-        x = 6
-        x = x + 1
-        return x
 
     async def _update(self, ctx, *cmds):
         if ctx is None or cmds is None:
@@ -49,6 +45,8 @@ class Delivery(commands.Cog):
         # Extensions can be reloaded, core files require restarting
         changed = subprocess.check_output(['git', 'diff', '--name-only'])
         changed = str(changed, 'utf-8').split('\n')
+        print(changed)
+        return
 
         reload_extensions = []
         restart_bot = False
@@ -60,45 +58,55 @@ class Delivery(commands.Cog):
                 break
             elif changed_file.startswith('dougbot/extensions/') and changed_file.endswith('.py'):
                 reload_extensions.append(changed_file)
-            elif changed_file.endswith('.py'):
+            # Must be a core/common file, which would require restarting
+            elif changed_file.startswith('dougbot/') and changed_file.endswith('.py'):
                 restart_bot = True
                 break
-        # Test change using comment
+
+        # Update code
         try:
             if len(reload_extensions) > 0:
                 await self._process_commands(cmds)
-            if restart_bot:
-                await self._restart_bot(ctx)
         except subprocess.CalledProcessError:
             if ctx is not None:
                 await self.bot.confusion(ctx.message)
+                os.chdir(cwd)
+                return
 
-        if not restart_bot:
-            for ext in reload_extensions:
-                try:
-                    self.bot.reload_extension(ext.replace('/', '.')[:-3])
-                except ExtensionNotLoaded:  # New extension
-                    self.bot.load_extension(ext.replace('/', '.')[:-3])
-                except ExtensionNotFound:
-                    if ctx is not None:
-                        await self.bot.confusion(ctx.message, f'{ext} could not be imported.')
-                except NoEntryPointError:
-                    # Is not a proper extension, so must be extension support.
-                    # Could be a newly-added feature, which can be ignored, or a change in how existing support works,
-                    # which means that the bot would have to be restarted to get all extensions that use it up to date.
-                    await self._restart_bot(ctx)
-                    break
-                except ExtensionFailed:
-                    if ctx is not None:
-                        await self.bot.confusion(ctx.message, f'{ext} setup function execution error.')
+        if restart_bot:
+            await self._restart_bot(ctx)
+            os.chdir(cwd)
+            return
+
+        for extension in reload_extensions:
+            try:
+                self.bot.reload_extension(extension.replace('/', '.')[:-len('.py')])
+            except ExtensionNotLoaded:  # New extension
+                self.bot.load_extension(extension.replace('/', '.')[:-len('.py')])
+            except ExtensionNotFound:
+                if ctx is not None:
+                    await self.bot.confusion(ctx.message, f'{extension} could not be imported.')
+            except NoEntryPointError:
+                # Is not a proper extension, so must be extension support.
+                # Could be a newly-added feature, which can be ignored, or a change in how existing support works,
+                # which means that the bot would have to be restarted to get all extensions that use it up to date.
+                await self._restart_bot(ctx)
+                break
+            except ExtensionFailed:
+                if ctx is not None:
+                    await self.bot.confusion(ctx.message, f'{extension} setup function execution error.')
 
         os.chdir(cwd)
 
-    @staticmethod
-    async def _restart_bot(ctx):
+    async def _restart_bot(self, ctx):
         await ctx.send('Restarting...')
-        p = subprocess.Popen(['reset.bat', str(os.getpid())], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        p.wait()
+        sys.stdout.flush()
+        sys.stderr.flush()
+        try:
+            os.execv(os.path.join(self.bot.ROOT_DIR, 'run.bat'), sys.argv)
+        except Exception as e:
+            print(e)
+        await ctx.send('Failed to restart')
 
     @staticmethod
     async def _process_commands(cmds):

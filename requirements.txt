@@ -6,3 +6,4 @@ PyNaCl
 youtube_dl
 requests
 requests-HTML
+sqlitedict

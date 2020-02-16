@@ -5,17 +5,25 @@ import traceback
 
 from discord.ext import commands
 from discord.utils import find
+from discord.channel import TextChannel
 
+import dougbot.core.util.logger as logger
 from dougbot.config import Config
 from dougbot.core.extloader import ExtensionLoader
+from dougbot.core.db.dougbotdb import DougBotDB
+from dougbot.common.kvstore import KVStore
 
 
 class DougBot(commands.Bot):
     ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
     ROOT_DIR = os.path.dirname(os.path.dirname(ROOT_DIR))
+    print(ROOT_DIR)
 
     def __init__(self, config_file):
         self.config = Config(config_file)
+        self.logger = logger.get_logger()
+        self.dougdb = DougBotDB()
+        self.kvstore = KVStore(self.dougdb)
         super().__init__(self.config.command_prefix, case_insensitive=True)
         ExtensionLoader.load_extensions(self)
 
@@ -37,6 +45,9 @@ class DougBot(commands.Bot):
         print(f'Name: {self.user.name}')
         print(f'ID: {self.user.id}')
         print('-' * (len(str(self.user.id)) + 4))
+        for text_channel in filter(lambda gc: isinstance(gc, TextChannel), self.get_all_channels()):
+            #await text_channel.send('I am sad.')
+            pass
 
     async def on_command_error(self, ctx, error):
         if error is None or ctx is None:
@@ -68,6 +79,9 @@ class DougBot(commands.Bot):
             await message.add_reaction(ok_hand_emoji)
             if confirm_msg is not None:
                 await message.channel.send(confirm_msg)
+
+    async def get_kvstore(self):
+        return self.kvstore
 
     async def join_voice_channel(self, channel):
         if channel is not None:

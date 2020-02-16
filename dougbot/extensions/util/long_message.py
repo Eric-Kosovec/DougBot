@@ -9,6 +9,10 @@ def is_long_message(message, limit=limits.MESSAGE_CHARACTER_LIMIT):
     return len(message) > limit
 
 
+def columnize(message):
+    return
+
+
 def long_message(message, limit=limits.MESSAGE_CHARACTER_LIMIT):
     if not is_long_message(message, limit):
         return [message]
