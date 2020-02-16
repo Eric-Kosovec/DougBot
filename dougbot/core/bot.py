@@ -12,7 +12,7 @@ from dougbot.config import Config
 from dougbot.core.extloader import ExtensionLoader
 from dougbot.core.db.dougbotdb import DougBotDB
 from dougbot.common.kvstore import KVStore
-
+# TEST COMMENT
 
 class DougBot(commands.Bot):
     ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
