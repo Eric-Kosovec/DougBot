@@ -44,14 +44,16 @@ class Delivery(commands.Cog):
         # Find which files will change - core files or extensions
         # Extensions can be reloaded, core files require restarting
         await self._process_commands(['git', 'fetch'])
-        changed = subprocess.check_output(['git', 'diff', 'master', 'origin/master', '--name-only'])
-        changed = str(changed, 'utf-8').split('\n')
-        print(changed)
+        changed_files = subprocess.check_output(['git', 'diff', 'master', 'origin/master', '--name-only'])
+        if len(changed_files) == 0:
+            return
+        changed_files = str(changed_files, 'utf-8').split('\n')
+        print(changed_files)
         return
 
         reload_extensions = []
         restart_bot = False
-        for changed_file in changed:
+        for changed_file in changed_files:
             changed_file = changed_file.strip()
             # Delivery code cannot update itself without issues.
             if changed_file.startswith('dougbot/extensions/delivery'):
@@ -110,7 +112,7 @@ class Delivery(commands.Cog):
         await ctx.send('Failed to restart')
 
     @staticmethod
-    async def _process_commands(cmds):
+    async def _process_commands(*cmds):
         if cmds is None:
             return
         for command in cmds:
