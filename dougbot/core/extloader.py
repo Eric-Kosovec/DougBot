@@ -5,6 +5,7 @@ import sys
 class ExtensionLoader:
     _extensions_base = os.path.dirname(os.path.dirname(__file__))
     _extensions_base = os.path.join(_extensions_base, 'extensions')
+    TEST_VAR = 1
 
     @classmethod
     def load_extensions(cls, client):
