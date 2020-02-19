@@ -5,8 +5,6 @@ class Links(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.testvar1 = 5
-        self.testvar2 = 9
 
     @commands.command()
     async def sdt(self, ctx):

@@ -5,7 +5,6 @@ import sys
 class ExtensionLoader:
     _extensions_base = os.path.dirname(os.path.dirname(__file__))
     _extensions_base = os.path.join(_extensions_base, 'extensions')
-    TEST_VAR = 1
 
     @classmethod
     def load_extensions(cls, client):
@@ -26,8 +25,7 @@ class ExtensionLoader:
                     try:
                         client.load_extension(f'dougbot.extensions.{os.path.basename(root)}.{filename[:-3]}')
                     except Exception as e:
-                        no_setup_func = "no 'setup' function"
-                        if no_setup_func in str(e):
+                        if "no 'setup' function" in str(e):
                             # Ignore when there is no setup function. Can't know if it is an intentional issue or not.
                             continue
                         print(f'{os.path.basename(root)}.{filename[:-3]} extension failed to load: {e}',

@@ -41,15 +41,13 @@ class Delivery(commands.Cog):
         cwd = os.getcwd()
         os.chdir(self.bot.ROOT_DIR)
 
-        # Find which files will change - core files or extensions
+        # Find which files will change - core files or extensions.
         # Extensions can be reloaded, core files require restarting
         await self._process_commands(['git', 'fetch'])
         changed_files = subprocess.check_output(['git', 'diff', 'master', 'origin/master', '--name-only'])
         if len(changed_files) == 0:
             return
-        changed_files = str(changed_files, 'utf-8').split('\n')
-        print(changed_files)
-        return
+        changed_files = str(changed_files, 'utf-8').splitlines()
 
         reload_extensions = []
         restart_bot = False
@@ -69,7 +67,7 @@ class Delivery(commands.Cog):
         # Update code
         try:
             if len(reload_extensions) > 0:
-                await self._process_commands(cmds)
+                await self._process_commands(*cmds)
         except subprocess.CalledProcessError:
             if ctx is not None:
                 await self.bot.confusion(ctx.message)
@@ -116,7 +114,7 @@ class Delivery(commands.Cog):
         if cmds is None:
             return
         for command in cmds:
-            subprocess.check_call(command)
+            subprocess.call(command)
 
 
 def setup(bot):

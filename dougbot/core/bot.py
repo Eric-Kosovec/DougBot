@@ -3,29 +3,26 @@ import os
 import sys
 import traceback
 
+from discord.channel import TextChannel
 from discord.ext import commands
 from discord.utils import find
-from discord.channel import TextChannel
 
 import dougbot.core.util.logger as logger
-from dougbot.config import Config
-from dougbot.core.extloader import ExtensionLoader
-from dougbot.core.db.dougbotdb import DougBotDB
 from dougbot.common.kvstore import KVStore
+from dougbot.config import Config
+from dougbot.core.db.dougbotdb import DougBotDB
+from dougbot.core.extloader import ExtensionLoader
 
 
 class DougBot(commands.Bot):
     ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
     ROOT_DIR = os.path.dirname(os.path.dirname(ROOT_DIR))
-    print(ROOT_DIR)
 
     def __init__(self, config_file):
         self.config = Config(config_file)
         self.logger = logger.get_logger()
         self.dougdb = DougBotDB()
         self.kvstore = KVStore(self.dougdb)
-        self.testvar = 1
-        self.testvar = 2
         super().__init__(self.config.command_prefix, case_insensitive=True)
         ExtensionLoader.load_extensions(self)
 
