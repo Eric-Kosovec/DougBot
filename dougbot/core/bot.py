@@ -9,7 +9,7 @@ from discord.utils import find
 
 import dougbot.core.util.logger as logger
 from dougbot.common.kvstore import KVStore
-from dougbot.config import Config
+from dougbot.core.config import Config
 from dougbot.core.db.dougbotdb import DougBotDB
 from dougbot.core.extloader import ExtensionLoader
 
