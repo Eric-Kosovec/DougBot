@@ -45,7 +45,7 @@ class DougBot(commands.Bot):
         print(f'ID: {self.user.id}')
         print('-' * (len(str(self.user.id)) + 4))
         for text_channel in filter(lambda gc: isinstance(gc, TextChannel), self.get_all_channels()):
-            #await text_channel.send('I am sad.')
+            await text_channel.send('I am sad.')
             pass
 
     async def on_command_error(self, ctx, error):
