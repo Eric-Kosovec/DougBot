@@ -22,6 +22,7 @@ class DougBot(commands.Bot):
     def __init__(self, config_file):
         # For notifying text channels the bot is online. Used to prevent spamming in case of shaky
         # internet, as on_ready can be called multiple times in such a case.
+        # TEST EDIT
         self._on_ready_called = False
         self._config = Config(config_file)
         self._dougdb = DougBotDB()  # For core bot settings
