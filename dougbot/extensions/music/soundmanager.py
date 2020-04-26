@@ -165,7 +165,7 @@ class SoundManager(commands.Cog):
 
             #message += '|' + (' '*(7-(len(p)-len(p)//2))) + p + (' '*(7 - (len(p)//2)))
             message += '| ' + p + (' '*((longest+1) - (len(p))))
-            i+=1
+            i += 1
             
         message += '|'
         
