@@ -3,6 +3,7 @@ import sys
 
 
 class ExtensionLoader:
+    # TEST COMMENT
     _extensions_base = os.path.dirname(os.path.dirname(__file__))
     _extensions_base = os.path.join(_extensions_base, 'extensions')
 
