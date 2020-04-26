@@ -67,10 +67,7 @@ class Delivery(commands.Cog):
 
         # Update code
         try:
-            print('UPDATE CODE')
-            if len(reload_extensions) > 0:
-                print('LEN > 0')
-                await self._process_commands(*cmds)
+            await self._process_commands(*cmds)
         except subprocess.CalledProcessError:
             if ctx is not None:
                 await self.bot.confusion(ctx.message)
