@@ -147,15 +147,30 @@ class SoundManager(commands.Cog):
                         to_print.append(file[:file.rfind('.')])
 
         to_print = sorted(to_print, key=lambda s: s.casefold())
-        enter = ''
         message = ''
-
+        i = 0
+        maxColumns = 3
+        longest = 0
         for p in to_print:
-            message += enter + p
-            enter = '\n'
+            if len(p) > longest:
+                longest = len(p)
 
+        #48 is mobile screen switch
+        maxColumns = 48//(longest + 4)
+        
+        for p in to_print:
+            if i > maxColumns:
+                message += '|\n'
+                i=0
+
+            #message += '|' + (' '*(7-(len(p)-len(p)//2))) + p + (' '*(7 - (len(p)//2)))
+            message += '| ' + p + (' '*((longest+1) - (len(p))))
+            i+=1
+            
+        message += '|'
+        
         if len(message) > 0:
-            await ctx.send(message)
+            await ctx.send('```'+message+'```')
 
     @staticmethod
     async def _safe_path(path):
