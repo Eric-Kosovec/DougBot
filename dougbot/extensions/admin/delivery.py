@@ -101,6 +101,7 @@ class Delivery(commands.Cog):
 
     async def _restart_bot(self, ctx):
         await ctx.send('Restarting...')
+        sys.stdin.flush()
         sys.stdout.flush()
         sys.stderr.flush()
         try:

@@ -2,8 +2,8 @@ import os
 import shutil
 import sys
 
-import requests
 import discord
+import requests
 from discord.ext import commands
 
 from dougbot.extensions.music.supportedformats import PLAYER_FILE_TYPES
@@ -106,7 +106,7 @@ class SoundManager(commands.Cog):
             if len(ctx.message.attachments) <= 0:
                 await self.bot.confusion(ctx.message)
                 return
-            url = ctx.message.attachments[0]['url']
+            url = ctx.message.attachments[0].url
 
         if not await self._check_url(url):
             await self.bot.confusion(ctx.message)
@@ -175,7 +175,6 @@ class SoundManager(commands.Cog):
 
     @staticmethod
     async def _is_link(candidate):
-        print(candidate)
         if type(candidate) != str:
             return False
         # Rudimentary link detection

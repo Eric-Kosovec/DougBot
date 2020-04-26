@@ -27,6 +27,7 @@ class ExtensionLoader:
                     except Exception as e:
                         if "no 'setup' function" in str(e):
                             # Ignore when there is no setup function. Can't know if it is an intentional issue or not.
+                            # If an extension SHOULD exist, but doesn't, this is likely the issue.
                             continue
                         print(f'{os.path.basename(root)}.{filename[:-3]} extension failed to load: {e}',
                               file=sys.stderr)
