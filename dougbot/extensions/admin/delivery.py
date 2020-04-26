@@ -62,7 +62,6 @@ class Delivery(commands.Cog):
             # Must be a core/common file, which would require restarting
             elif changed_file.startswith('dougbot/') and changed_file.endswith('.py'):
                 restart_bot = True
-                print('RESTART IS TRUE')
                 break
 
         # Update code
@@ -109,13 +108,10 @@ class Delivery(commands.Cog):
 
     @staticmethod
     async def _process_commands(*cmds):
-        print(cmds)
         if cmds is None:
             return
         for command in cmds:
-            print(command)
-            retcode = subprocess.call(command)
-            print(retcode)
+            subprocess.call(command)
 
 
 def setup(bot):
