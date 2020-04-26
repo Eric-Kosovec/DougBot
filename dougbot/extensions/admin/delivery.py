@@ -67,7 +67,9 @@ class Delivery(commands.Cog):
 
         # Update code
         try:
+            print('UPDATE CODE')
             if len(reload_extensions) > 0:
+                print('LEN > 0')
                 await self._process_commands(*cmds)
         except subprocess.CalledProcessError:
             if ctx is not None:
@@ -110,6 +112,7 @@ class Delivery(commands.Cog):
 
     @staticmethod
     async def _process_commands(*cmds):
+        print(cmds)
         if cmds is None:
             return
         for command in cmds:
