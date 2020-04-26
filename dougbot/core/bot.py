@@ -15,6 +15,7 @@ from dougbot.core.extloader import ExtensionLoader
 # ANOTHER TEMP COMMENT
 # OR TWO
 # OR THREE
+# OR FOUR
 
 class DougBot(commands.Bot):
     ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
