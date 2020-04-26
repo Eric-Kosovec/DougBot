@@ -1,3 +1,4 @@
+import os
 
 from discord import File
 from discord.ext import commands
@@ -16,7 +17,10 @@ class Debug(commands.Cog):
         try:
             with open(self.bot.LOG_PATH, 'r') as fd:
                 logdata = fd.read()
-            await ctx.send(f'Log Contents:\n{logdata}')
+            if len(logdata) > 0:
+                await ctx.send(f'Log Contents:\n{logdata}')
+            else:
+                await self._notify_log_size_zero(ctx)
         except Exception as e:
             await ctx.send(f'Error reading logfile: {e}')
 
@@ -25,8 +29,11 @@ class Debug(commands.Cog):
     async def getlog(self, ctx):
         # Upload in private message
         try:
-            dmchannel = await ctx.author.create_dm()
-            await dmchannel.send(file=File(self.bot.LOG_PATH))
+            if os.stat(self.bot.LOG_PATH).st_size > 0:
+                dmchannel = await ctx.author.create_dm()
+                await dmchannel.send(file=File(self.bot.LOG_PATH))
+            else:
+                await self._notify_log_size_zero(ctx)
         except Exception as e:
             await ctx.send(f'Error sending logfile: {e}')
 
@@ -38,6 +45,11 @@ class Debug(commands.Cog):
             open(self.bot.LOG_PATH, 'w').close()
         except Exception as e:
             await ctx.send(f'Error clearing logfile: {e}')
+
+    @staticmethod
+    async def _notify_log_size_zero(ctx):
+        zero_emoji = '0️⃣'
+        await ctx.message.add_reaction(zero_emoji)
 
 
 def setup(bot):
