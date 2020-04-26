@@ -62,6 +62,7 @@ class Delivery(commands.Cog):
             # Must be a core/common file, which would require restarting
             elif changed_file.startswith('dougbot/') and changed_file.endswith('.py'):
                 restart_bot = True
+                print('RESTART IS TRUE')
                 break
 
         # Update code
@@ -101,9 +102,6 @@ class Delivery(commands.Cog):
 
     async def _restart_bot(self, ctx):
         await ctx.send('Restarting...')
-        sys.stdin.flush()
-        sys.stdout.flush()
-        sys.stderr.flush()
         try:
             os.execv(os.path.join(self.bot.ROOT_DIR, 'run.bat'), sys.argv)
         except Exception as e:
@@ -115,7 +113,9 @@ class Delivery(commands.Cog):
         if cmds is None:
             return
         for command in cmds:
-            subprocess.call(command)
+            print(command)
+            retcode = subprocess.call(command)
+            print(retcode)
 
 
 def setup(bot):
