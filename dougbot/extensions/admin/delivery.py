@@ -98,10 +98,11 @@ class Delivery(commands.Cog):
 
         os.chdir(cwd)
 
-    async def _restart_bot(self, ctx):
+    @staticmethod
+    async def _restart_bot(ctx):
         await ctx.send('Restarting...')
         try:
-            os.execv(os.path.join(self.bot.ROOT_DIR, 'run.bat'), sys.argv)
+            os.execl(sys.executable, os.path.abspath(__file__), *sys.argv)
         except Exception as e:
             print(e)
         await ctx.send('Failed to restart')

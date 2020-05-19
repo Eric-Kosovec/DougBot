@@ -1,0 +1,5 @@
+XXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+; A token file is a file with one line containing only the bot's token. So the above
+; X's as the actual token being the only contents of the file and the file having no extension,
+; simply being named token.

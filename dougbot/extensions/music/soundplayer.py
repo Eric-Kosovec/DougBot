@@ -1,20 +1,19 @@
 import asyncio
-import hashlib
 import functools
+import hashlib
 import os
 import sys
-import typing
 from concurrent.futures import ThreadPoolExecutor
 
 import discord
 import youtube_dl
 from discord.ext import commands
 
-from dougbot.extensions.util.mic_check import voice_command
+from dougbot.common.cache import LRUCache
 from dougbot.extensions.music.error import TrackNotExistError
 from dougbot.extensions.music.supportedformats import PLAYER_FILE_TYPES
 from dougbot.extensions.music.track import Track
-from dougbot.common.cache import LRUCache
+from dougbot.extensions.util.mic_check import voice_command
 
 
 class SoundPlayer(commands.Cog):
@@ -41,9 +40,6 @@ class SoundPlayer(commands.Cog):
             await self.bot.confusion(ctx.message)
             return
 
-        # TODO IS THIS MORE EFFICIENT OR WOULD A QUEUE BE??? - SKIPPING BLOCKS, LOCKING QUEUE, CLEARING CACHE W/ LOCK
-        #  ON FILE ACCESSING IN CACHE DIRECTORY, I.E., CREATE AND DELETE FILES SHOULD NOT BE CONCURRENT
-
         # Acquire lock so only one thread will play the clips; otherwise, sounds will interleave.
         await self._play_lock.acquire()
         try:
@@ -67,7 +63,6 @@ class SoundPlayer(commands.Cog):
             for _ in range(times):
                 if self._skip:
                     break
-                # TODO CAN I JUST REUSE THE AUDIO SOURCE?
                 voice.play(await self._create_audio_source(track), after=self._finished)
                 # Wait until thread is done playing current audio before playing the next in the clip block.
                 await self._notify_done_playing.acquire()

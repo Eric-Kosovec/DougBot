@@ -27,7 +27,7 @@ class SoundManager(commands.Cog):
         clip_basename = os.path.basename(clip_path)
 
         dest_path = clip_path[:-len(clip_basename)]
-        dest_path = os.path.join(dest_path, f"{to_clip}{clip_basename[clip_basename.rfind('.'):]}")
+        dest_path = os.path.join(dest_path, f'{to_clip}{clip_basename[clip_basename.rfind("."):]}')
 
         try:
             os.rename(clip_path, dest_path)
@@ -161,7 +161,7 @@ class SoundManager(commands.Cog):
         for p in to_print:
             if i > maxColumns:
                 message += '|\n'
-                i=0
+                i = 0
 
             #message += '|' + (' '*(7-(len(p)-len(p)//2))) + p + (' '*(7 - (len(p)//2)))
             message += '| ' + p + (' '*((longest+1) - (len(p))))
@@ -169,12 +169,11 @@ class SoundManager(commands.Cog):
             
         message += '|'
         
-        if len(message) > 0:
-            await ctx.send('```'+message+'```')
+        if len(message) > 1:
+            await ctx.send(f'```{message}```')
 
     @staticmethod
     async def _safe_path(path):
-        # TODO BETTER CHECKING, I.E. UTF-8 ETC
         return path is not None and '..' not in path and not os.path.isabs(path)
 
     async def _get_clip_path(self, clip):
@@ -202,7 +201,6 @@ class SoundManager(commands.Cog):
     async def _download_file(self, url):
         if not await self._check_url(url):
             return None
-        # TODO ASYNC
         return requests.get(url, stream=True)
 
 
