@@ -9,11 +9,11 @@ class Links(commands.Cog):
     @commands.command()
     async def sdt(self, ctx):
         await ctx.send('https://cytu.be/r/SadDoug')
-        kvstore = await self.bot.kvstore()
+        '''kvstore = await self.bot.kvstore()
         try:
             kvstore.insert('LINK', 'https://cytu.be/r/SadDoug')
         except Exception as e:
-            print(f'ERROR AS {e}')
+            print(f'ERROR AS {e}')'''
         '''v = kvstore.get('LINK')
         print(f'GOT: {v}')
         c = kvstore.contains('LINK')
