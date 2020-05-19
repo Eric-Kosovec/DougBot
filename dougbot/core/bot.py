@@ -54,7 +54,8 @@ class DougBot(commands.Bot):
             if self._log_channel is not None:
                 self._init_logging(self._log_channel)
             for text_channel in filter(lambda gc: isinstance(gc, TextChannel), self.get_all_channels()):
-                await text_channel.send('I am sad.')
+                if text_channel != self._log_channel:
+                    await text_channel.send('I am sad.')
         self._on_ready_called = True
 
     async def on_command_error(self, ctx, error):
