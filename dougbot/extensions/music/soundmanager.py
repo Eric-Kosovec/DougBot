@@ -8,13 +8,14 @@ from discord.ext import commands
 
 from dougbot.extensions.music.supportedformats import PLAYER_FILE_TYPES
 from dougbot.extensions.util.admin_check import admin_command
+from dougbot.extensions.util.long_message import long_message
 
 
 class SoundManager(commands.Cog):
-    _CLIPS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'res', 'audio')
 
     def __init__(self, bot):
         self.bot = bot
+        self._clips_dir = os.path.join(self.bot.ROOT_DIR, 'dougbot', 'res', 'audio')
 
     @commands.command()
     @admin_command()
@@ -45,7 +46,7 @@ class SoundManager(commands.Cog):
             await self.bot.confusion(ctx.message)
             return
 
-        dest_path = os.path.join(self._CLIPS_DIR, dest)
+        dest_path = os.path.join(self._clips_dir, dest)
         if not os.path.exists(dest_path):
             try:
                 os.makedirs(dest_path, exist_ok=True)
@@ -94,9 +95,9 @@ class SoundManager(commands.Cog):
             await self.bot.confusion(ctx.message)
             return
 
-        if not os.path.exists(os.path.join(self._CLIPS_DIR, folder)):
+        if not os.path.exists(os.path.join(self._clips_dir, folder)):
             try:
-                os.makedirs(os.path.join(self._CLIPS_DIR, folder), exist_ok=True)
+                os.makedirs(os.path.join(self._clips_dir, folder), exist_ok=True)
             except Exception as e:
                 await self.bot.confusion(ctx.message)
                 return
@@ -123,7 +124,7 @@ class SoundManager(commands.Cog):
             await self.bot.confusion(ctx.message)
             return
 
-        path = os.path.join(self._CLIPS_DIR, f'{folder}', clip_name.lower())
+        path = os.path.join(self._clips_dir, f'{folder}', clip_name.lower())
         try:
             with open(path, 'wb') as out_file:
                 shutil.copyfileobj(file.raw, out_file)
@@ -138,9 +139,9 @@ class SoundManager(commands.Cog):
     async def clips(self, ctx, *, category: str = None):
         to_print = []
         if category in ['cats', 'cat', 'category', 'categories']:
-            to_print = filter(lambda f: os.path.isdir(os.path.join(self._CLIPS_DIR, f)), os.listdir(self._CLIPS_DIR))
+            to_print = filter(lambda f: os.path.isdir(os.path.join(self._clips_dir, f)), os.listdir(self._clips_dir))
         else:
-            base = os.path.join(self._CLIPS_DIR, category) if category is not None else self._CLIPS_DIR
+            base = os.path.join(self._clips_dir, category) if category is not None else self._clips_dir
             for dirpath, dirnames, filenames in os.walk(base):
                 for file in filenames:
                     if await self._is_audio_track(file):
@@ -170,14 +171,15 @@ class SoundManager(commands.Cog):
         message += '|'
         
         if len(message) > 1:
-            await ctx.send(f'```{message}```')
+            for msg in long_message(message):
+                await ctx.send(f'```{msg}```')
 
     @staticmethod
     async def _safe_path(path):
         return path is not None and '..' not in path and not os.path.isabs(path)
 
     async def _get_clip_path(self, clip):
-        for dirpath, dirnames, filenames in os.walk(self._CLIPS_DIR):
+        for dirpath, dirnames, filenames in os.walk(self._clips_dir):
             for file in filenames:
                 if '.' in file and file[:file.rfind('.')] == clip:
                     return os.path.join(dirpath, file)

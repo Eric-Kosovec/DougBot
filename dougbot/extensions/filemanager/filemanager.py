@@ -5,11 +5,10 @@ from discord.ext import commands
 
 
 class FileManager(commands.Cog):
-    FILE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-    FILE_DIR = os.path.join(FILE_DIR, 'res', 'files')
 
     def __init__(self, bot):
         self.bot = bot
+        self._file_dir = os.path.join(self.bot.ROOT_DIR, 'resources', 'files')
 
     @commands.command(aliases=['image'])
     async def file(self, ctx, image: str):
@@ -24,7 +23,8 @@ class FileManager(commands.Cog):
         enter = ''
         message = 'Files:\n'
 
-        for file in os.listdir(self.FILE_DIR):
+        files = os.listdir(self._file_dir) if os.path.exists(self._file_dir) else []
+        for file in files:
             last_dot = file.rfind('.')
             if last_dot >= 0:
                 message += enter + file
@@ -33,15 +33,12 @@ class FileManager(commands.Cog):
         await ctx.send(message)
 
     async def _find_file(self, filename):
-        if filename is None:
+        if filename is None or '..' in filename or not os.path.exists(self._file_dir):
             return None
 
-        if '..' in filename:
-            return None
-
-        for file in os.listdir(self.FILE_DIR):
+        for file in os.listdir(self._file_dir):
             if file == filename:
-                return os.path.join(self.FILE_DIR, file)
+                return os.path.join(self._file_dir, file)
 
         return None
 

@@ -17,12 +17,12 @@ from dougbot.extensions.util.mic_check import voice_command
 
 
 class SoundPlayer(commands.Cog):
-    _CLIPS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'res', 'audio')
 
     def __init__(self, bot):
         self.bot = bot
         self.bot.event(self.on_voice_state_update)
         self._threads = ThreadPoolExecutor()
+        self._clips_dir = os.path.join(self.bot.ROOT_DIR, 'dougbot', 'res', 'audio')
         self._cache_dir = os.path.join(self.bot.ROOT_DIR, 'cache')
         self._path_cache = LRUCache(20)
         self._play_lock = asyncio.Lock()  # Stop multiple threads from being created and playing audio over each other.
@@ -174,7 +174,7 @@ class SoundPlayer(commands.Cog):
         if audio_path is not None:
             return audio_path
 
-        for path, _, files in os.walk(self._CLIPS_DIR):
+        for path, _, files in os.walk(self._clips_dir):
             for ending in PLAYER_FILE_TYPES:
                 if f'{audio}{ending}'.lower() in self._lowercase_gen(files):
                     audio_path = os.path.join(path, f'{audio}{ending}')

@@ -5,4 +5,3 @@ discord.py[voice]
 PyNaCl
 youtube_dl
 requests
-requests-HTML

@@ -2,6 +2,7 @@ import re
 from collections import defaultdict
 
 import requests
+from discord import Embed
 from discord.ext import commands
 
 
@@ -33,8 +34,7 @@ class Batsu(commands.Cog):
 
         await self._display_substatus(ctx, status_report)
 
-    @staticmethod
-    async def _display_substatus(ctx, status_report):
+    async def _display_substatus(self, ctx, status_report):
         legend = 'Not Started > Typesetting > Translating > Quality/English Check > Prep For Release > Complete!'
         substatus = f'{legend}\n\n'
 
@@ -47,6 +47,18 @@ class Batsu(commands.Cog):
                 elif len(section) == 2:
                     substatus += f'Part {i}\tSection {section[0]}\tStatus {section[1]}\n'
         await ctx.send(substatus)
+        await self._embed_substatus(ctx, status_report)
+
+    async def _embed_substatus(self, ctx, status_report):
+        legend = 'Not Started > Typesetting > Translating > Quality/English Check > Prep For Release > Complete!'
+        embed = Embed(title='Batsu Games Subbing Status', description=legend, color=0xFF0000)
+        for i in range(1, len(status_report) + 1):
+            if len(status_report[i][0]) == 1:
+                status = 'Complete'
+            else:
+                status = ''
+            embed.add_field(name=f'Part {i}', value=status)
+        await ctx.send(embed=embed)
 
 
 def setup(bot):

@@ -20,18 +20,17 @@ def long_message(message, limit=limits.MESSAGE_CHARACTER_LIMIT):
     shorter_messages = []
 
     window_min = 0
-    window_max = window_min + limit - 1
+    window_max = limit - 1
 
     while window_min < len(message) and window_max < len(message):
         # Move to a non-whitespace for start of message
-        if message[window_min] in string.whitespace:
-            while window_min < len(message) and message[window_min] in string.whitespace:
-                window_min += 1
-                window_max += 1
-            if window_min >= len(message):
-                break
-            if window_max >= len(message):
-                window_max = len(message) - 1
+        while window_min < len(message) and message[window_min] in string.whitespace:
+            window_min += 1
+            window_max += 1
+        if window_min >= len(message):
+            break
+        if window_max >= len(message):
+            window_max = len(message) - 1
 
         # Window ends in middle of word, so go back to the last whitespace, if it exists
         if window_max + 1 < len(message) and message[window_max + 1] not in string.whitespace:

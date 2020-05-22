@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import os
 from logging import Handler
 
 from dougbot.extensions.util import long_message
@@ -22,8 +21,8 @@ class ChannelHandler(Handler):
     def emit(self, record):
         # TODO DESIRABLE?? SAY IF OUR CODE GAVE BAD INPUT TO LIBRARY, WOULD THIS EVER LOG THEN?
         # Eliminates logging from exceptions caused by library code.
-        if os.path.commonpath([record.pathname, self._root_dir]) != self._root_dir:
-            return
+        #if os.path.commonpath([record.pathname, self._root_dir]) != self._root_dir:
+        #    return
         record_text = self.format(record)
         for message in long_message.long_message(record_text):
             asyncio.run_coroutine_threadsafe(self._channel.send(message), self._loop)
