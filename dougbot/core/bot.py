@@ -125,7 +125,7 @@ class DougBot(commands.Bot):
     async def log_channel(self):
         return self._log_channel
 
-    async def get_config(self):
+    def get_config(self):
         return self._config
 
     ''' Begin private methods '''
