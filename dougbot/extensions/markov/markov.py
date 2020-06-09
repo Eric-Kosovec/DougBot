@@ -1,6 +1,5 @@
 import re
 from collections import defaultdict
-
 import requests
 from discord import Embed
 from discord.ext import commands
@@ -15,7 +14,6 @@ import copy
 from collections import defaultdict
 
 #Generates Markov chains from discord chat
-##
 ##Dictionary Template: defaultdict(lambda:[0, defaultdict(int)])   #{'the': (7, {'wood': 5})}
 class Markov(commands.Cog):
 
@@ -51,9 +49,9 @@ class Markov(commands.Cog):
             f.close()
             
     #Adds a new word to the dictionary
-    ##markovDict     - Dictionary to populate
-    ##rootWord - The initial word
-    ##leafWord - The word that comes after the rootWord
+    ##markovDict    - Dictionary to populate
+    ##rootWord      - The initial word
+    ##leafWord      - The word that comes after the rootWord
     @staticmethod
     def addWordToDict(markovDict, rootWord, leafWord):
 
@@ -64,14 +62,17 @@ class Markov(commands.Cog):
     def addSentenceToDict(markovDict, sentence):
         prevWord = ""
         #Following line removes punctuation but it might be better to not remove it
-        sentence = sentence.translate(str.maketrans(string.punctuation, ' '*len(string.punctuation)))
+        #sentence = sentence.translate(str.maketrans(string.punctuation, ' '*len(string.punctuation)))
         
-        for word in sentence.split():
+        sentenceList = re.findall(r"[\w']+|[.,!?;]", sentence)
+        
+        for word in sentenceList:
             word = word.lower()
             Markov.addWordToDict(markovDict, prevWord, word)
             prevWord = word
             
-        Markov.addWordToDict(markovDict, prevWord, "")
+        if(prevWord not in string.punctuation):
+            Markov.addWordToDict(markovDict, prevWord, ".")
         
         
     #Populates the dictionary from a file of strings
@@ -88,8 +89,8 @@ class Markov(commands.Cog):
         return
            
     #Generates a phrase(chain) from the dictionary
-    ##markovDict     - Dictionary containing the words and counts
-    ##weighted - Bool Whether a weighted probability based on occurance should be used
+    ##markovDict    - Dictionary containing the words and counts
+    ##weighted      - Bool Whether a weighted probability based on occurance should be used
     @staticmethod
     def generateChain(markovDict, weighted):
         phrase = ""
@@ -97,18 +98,20 @@ class Markov(commands.Cog):
         length = 0
         
         if weighted: #Control
-            curWord = random.choices(list(markovDict[curWord][Markov._WORDS].keys()), weights=list(markovDict[curWord][Markov._WORDS].values()))[0]
-            while curWord != "":
-                phrase += curWord + " "
-                length += 1
+            while curWord not in [".", "!", "?"]:
                 curWord = random.choices(list(markovDict[curWord][Markov._WORDS].keys()), weights=list(markovDict[curWord][Markov._WORDS].values()))[0]
-        
-        else: #Chaos
-            curWord = random.choice(list(markovDict[curWord][Markov._WORDS]))
-            while curWord != "":
-                phrase += curWord + " "
+                if(curWord not in string.punctuation and length > 0):
+                    phrase += " "
+                phrase += curWord
                 length += 1
+                
+        else: #Chaos
+            while curWord not in [".", "!", "?"]:
                 curWord = random.choice(list(markovDict[curWord][Markov._WORDS]))
+                if(curWord not in string.punctuation and length > 0):
+                    phrase += " "
+                phrase += curWord
+                length += 1
                 
         return phrase, length
         
@@ -156,8 +159,8 @@ class Markov(commands.Cog):
                 await collectMsg.delete()
                 await ctx.send("Collected " + str(collected) + " messages from <@" + str(user.id)+ ">")
             except:
-                await collectMsg.remove_reaction(thinking_emoji)
-                await collectMsg.add_reaction(interrobang);
+                await collectMsg.remove_reaction(thinking_emoji, collectMsg.author)
+                await collectMsg.add_reaction(interrobang)
         else:
             await ctx.send("No user parameter given! :angry:")
             
@@ -172,13 +175,15 @@ class Markov(commands.Cog):
             
             markovDict = self.load_json(str(user))
             
-            while((phrase == "" or length < 3) and attempts < 10): #Generate new phrase if last one sucked
+            while((phrase == "" or length < 5) and attempts < 10): #Generate new phrase if last one sucked
                 phrase, length = self.generateChain(markovDict, True)
                 
             if attempts >= 10:
-                 await ctx.send("Exceeded number of attempts for " + str(user))
+                await ctx.send("Exceeded number of attempts for " + str(user))
             else:
-                await ctx.send(str(user) + ":\n```" + phrase + "```")
+                embed = Embed(title="", color=0x228B22)
+                embed.add_field(name=str(user), value=phrase.capitalize())
+                await ctx.send(embed=embed)
         else:
             await ctx.send("No user parameter given! :angry:")
         
