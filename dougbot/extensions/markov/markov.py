@@ -26,20 +26,25 @@ class Markov(commands.Cog):
 
     @staticmethod
     def load_json(path):
+        path = "./dougbot/res/chains/" + path
         try:
             try:
                 with open(path,'r') as f:
-                    return json.load(f)
+                    markovDict = json.load(f)
+                    f.close()
+                    return markovDict
             except IOError:
-                open(path,'w+')
+                open(path,'w+').close()
                 return defaultdict(lambda:[0, defaultdict(int)])
         except JSONDecodeError:
             return defaultdict(lambda:[0, defaultdict(int)])
 
     @staticmethod
     def save_json(markovDict, path):
+        path = "./dougbot/res/chains/" + path
         with open(path, 'w+') as f:
             json.dump(markovDict, f)
+            f.close()
             
     #Adds a new word to the dictionary
     ##markovDict     - Dictionary to populate
@@ -101,7 +106,7 @@ class Markov(commands.Cog):
                 length += 1
                 curWord = random.choice(list(markovDict[curWord][Markov._WORDS]))
                 
-        return phrase
+        return phrase, length
         
     #Prints out the dictionary sorted alphabettically along with the count of each word in detail
     ##markovDict     - Dictionary containing the words and counts
@@ -127,52 +132,67 @@ class Markov(commands.Cog):
         collected = 0
         text_channel = ctx.channel #chat channel
         user = ctx.message.mentions[0]
+        thinking_emoji = '\U0001F914'
+        interrobang = '\U00002049'
+        checkmark = '\U00002714'
         
-        markovDict = self.load_json(str(user))
-        async for message in text_channel.history(limit=None, after=None):
-            if message.author == user and not any(x in message.content for x in self._BANNED):
-                self.addSentenceToDict(markovDict, message.content)
-                collected += 1
-        self.save_json(markovDict, str(user))
-        await ctx.send("Collected " + str(collected) + " messages from <@" + str(user.id)+ ">")
-
+        collectMsg = await ctx.send("Collecting messages from <@" + str(user.id)+ ">")
+        await collectMsg.add_reaction(thinking_emoji)
+        try:
+            markovDict = self.load_json(str(user))
+            async for message in text_channel.history(limit=None, after=None):
+                if (message.author == user                              #From the user specified
+                and not any(x in message.content for x in self._BANNED) #Does not contain symbols from banned list
+                and len(message.content.split()) > 1                    #Is long enough to produce a chain
+                ):
+                    self.addSentenceToDict(markovDict, message.content)
+                    collected += 1
+            self.save_json(markovDict, str(user))
+            await collectMsg.remove_reaction(thinking_emoji)
+            await ctx.send("Collected " + str(collected) + " messages from <@" + str(user.id)+ ">")
+        except:
+            await collectMsg.add_reaction(interrobang);
+            
     @commands.command(aliases=['markov'])
     async def sendToChat(self, ctx):
-        collected = 0
+        length = 0
+        phrase = ""
         text_channel = ctx.channel #chat channel
         user = ctx.message.mentions[0]
         
         markovDict = self.load_json(str(user))
         
-        await ctx.send(self.generateChain(markovDict, True))
+        while(phrase == "" or length < 3): #Generate new phrase if last one sucked
+            phrase, length = self.generateChain(markovDict, True)
+            
+        await ctx.send(str(user) + ":\n```" + phrase + "```")
         
     @commands.command()
     async def cleanMarkov(self, ctx):
         user = ctx.message.mentions[0]
-        markovDict.clear()
-        markovDict = self.save_json(str(user))
+        os.remove("./dougbot/res/chains/" + str(user))
         
         await ctx.send("Cleared Markov data for <@" + str(user.id) + ">")
         
     @staticmethod
     def testBasics(markovDict):
         #test file reading
-        readFile(markovDict, "testFile2.txt")
-        printDict(markovDict)
+        Markov.readFile(markovDict, "testFile2.txt")
+        Markov.printDict(markovDict)
         
         #Test Json I/O
-        save_json(markovDict)
+        Markov.save_json(markovDict)
         markovDict.clear()
-        markovDict = load_json("TestMarkovChainData.txt")
-        printDict(markovDict)
+        markovDict = Markov.load_json("TestMarkovChainData.txt")
+        Markov.printDict(markovDict)
         
         #Test chain generation weighted vs unweighted
         print("Control\n---------------")
         for i in range(10):
-            print(generateChain(markovDict, True))
+            print(Markov.generateChain(markovDict, True))
         print("\n\nChaos\n---------------")
         for i in range(10):
-            print(generateChain(markovDict, False))
+            print(Markov.generateChain(markovDict, False))
         
         
 def setup(bot):
