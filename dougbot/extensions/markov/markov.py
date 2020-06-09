@@ -14,19 +14,23 @@ import string
 import copy
 from collections import defaultdict
 
+#Generates Markov chains from discord chat
+##
+##Dictionary Template: defaultdict(lambda:[0, defaultdict(int)])   #{'the': (7, {'wood': 5})}
 class Markov(commands.Cog):
 
-    _TOTAL = 0  #Occurances of words after the root word
-    _WORDS = 1  #Occurances of current word after root word
-    _BANNED = ["d!", "dh!", ">>"]
-    #wordsDict = defaultdict(lambda:[0, defaultdict(int)])   #{'the': (7, {'wood': 5})}
+#Static variables
+    _TOTAL  = 0  #Occurances of words after the root word
+    _WORDS  = 1  #Occurances of current word after root word
+    _BANNED = ["d!", "dh!", ">>", "!s", ".horo"]
+    _PATH   = "./dougbot/res/chains/"
 
     def __init__(self, bot):
         self.bot = bot
 
     @staticmethod
     def load_json(path):
-        path = "./dougbot/res/chains/" + path
+        path = Markov._PATH + path
         try:
             try:
                 with open(path,'r') as f:
@@ -41,7 +45,7 @@ class Markov(commands.Cog):
 
     @staticmethod
     def save_json(markovDict, path):
-        path = "./dougbot/res/chains/" + path
+        path = Markov._PATH + path
         with open(path, 'w+') as f:
             json.dump(markovDict, f)
             f.close()
@@ -129,50 +133,64 @@ class Markov(commands.Cog):
 
     @commands.command(aliases=['collect'])
     async def updateFromChat(self, ctx):
-        collected = 0
-        text_channel = ctx.channel #chat channel
-        user = ctx.message.mentions[0]
-        thinking_emoji = '\U0001F914'
-        interrobang = '\U00002049'
-        checkmark = '\U00002714'
-        
-        collectMsg = await ctx.send("Collecting messages from <@" + str(user.id)+ ">")
-        await collectMsg.add_reaction(thinking_emoji)
-        try:
+        if ctx.message.mentions:
+            collected = 0
+            text_channel = ctx.channel #chat channel
+            user = ctx.message.mentions[0]
+            thinking_emoji = '\U0001F914'
+            interrobang = '\U00002049'
+            checkmark = '\U00002714'
+            
+            collectMsg = await ctx.send("Collecting messages from <@" + str(user.id)+ ">")
+            thinkingReact = await collectMsg.add_reaction(thinking_emoji)
+            try:
             markovDict = self.load_json(str(user))
             async for message in text_channel.history(limit=None, after=None):
                 if (message.author == user                              #From the user specified
                 and not any(x in message.content for x in self._BANNED) #Does not contain symbols from banned list
                 and len(message.content.split()) > 1                    #Is long enough to produce a chain
                 ):
-                    self.addSentenceToDict(markovDict, message.content)
+                    self.addSentenceToDict(markovDict, message.clean_content)
                     collected += 1
             self.save_json(markovDict, str(user))
-            await collectMsg.remove_reaction(thinking_emoji)
+            await collectMsg.delete()
             await ctx.send("Collected " + str(collected) + " messages from <@" + str(user.id)+ ">")
-        except:
-            await collectMsg.add_reaction(interrobang);
+            except:
+                await collectMsg.remove_reaction(thinking_emoji)
+                await collectMsg.add_reaction(interrobang);
+        else:
+            await ctx.send("No user paramater given! :angry:")
             
     @commands.command(aliases=['markov'])
     async def sendToChat(self, ctx):
-        length = 0
-        phrase = ""
-        text_channel = ctx.channel #chat channel
-        user = ctx.message.mentions[0]
-        
-        markovDict = self.load_json(str(user))
-        
-        while(phrase == "" or length < 3): #Generate new phrase if last one sucked
-            phrase, length = self.generateChain(markovDict, True)
+        if ctx.message.mentions:
+            length = 0
+            attempts = 0
+            phrase = ""
+            text_channel = ctx.channel #chat channel
+            user = ctx.message.mentions[0]
             
-        await ctx.send(str(user) + ":\n```" + phrase + "```")
+            markovDict = self.load_json(str(user))
+            
+            while((phrase == "" or length < 3) and attempts < 10): #Generate new phrase if last one sucked
+                phrase, length = self.generateChain(markovDict, True)
+                
+            if attempts >= 10:
+                 await ctx.send("Exceeded number of attempts for " + str(user))
+            else:
+                await ctx.send(str(user) + ":\n```" + phrase + "```")
+        else:
+            await ctx.send("No user paramater given! :angry:")
         
     @commands.command()
     async def cleanMarkov(self, ctx):
-        user = ctx.message.mentions[0]
-        os.remove("./dougbot/res/chains/" + str(user))
-        
-        await ctx.send("Cleared Markov data for <@" + str(user.id) + ">")
+        if ctx.message.mentions:
+            user = ctx.message.mentions[0]
+            os.remove( self._PATH + str(user))
+            
+            await ctx.send("Cleared Markov data for <@" + str(user.id) + ">")
+        else:
+            await ctx.send("No user paramater given! :angry:")
         
     @staticmethod
     def testBasics(markovDict):
