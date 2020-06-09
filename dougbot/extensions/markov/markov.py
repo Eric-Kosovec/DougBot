@@ -22,7 +22,7 @@ class Markov(commands.Cog):
 #Static variables
     _TOTAL  = 0  #Occurances of words after the root word
     _WORDS  = 1  #Occurances of current word after root word
-    _BANNED = ["d!", "dh!", ">>", "!s", ".horo"]
+    _BANNED = ["d!", "dh!", ">>", "!s", ".horo", "!trump", "d#"]
     _PATH   = "./dougbot/res/chains/"
 
     def __init__(self, bot):
@@ -64,7 +64,7 @@ class Markov(commands.Cog):
     def addSentenceToDict(markovDict, sentence):
         prevWord = ""
         #Following line removes punctuation but it might be better to not remove it
-        #sentence = sentence.translate(str.maketrans('', '', string.punctuation))
+        sentence = sentence.translate(str.maketrans(string.punctuation, ' '*len(string.punctuation)))
         
         for word in sentence.split():
             word = word.lower()
@@ -144,22 +144,22 @@ class Markov(commands.Cog):
             collectMsg = await ctx.send("Collecting messages from <@" + str(user.id)+ ">")
             thinkingReact = await collectMsg.add_reaction(thinking_emoji)
             try:
-            markovDict = self.load_json(str(user))
-            async for message in text_channel.history(limit=None, after=None):
-                if (message.author == user                              #From the user specified
-                and not any(x in message.content for x in self._BANNED) #Does not contain symbols from banned list
-                and len(message.content.split()) > 1                    #Is long enough to produce a chain
-                ):
-                    self.addSentenceToDict(markovDict, message.clean_content)
-                    collected += 1
-            self.save_json(markovDict, str(user))
-            await collectMsg.delete()
-            await ctx.send("Collected " + str(collected) + " messages from <@" + str(user.id)+ ">")
+                markovDict = self.load_json(str(user))
+                async for message in text_channel.history(limit=None, after=None):
+                    if (message.author == user                              #From the user specified
+                    and not any(x in message.content for x in self._BANNED) #Does not contain symbols from banned list
+                    and len(message.content.split()) > 1                    #Is long enough to produce a chain
+                    ):
+                        self.addSentenceToDict(markovDict, message.clean_content)
+                        collected += 1
+                self.save_json(markovDict, str(user))
+                await collectMsg.delete()
+                await ctx.send("Collected " + str(collected) + " messages from <@" + str(user.id)+ ">")
             except:
                 await collectMsg.remove_reaction(thinking_emoji)
                 await collectMsg.add_reaction(interrobang);
         else:
-            await ctx.send("No user paramater given! :angry:")
+            await ctx.send("No user parameter given! :angry:")
             
     @commands.command(aliases=['markov'])
     async def sendToChat(self, ctx):
@@ -180,7 +180,7 @@ class Markov(commands.Cog):
             else:
                 await ctx.send(str(user) + ":\n```" + phrase + "```")
         else:
-            await ctx.send("No user paramater given! :angry:")
+            await ctx.send("No user parameter given! :angry:")
         
     @commands.command()
     async def cleanMarkov(self, ctx):
@@ -190,7 +190,7 @@ class Markov(commands.Cog):
             
             await ctx.send("Cleared Markov data for <@" + str(user.id) + ">")
         else:
-            await ctx.send("No user paramater given! :angry:")
+            await ctx.send("No user parameter given! :angry:")
         
     @staticmethod
     def testBasics(markovDict):
