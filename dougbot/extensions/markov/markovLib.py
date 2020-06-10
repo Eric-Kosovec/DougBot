@@ -19,6 +19,7 @@ from json.decoder import JSONDecodeError
 class markov():
 
 #Static variables
+    _TOTALSIZE = "#TOTAL#"      #Keyword to get the total size for entire dictionary
     _TOTAL  = 0  #Occurances of words after the root word
     _WORDS  = 1  #Occurances of current word after root word
 
@@ -27,19 +28,19 @@ class markov():
         try:
             try:
                 with open(path,'r') as f:
-                    markovDict = json.load(f)
+                    jsonObj = json.load(f)
                     f.close()
-                    return markovDict, True
+                    return jsonObj, True
             except IOError:
                 open(path,'w+').close()
-                return defaultdict(lambda:[0, defaultdict(int)]), False
+                return None, False
         except JSONDecodeError:
-            return defaultdict(lambda:[0, defaultdict(int)]), False
+            return None, False
 
     @staticmethod
-    def save_json(markovDict, path):
+    def save_json(jsonObj, path):
         with open(path, 'w+') as f:
-            json.dump(markovDict, f)
+            json.dump(jsonObj, f)
             f.close()
             
     #Adds a new word to the dictionary
@@ -48,9 +49,8 @@ class markov():
     ##leafWord      - The word that comes after the rootWord
     @staticmethod
     def addWordToDict(markovDict, rootWord, leafWord):
-
-        markovDict[rootWord][Markov._WORDS][leafWord] += 1
-        markovDict[rootWord][Markov._TOTAL] += 1    
+        markovDict[rootWord][markov._TOTAL] += 1
+        markovDict[rootWord][markov._WORDS][leafWord] += 1
 
     @staticmethod
     def addSentenceToDict(markovDict, sentence):
@@ -89,9 +89,10 @@ class markov():
         phrase = ""
         curWord = ""
         length = 0
+        endPunctuation = [".", "!", "?"]
         
         if weighted: #Control
-            while curWord not in [".", "!", "?"]:
+            while curWord not in endPunctuation:
                 curWord = random.choices(list(markovDict[curWord][markov._WORDS].keys()), weights=list(markovDict[curWord][markov._WORDS].values()))[0]
                 if(curWord not in string.punctuation and length > 0):
                     phrase += " "
@@ -99,7 +100,7 @@ class markov():
                 length += 1
                 
         else: #Chaos
-            while curWord not in [".", "!", "?"]:
+            while curWord not in endPunctuation:
                 curWord = random.choice(list(markovDict[curWord][markov._WORDS]))
                 if(curWord not in string.punctuation and length > 0):
                     phrase += " "
@@ -127,23 +128,23 @@ class markov():
             print("\n")
         return
 
-    @staticmethod
-    def testBasics(markovDict):
-        #test file reading
-        markov.readFile(markovDict, "testFile2.txt")
-        markov.printDict(markovDict)
-        
-        #Test Json I/O
-        markov.save_json(markovDict)
-        markovDict.clear()
-        markovDict = Markov.load_json("TestMarkovChainData.txt")
-        markov.printDict(markovDict)
-        
-        #Test chain generation weighted vs unweighted
-        print("Control\n---------------")
-        for i in range(10):
-            print(markov.generateChain(markovDict, True))
-        print("\n\nChaos\n---------------")
-        for i in range(10):
-            print(markov.generateChain(markovDict, False))
+    #@staticmethod
+    #def testBasics(markovDict):
+    #    #test file reading
+    #    markov.readFile(markovDict, "testFile2.txt")
+    #    markov.printDict(markovDict)
+    #    
+    #    #Test Json I/O
+    #    markov.save_json(markovDict)
+    #    markovDict.clear()
+    #    markovDict = markov.load_json("TestMarkovChainData.txt")
+    #    markov.printDict(markovDict)
+    #    
+    #    #Test chain generation weighted vs unweighted
+    #    print("Control\n---------------")
+    #    for i in range(10):
+    #        print(markov.generateChain(markovDict, True))
+    #    print("\n\nChaos\n---------------")
+    #    for i in range(10):
+    #        print(markov.generateChain(markovDict, False))
 
