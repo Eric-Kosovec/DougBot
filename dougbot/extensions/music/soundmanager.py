@@ -15,7 +15,7 @@ class SoundManager(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self._clips_dir = os.path.join(self.bot.ROOT_DIR, 'dougbot', 'res', 'audio')
+        self._clips_dir = os.path.join(self.bot.ROOT_DIR, 'resources', 'audio')
 
     @commands.command()
     @admin_command()

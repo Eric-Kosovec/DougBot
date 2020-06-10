@@ -4,6 +4,6 @@ __pycache__/
 *$py.class
 
 */token
-*/res
-*/res/audio
+/resources/*
+!resources/avatar.png
 */dougbot.db
