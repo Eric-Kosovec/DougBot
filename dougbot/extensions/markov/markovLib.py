@@ -11,18 +11,18 @@ import json
 from discord import Embed
 from discord.ext import commands
 
-from collections import defaultdict
 from json.decoder import JSONDecodeError
 
 #Generates Markov chains from discord chat
 ##Dictionary Template: defaultdict(lambda:[0, defaultdict(int)])   #{'the': (7, {'wood': 5})}
+##Dictionary Template: dict{rootWord:[rootCount, dict{leafWord:leafCount}]}   #{'the': (7, {'wood': 5})}
 class markov():
 
 #Static variables
     _TOTALSIZE = "#TOTAL#"      #Keyword to get the total size for entire dictionary
     _TOTAL  = 0  #Occurances of words after the root word
     _WORDS  = 1  #Occurances of current word after root word
-
+    _ENDPUNCTUATION = [".", "!", "?"]
     @staticmethod
     def load_json(path):
         try:
@@ -32,10 +32,9 @@ class markov():
                     f.close()
                     return jsonObj, True
             except IOError:
-                open(path,'w+').close()
-                return None, False
+                return {}, False
         except JSONDecodeError:
-            return None, False
+            return {}, False
 
     @staticmethod
     def save_json(jsonObj, path):
@@ -49,6 +48,10 @@ class markov():
     ##leafWord      - The word that comes after the rootWord
     @staticmethod
     def addWordToDict(markovDict, rootWord, leafWord):
+        if rootWord not in markovDict:
+            markovDict[rootWord] = [0, {leafWord: 0}]
+        if leafWord not in markovDict[rootWord][markov._WORDS]:
+            markovDict[rootWord][markov._WORDS][leafWord] = 0
         markovDict[rootWord][markov._TOTAL] += 1
         markovDict[rootWord][markov._WORDS][leafWord] += 1
 
@@ -64,6 +67,8 @@ class markov():
             word = word.lower()
             markov.addWordToDict(markovDict, prevWord, word)
             prevWord = word
+            if word in markov._ENDPUNCTUATION:
+                prevWord = ""
             
         if(prevWord not in string.punctuation):
             markov.addWordToDict(markovDict, prevWord, ".")
@@ -89,10 +94,9 @@ class markov():
         phrase = ""
         curWord = ""
         length = 0
-        endPunctuation = [".", "!", "?"]
         
         if weighted: #Control
-            while curWord not in endPunctuation:
+            while curWord not in markov._ENDPUNCTUATION:
                 curWord = random.choices(list(markovDict[curWord][markov._WORDS].keys()), weights=list(markovDict[curWord][markov._WORDS].values()))[0]
                 if(curWord not in string.punctuation and length > 0):
                     phrase += " "
@@ -100,7 +104,7 @@ class markov():
                 length += 1
                 
         else: #Chaos
-            while curWord not in endPunctuation:
+            while curWord not in markov._ENDPUNCTUATION:
                 curWord = random.choice(list(markovDict[curWord][markov._WORDS]))
                 if(curWord not in string.punctuation and length > 0):
                     phrase += " "
@@ -111,22 +115,22 @@ class markov():
 
     #Prints out the dictionary sorted alphabettically along with the count of each word in detail
     ##markovDict     - Dictionary containing the words and counts
-    @staticmethod
-    def printDict(markovDict):
-        for rootWord in sorted(markovDict):
-            if rootWord == "":
-                print("~STARTING~" + " - " + str(markovDict[rootWord][markov._TOTAL]))
-            else:
-                print(rootWord + " - " + str(markovDict[rootWord][markov._TOTAL]))
-                
-            for leafWord in sorted(markovDict[rootWord][markov._WORDS]):
-                if leafWord == "":
-                    print("~ENDING~" + " - " + str(markovDict[rootWord][markov._WORDS][leafWord]))
-                else:
-                    print("\t" + leafWord + " - " + str(markovDict[rootWord][markov._WORDS][leafWord]))
-                
-            print("\n")
-        return
+    #@staticmethod
+    #def printDict(markovDict):
+    #    for rootWord in sorted(markovDict):
+    #        if rootWord == "":
+    #            print("~STARTING~" + " - " + str(markovDict[rootWord][markov._TOTAL]))
+    #        else:
+    #            print(rootWord + " - " + str(markovDict[rootWord][markov._TOTAL]))
+    #            
+    #        for leafWord in sorted(markovDict[rootWord][markov._WORDS]):
+    #            if leafWord == "":
+    #                print("~ENDING~" + " - " + str(markovDict[rootWord][markov._WORDS][leafWord]))
+    #            else:
+    #                print("\t" + leafWord + " - " + str(markovDict[rootWord][markov._WORDS][leafWord]))
+    #            
+    #        print(" ")
+    #    return
 
     #@staticmethod
     #def testBasics(markovDict):

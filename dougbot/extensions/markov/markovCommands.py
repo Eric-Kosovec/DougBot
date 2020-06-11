@@ -14,7 +14,6 @@ from dougbot.extensions.markov.markovLib import *
 from discord import Embed
 from discord.ext import commands
 
-from collections import defaultdict
 from json.decoder import JSONDecodeError
 
 #Module attached to markov.py to allow interactions through discord
@@ -49,11 +48,9 @@ class markovCommands(commands.Cog):
             
             try:
                 markovDict, existingDict = markov.load_json(os.path.join(self._chains_dir, str(user) + markovCommands._CHAINSEXT))
-                
+                    
                 if existingDict:
                     lastTimestamp = datetime.strptime(markov.load_json(os.path.join(self._chains_dir, str(user) + markovCommands._TIMESTAMPEXT))[0], '%Y-%m-%d %H:%M:%S.%f')
-                else:
-                    markovDict = defaultdict(lambda:[0, defaultdict(int)])
                     
                 async for message in text_channel.history(limit=None, after=lastTimestamp, oldest_first=True):
                     if (message.author == user                              #From the user specified
@@ -67,10 +64,10 @@ class markovCommands(commands.Cog):
                 markov.save_json(markovDict, os.path.join(self._chains_dir, str(user) + markovCommands._CHAINSEXT))
                 
                 if existingDict:
-                    dictExistanceString = "Updated: "
+                    dictExistanceString = "**Updated:** "
                 else:
-                    dictExistanceString = "Created new: "
-                await ctx.send(dictExistanceString + "Collected " + str(collected) + " messages from <@" + str(user.id)+ ">")
+                    dictExistanceString = "**New:** "
+                await ctx.send(dictExistanceString + "Collected " + str(collected) + " message(s) from <@" + str(user.id)+ ">")
                 await collectMsg.delete()
             except ValueError as e:
                 await collectMsg.remove_reaction(markovCommands._THINKING_EMOJI, collectMsg.author)
@@ -107,14 +104,17 @@ class markovCommands(commands.Cog):
         
     @commands.command(aliases=['clean'])
     async def cleanMarkov(self, ctx):
-        if ctx.message.mentions:
-            user = ctx.message.mentions[0]
-            os.remove(os.path.join(self._chains_dir, str(user) + markovCommands._CHAINSEXT))
-            os.remove(os.path.join(self._chains_dir, str(user) + markovCommands._TIMESTAMPEXT))
-            
-            await ctx.send("Cleared Markov data for <@" + str(user.id) + ">")
-        else:
-            await ctx.send("No user parameter given! :angry:")
+        try:
+            if ctx.message.mentions:
+                user = ctx.message.mentions[0]
+                os.remove(os.path.join(self._chains_dir, str(user) + markovCommands._CHAINSEXT))
+                os.remove(os.path.join(self._chains_dir, str(user) + markovCommands._TIMESTAMPEXT))
+                
+                await ctx.send("Cleared Markov data for <@" + str(user.id) + ">")
+            else:
+                await ctx.send("No user parameter given.\nUse \"d!clean @User\"")
+        except FileNotFoundError:
+            await ctx.send("No chains exist for " + str(user) + ".")
 
 def setup(bot):
     bot.add_cog(markovCommands(bot))
