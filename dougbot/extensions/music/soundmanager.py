@@ -8,14 +8,13 @@ from discord.ext import commands
 
 from dougbot.extensions.music.supportedformats import PLAYER_FILE_TYPES
 from dougbot.extensions.util.admin_check import admin_command
-from dougbot.extensions.util.long_message import long_message
 
 
 class SoundManager(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self._clips_dir = os.path.join(self.bot.ROOT_DIR, 'dougbot', 'res', 'audio')
+        self._clips_dir = os.path.join(self.bot.ROOT_DIR, 'resources', 'audio')
 
     @commands.command()
     @admin_command()
@@ -26,10 +25,7 @@ class SoundManager(commands.Cog):
             return
 
         clip_basename = os.path.basename(clip_path)
-
-        dest_path = clip_path[:-len(clip_basename)]
-        dest_path = os.path.join(dest_path, f'{to_clip}{clip_basename[clip_basename.rfind("."):]}')
-
+        dest_path = os.path.join(os.path.dirname(clip_path), f'{to_clip}{clip_basename[clip_basename.rfind("."):]}')
         try:
             os.rename(clip_path, dest_path)
         except OSError:
@@ -66,13 +62,13 @@ class SoundManager(commands.Cog):
     @commands.command(aliases=['removeclip'])
     @admin_command()
     async def deleteclip(self, ctx, *, clip: str):
-        path = await self._get_clip_path(clip)
-        if path is None:
+        clip_path = await self._get_clip_path(clip)
+        if clip_path is None:
             await self.bot.confusion(ctx.message)
             return
 
         try:
-            os.remove(path)
+            os.remove(clip_path)
         except OSError:
             await self.bot.confusion(ctx.message)
             return
@@ -82,11 +78,9 @@ class SoundManager(commands.Cog):
     @commands.command()
     async def getclip(self, ctx, *, clip: str):
         path = await self._get_clip_path(clip)
-
         if path is None:
             await self.bot.confusion(ctx.message)
             return
-
         await ctx.send(file=discord.File(path))
 
     @commands.command()
@@ -98,7 +92,7 @@ class SoundManager(commands.Cog):
         if not os.path.exists(os.path.join(self._clips_dir, folder)):
             try:
                 os.makedirs(os.path.join(self._clips_dir, folder), exist_ok=True)
-            except Exception as e:
+            except OSError:
                 await self.bot.confusion(ctx.message)
                 return
 
@@ -137,57 +131,60 @@ class SoundManager(commands.Cog):
 
     @commands.command(aliases=['list'])
     async def clips(self, ctx, *, category: str = None):
-        to_print = []
-        if category in ['cats', 'cat', 'category', 'categories']:
-            to_print = filter(lambda f: os.path.isdir(os.path.join(self._clips_dir, f)), os.listdir(self._clips_dir))
+        # TODO list all for everything
+        #  list category_name for specific category and different embed for such case
+        #  list by itself for category names and different embed for such case
+        if category is None or category == 'all':
+            categories = filter(lambda f: os.path.isdir(os.path.join(self._clips_dir, f)), os.listdir(self._clips_dir))
         else:
-            base = os.path.join(self._clips_dir, category) if category is not None else self._clips_dir
-            for dirpath, dirnames, filenames in os.walk(base):
-                for file in filenames:
-                    if await self._is_audio_track(file):
-                        to_print.append(file[:file.rfind('.')])
+            categories = [os.path.join(self._clips_dir, category)]
+            if not os.path.isdir(categories[0]):
+                await self.bot.confusion(ctx.message)
+                return
 
-        to_print = sorted(to_print, key=lambda s: s.casefold())
-        message = ''
-        i = 0
-        maxColumns = 3
-        longest = 0
-        for p in to_print:
-            if len(p) > longest:
-                longest = len(p)
+        embed = discord.Embed(color=discord.Color(0xff0000))
 
-        #48 is mobile screen switch
-        maxColumns = 48//(longest + 4)
-        
-        for p in to_print:
-            if i > maxColumns:
-                message += '|\n'
-                i = 0
+        if category is None:  # List category names
+            embed.title = '**Soundboard Categories**'
+            embed.description = ' '.join([f'`{c}`' for c in categories])
+        elif category == 'all':  # List all clips, sorted by category
+            embed.title = '**Soundboard Clips**'
+            for category in categories:
+                field_value = ''
 
-            #message += '|' + (' '*(7-(len(p)-len(p)//2))) + p + (' '*(7 - (len(p)//2)))
-            message += '| ' + p + (' '*((longest+1) - (len(p))))
-            i += 1
-            
-        message += '|'
-        
-        if len(message) > 1:
-            for msg in long_message(message):
-                await ctx.send(f'```{msg}```')
+                for _, _, filenames in os.walk(os.path.join(self._clips_dir, category)):
+                    field_value += ' '.join(
+                        [f'`{f[:f.rfind(".")]}`' for f in filenames if await self._is_audio_track(f)]
+                    )
+
+                if len(field_value) > 0:
+                    embed.add_field(name=f'**{category}**', value=field_value)
+        else:  # List clips within specific category
+            embed.title = f'**{category} Clips**'.title()
+            description = ''
+            # List clips in specific category
+            for _, _, filenames in os.walk(categories[0]):
+                description += ' '.join([f'`{f[:f.rfind(".")]}`' for f in filenames if await self._is_audio_track(f)])
+            embed.description = description
+
+        await ctx.send(embed=embed)
+
+    ''' Begin private methods '''
 
     @staticmethod
     async def _safe_path(path):
         return path is not None and '..' not in path and not os.path.isabs(path)
 
     async def _get_clip_path(self, clip):
-        for dirpath, dirnames, filenames in os.walk(self._clips_dir):
+        for dirpath, _, filenames in os.walk(self._clips_dir):
             for file in filenames:
                 if '.' in file and file[:file.rfind('.')] == clip:
                     return os.path.join(dirpath, file)
         return None
 
     @staticmethod
-    async def _is_audio_track(file):
-        return type(file) == str and '.' in file and file[file.rfind('.'):] in PLAYER_FILE_TYPES
+    async def _is_audio_track(filename):
+        return type(filename) == str and '.' in filename and filename[filename.rfind('.'):] in PLAYER_FILE_TYPES
 
     @staticmethod
     async def _is_link(candidate):

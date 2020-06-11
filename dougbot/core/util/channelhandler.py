@@ -1,12 +1,12 @@
 import asyncio
 import logging
+import os
 from logging import Handler
 
 from dougbot.extensions.util import long_message
 
 
 class ChannelHandler(Handler):
-
     _FORMATTER = logging.Formatter('{%(pathname)s:%(lineno)d} %(levelname)s - %(message)s')
 
     def __init__(self, root_dir, channel, loop):
@@ -19,10 +19,10 @@ class ChannelHandler(Handler):
         self.setFormatter(self._FORMATTER)
 
     def emit(self, record):
-        # TODO DESIRABLE?? SAY IF OUR CODE GAVE BAD INPUT TO LIBRARY, WOULD THIS EVER LOG THEN?
         # Eliminates logging from exceptions caused by library code.
-        #if os.path.commonpath([record.pathname, self._root_dir]) != self._root_dir:
-        #    return
+        if os.path.splitdrive(record.pathname)[0] != os.path.splitdrive(self._root_dir)[0] or \
+                os.path.commonpath([record.pathname, self._root_dir]) != self._root_dir:
+            return
         record_text = self.format(record)
         for message in long_message.long_message(record_text):
             asyncio.run_coroutine_threadsafe(self._channel.send(message), self._loop)

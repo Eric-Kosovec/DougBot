@@ -22,7 +22,7 @@ class SoundPlayer(commands.Cog):
         self.bot = bot
         self.bot.event(self.on_voice_state_update)
         self._threads = ThreadPoolExecutor()
-        self._clips_dir = os.path.join(self.bot.ROOT_DIR, 'dougbot', 'res', 'audio')
+        self._clips_dir = os.path.join(self.bot.ROOT_DIR, 'resources', 'audio')
         self._cache_dir = os.path.join(self.bot.ROOT_DIR, 'cache')
         self._path_cache = LRUCache(20)
         self._play_lock = asyncio.Lock()  # Stop multiple threads from being created and playing audio over each other.

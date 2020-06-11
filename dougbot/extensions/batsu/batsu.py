@@ -54,10 +54,14 @@ class Batsu(commands.Cog):
         embed = Embed(title='Batsu Games Subbing Status', description=legend, color=0xFF0000)
         for i in range(1, len(status_report) + 1):
             if len(status_report[i][0]) == 1:
-                status = 'Complete'
+                status_display = 'Complete!'
             else:
-                status = ''
-            embed.add_field(name=f'Part {i}', value=status)
+                status_display = ''
+                for time, status in status_report[i]:
+                    status_display += f'{time} | {status}\n'
+                if len(status_display) == 0:
+                    status_display = '-'
+            embed.insert_field_at(i % 3, name=f'Part {i}', value=status_display)
         await ctx.send(embed=embed)
 
 

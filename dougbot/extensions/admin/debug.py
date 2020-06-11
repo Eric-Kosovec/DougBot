@@ -14,11 +14,7 @@ class Debug(commands.Cog):
         log_channel = await self.bot.log_channel()
         if log_channel is not None:
             await log_channel.purge(check=lambda m: m.author.id == ctx.me.id, bulk=False)
-
-    @commands.command()
-    @admin_command()
-    async def panic(self, _):
-        raise ValueError('BAD VALUE')
+            await ctx.message.delete()
 
 
 def setup(bot):

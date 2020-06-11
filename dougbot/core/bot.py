@@ -55,7 +55,8 @@ class DougBot(commands.Bot):
                 self._init_logging(self._log_channel)
             for text_channel in filter(lambda gc: isinstance(gc, TextChannel), self.get_all_channels()):
                 if text_channel != self._log_channel:
-                    await text_channel.send('I am sad.')
+                    #await text_channel.send('I am sad.')
+                    pass
         self._on_ready_called = True
 
     async def on_command_error(self, ctx, error):
@@ -65,15 +66,32 @@ class DougBot(commands.Bot):
             return
         if isinstance(error, commands.errors.MissingRequiredArgument):
             await self.confusion(ctx.message, f'Missing argument(s). Run {self._config.command_prefix}help <command_name>')
-        if isinstance(error, commands.CheckFailure):
+        elif isinstance(error, commands.CheckFailure):
             await self.confusion(ctx.message, f'{ctx.author.mention} You do not have permissions for this command.')
-        if isinstance(error, commands.NoPrivateMessage):
+        elif isinstance(error, commands.NoPrivateMessage):
             await ctx.message.channel.send('This command cannot be used in private messages.')
         elif isinstance(error, commands.DisabledCommand):
             await ctx.message.channel.send('This command is disabled and cannot be used.')
+        elif isinstance(error, commands.CommandNotFound):
+            await self.confusion(ctx.message, f'Command not found.')
+        elif isinstance(error, commands.CommandOnCooldown):
+            await self.confusion(ctx.message, f'Command is on cooldown.')
         elif isinstance(error, commands.CommandInvokeError):  # Catches rest of exceptions
             logger = logging.getLogger(__file__)
             logger.log(logging.ERROR, f'{error}\n{traceback.format_tb(error.original.__traceback__)}')
+            await self.check_log(ctx.message)
+        else:  # Just in case
+            logger = logging.getLogger(__file__)
+            logger.log(logging.ERROR, f'WEIRD ERROR CASE: {error}\n{traceback.format_tb(error.original.__traceback__)}')
+            await self.check_log(ctx.message)
+
+    @staticmethod
+    async def check_log(message, error_msg=None):
+        if message is not None:
+            page_emoji = '📄'
+            await message.add_reaction(page_emoji)
+            if error_msg is not None:
+                await message.channel.send(error_msg)
 
     @staticmethod
     async def confusion(message, error_msg=None):
