@@ -16,8 +16,8 @@ from discord.ext import commands
 
 from json.decoder import JSONDecodeError
 
-#Module attached to markov.py to allow interactions through discord
-class markovCommands(commands.Cog):
+#Module attached to Markov.py to allow interactions through discord
+class MarkovCommands(commands.Cog):
 
 #Static variables
     _TIMESTAMPEXT   = ".timestamp"
@@ -44,24 +44,24 @@ class markovCommands(commands.Cog):
             user = ctx.message.mentions[0]
             text_channel = ctx.channel #chat channel
             collectMsg = await ctx.send("Collecting messages from <@" + str(user.id)+ ">")
-            thinkingReact = await collectMsg.add_reaction(markovCommands._THINKING_EMOJI)
+            thinkingReact = await collectMsg.add_reaction(MarkovCommands._THINKING_EMOJI)
             
             try:
-                markovDict, existingDict = markov.load_json(os.path.join(self._chains_dir, str(user) + markovCommands._CHAINSEXT))
+                markovDict, existingDict = Markov.load_json(os.path.join(self._chains_dir, str(user) + MarkovCommands._CHAINSEXT))
                     
                 if existingDict:
-                    lastTimestamp = datetime.strptime(markov.load_json(os.path.join(self._chains_dir, str(user) + markovCommands._TIMESTAMPEXT))[0], '%Y-%m-%d %H:%M:%S.%f')
+                    lastTimestamp = datetime.strptime(Markov.load_json(os.path.join(self._chains_dir, str(user) + MarkovCommands._TIMESTAMPEXT))[0], '%Y-%m-%d %H:%M:%S.%f')
                     
                 async for message in text_channel.history(limit=None, after=lastTimestamp, oldest_first=True):
                     if (message.author == user                              #From the user specified
-                    and not any(symbol in message.content for symbol in markovCommands._BANNED) #Does not contain symbols from banned list
+                    and not any(symbol in message.content for symbol in MarkovCommands._BANNED) #Does not contain symbols from banned list
                     and len(message.content.split()) > 1                    #Is long enough to produce a chain
                     ):
-                        markov.addSentenceToDict(markovDict, message.clean_content)
+                        Markov.addSentenceToDict(markovDict, message.clean_content)
                         collected += 1
                         
-                markov.save_json(str(message.created_at), os.path.join(self._chains_dir, str(user) + markovCommands._TIMESTAMPEXT))
-                markov.save_json(markovDict, os.path.join(self._chains_dir, str(user) + markovCommands._CHAINSEXT))
+                Markov.save_json(str(message.created_at), os.path.join(self._chains_dir, str(user) + MarkovCommands._TIMESTAMPEXT))
+                Markov.save_json(markovDict, os.path.join(self._chains_dir, str(user) + MarkovCommands._CHAINSEXT))
                 
                 if existingDict:
                     dictExistanceString = "**Updated:** "
@@ -70,8 +70,8 @@ class markovCommands(commands.Cog):
                 await ctx.send(dictExistanceString + "Collected " + str(collected) + " message(s) from <@" + str(user.id)+ ">")
                 await collectMsg.delete()
             except ValueError as e:
-                await collectMsg.remove_reaction(markovCommands._THINKING_EMOJI, collectMsg.author)
-                await collectMsg.add_reaction(markovCommands._INTERROBANG)
+                await collectMsg.remove_reaction(MarkovCommands._THINKING_EMOJI, collectMsg.author)
+                await collectMsg.add_reaction(MarkovCommands._INTERROBANG)
                 raise e
         else:
             await ctx.send("No user parameter given.\nUse \"d!collect @User\"")
@@ -86,10 +86,10 @@ class markovCommands(commands.Cog):
             text_channel = ctx.channel #chat channel
             user = ctx.message.mentions[0]
             
-            markovDict, existingDict = markov.load_json(os.path.join(self._chains_dir, str(user) + markovCommands._CHAINSEXT))
+            markovDict, existingDict = Markov.load_json(os.path.join(self._chains_dir, str(user) + MarkovCommands._CHAINSEXT))
             if existingDict:
                 while((phrase == "" or length < 5) and attempts < 10): #Generate new phrase if last one sucked
-                    phrase, length = markov.generateChain(markovDict, True)
+                    phrase, length = Markov.generateChain(markovDict, True)
                     
                 if attempts >= 10:
                     await ctx.send("Exceeded number of attempts for " + str(user))
@@ -102,13 +102,50 @@ class markovCommands(commands.Cog):
         else:
             await ctx.send("No user parameter given.\nUse \"d!markov @User\"")
         
+    @commands.command()
+    async def ghost(self, ctx, *, ghostUser: str = None):
+        if ghostUser is not None:
+            length = 0
+            attempts = 0
+            existingDict = False
+            phrase = ""
+            text_channel = ctx.channel #chat channel
+            
+            markovDict, existingDict = Markov.load_json(os.path.join(self._chains_dir, ghostUser + MarkovCommands._CHAINSEXT))
+            if existingDict:
+                while((phrase == "" or length < 5) and attempts < 10): #Generate new phrase if last one sucked
+                    phrase, length = Markov.generateChain(markovDict, True)
+                    
+                if attempts >= 10:
+                    await ctx.send("Exceeded number of attempts for " + ghostUser)
+                else:
+                    embed = Embed(title="", color=0x228B22)
+                    embed.add_field(name=ghostUser, value=phrase.capitalize())
+                    await ctx.send(embed=embed)
+            else:
+                await ctx.send("No existing Markov dictionary for " + ghostUser + ".")
+        else:
+            await ctx.send("No user parameter given.\nUse \"d!ghost user#1234\"")
+        
+    @commands.command(aliases=['userChains'])
+    async def listChains(self, ctx):
+        files = []
+        onlyNames = []
+        for (_, _, filenames) in os.walk(self._chains_dir):
+            files.extend(filenames)
+            break
+        for file in files:
+            if MarkovCommands._CHAINSEXT in file:
+                onlyNames.append(os.path.splitext(file)[0])
+        await ctx.send('\n'.join(onlyNames))
+        
     @commands.command(aliases=['clean'])
     async def cleanMarkov(self, ctx):
         try:
             if ctx.message.mentions:
                 user = ctx.message.mentions[0]
-                os.remove(os.path.join(self._chains_dir, str(user) + markovCommands._CHAINSEXT))
-                os.remove(os.path.join(self._chains_dir, str(user) + markovCommands._TIMESTAMPEXT))
+                os.remove(os.path.join(self._chains_dir, str(user) + MarkovCommands._CHAINSEXT))
+                os.remove(os.path.join(self._chains_dir, str(user) + MarkovCommands._TIMESTAMPEXT))
                 
                 await ctx.send("Cleared Markov data for <@" + str(user.id) + ">")
             else:
@@ -117,4 +154,4 @@ class markovCommands(commands.Cog):
             await ctx.send("No chains exist for " + str(user) + ".")
 
 def setup(bot):
-    bot.add_cog(markovCommands(bot))
+    bot.add_cog(MarkovCommands(bot))
