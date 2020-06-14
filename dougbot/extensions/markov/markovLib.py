@@ -18,6 +18,7 @@ class Markov():
     _TOTAL  = 0  #Occurances of words after the root word
     _WORDS  = 1  #Occurances of current word after root word
     _ENDPUNCTUATION = ['.', '!', '?', '\n']
+    _SYMBOLS = ['.','-',',','!','?','(','_',')', '[', ']', '{', '}', '+', '=', '*', '/', '\\', '#', '$', '%', '^', '&', ';', '\'', '"', '`', '~']
     
     @staticmethod
     def load_json(path):
@@ -54,12 +55,17 @@ class Markov():
     @staticmethod
     def addSentenceToDict(markovDict, sentence):
         prevWord = ""
+        
         #Following line removes punctuation but it might be better to not remove it
         #sentence = sentence.translate(str.maketrans(string.punctuation, ' '*len(string.punctuation)))
         
-        sentenceList = re.findall(r"[\w']+|[.,!?;]", sentence)
+        #Seperates all symbols and words
+        #sentenceList = re.findall(r"[\w']+|[.,!?;]", sentence)
         
-        for word in sentenceList:
+        for spaced in Markov._SYMBOLS:
+            sentence = sentence.replace(spaced, ' {0} '.format(spaced))
+        
+        for word in sentence.split():
             word = word.lower()
             Markov.addWordToDict(markovDict, prevWord, word)
             prevWord = word

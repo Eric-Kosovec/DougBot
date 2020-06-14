@@ -26,6 +26,8 @@ class MarkovCommands(commands.Cog):
     _CHAINSEXT      = ".chains"
     _BANNED         = ["d!", "d#", "d$", "dh!", ">>", "!s", ".horo", "!trump", "!autojoin", "!autoleave", "!join", "!leave", "!echo", "!autosave", "(>"]
     
+    #<:NAME:ID>
+    #Custom emoji structure
     _THINKING_EMOJI = '\U0001F914'
     _INTERROBANG    = '\U00002049'
     _CHECKMARK      = '\U00002714'
@@ -106,29 +108,6 @@ class MarkovCommands(commands.Cog):
                 await ctx.send(embed=embed)
         else:
             await ctx.send("No existing Markov dictionary for " + str(userOne) + ".\nUse \"d!collect <@" + str(userOne.id)+ ">\"")
-        
-    #This is used for calling chains on users that aren't in the channel
-    @commands.command()
-    async def ghost(self, ctx, *, ghostUser: str):
-        length = 0
-        attempts = 0
-        existingDict = False
-        phrase = ""
-        text_channel = ctx.channel #chat channel
-        
-        markovDict, existingDict = Markov.load_json(os.path.join(self._chains_dir, ghostUser + MarkovCommands._CHAINSEXT))
-        if existingDict:
-            while((phrase == "" or length < 5) and attempts < 10): #Generate new phrase if last one sucked
-                phrase, length = Markov.generateChain(markovDict, True)
-                
-            if attempts >= 10:
-                await ctx.send("Exceeded number of attempts for " + ghostUser)
-            else:
-                embed = Embed(title="", color=0x228B22)
-                embed.add_field(name=ghostUser, value=phrase.capitalize())
-                await ctx.send(embed=embed)
-        else:
-            await ctx.send("No existing Markov dictionary for " + ghostUser + ".")
         
     #Lists all the chains currenty gathered
     @commands.command(aliases=['userChains'])
