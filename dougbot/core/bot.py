@@ -4,7 +4,6 @@ import logging
 import os
 import traceback
 
-from discord import TextChannel
 from discord.ext import commands
 from discord.utils import find
 
@@ -53,10 +52,7 @@ class DougBot(commands.Bot):
             self._log_channel = self.get_channel(self._config.logging_channel_id)
             if self._log_channel is not None:
                 self._init_logging(self._log_channel)
-            for text_channel in filter(lambda gc: isinstance(gc, TextChannel), self.get_all_channels()):
-                if text_channel != self._log_channel:
-                    #await text_channel.send('I am sad.')
-                    pass
+                await self._log_channel.send('I am sad.')
         self._on_ready_called = True
 
     async def on_command_error(self, ctx, error):

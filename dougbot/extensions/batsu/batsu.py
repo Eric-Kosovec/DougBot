@@ -1,9 +1,12 @@
+import math
 import re
 from collections import defaultdict
 
 import requests
 from discord import Embed
 from discord.ext import commands
+
+from dougbot.common import limits
 
 
 class Batsu(commands.Cog):
@@ -52,16 +55,33 @@ class Batsu(commands.Cog):
     async def _embed_substatus(self, ctx, status_report):
         legend = 'Not Started > Typesetting > Translating > Quality/English Check > Prep For Release > Complete!'
         embed = Embed(title='Batsu Games Subbing Status', description=legend, color=0xFF0000)
-        for i in range(1, len(status_report) + 1):
-            if len(status_report[i][0]) == 1:
-                status_display = 'Complete!'
-            else:
-                status_display = ''
-                for time, status in status_report[i]:
-                    status_display += f'{time} | {status}\n'
-                if len(status_display) == 0:
-                    status_display = '-'
-            embed.insert_field_at(i % 3, name=f'Part {i}', value=status_display)
+
+        height = math.ceil(len(status_report) / float(limits.EMBED_INLINE_FIELD_LIMIT))
+        padding = height * limits.EMBED_INLINE_FIELD_LIMIT - len(status_report)
+
+        for r in range(height):
+            column_height = height
+            for c in range(limits.EMBED_INLINE_FIELD_LIMIT):
+                if c == padding:
+                    column_height -= 1
+
+                field_pos = c * column_height + r
+                if c >= padding:
+                    field_pos += (limits.EMBED_INLINE_FIELD_LIMIT - padding)
+
+                status_idx = r * limits.EMBED_INLINE_FIELD_LIMIT + c
+                print(f'FIELD {field_pos} - STATUS {status_idx}')
+                if len(status_report[status_idx + 1][0]) == 1:
+                    status_display = 'Complete!'
+                else:
+                    status_display = ''
+                    for time, status in status_report[status_idx + 1]:
+                        status_display += f'{time} | {status}\n'
+                    if len(status_display) == 0:
+                        status_display = '-'
+
+                embed.insert_field_at(field_pos, name=f'Part {status_idx + 1}', value=status_display)
+
         await ctx.send(embed=embed)
 
 
