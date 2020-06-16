@@ -35,52 +35,35 @@ class Batsu(commands.Cog):
                 if in_progress_match is not None:
                     status_report[int(in_progress_match.group(1))].append((in_progress_match.group(2), in_progress_match.group(3)))
 
-        await self._display_substatus(ctx, status_report)
-
-    async def _display_substatus(self, ctx, status_report):
-        legend = 'Not Started > Typesetting > Translating > Quality/English Check > Prep For Release > Complete!'
-        substatus = f'{legend}\n\n'
-
-        # Status report comes in form {Part #: [(Complete,), (Section String, Status)]}
-
-        for i in range(1, len(status_report) + 1):
-            for section in status_report[i]:
-                if len(section) == 1:
-                    substatus += f'{section[0]}\n'
-                elif len(section) == 2:
-                    substatus += f'Part {i}\tSection {section[0]}\tStatus {section[1]}\n'
-        await ctx.send(substatus)
         await self._embed_substatus(ctx, status_report)
 
-    async def _embed_substatus(self, ctx, status_report):
+    @staticmethod
+    async def _embed_substatus(ctx, status_report):
         legend = 'Not Started > Typesetting > Translating > Quality/English Check > Prep For Release > Complete!'
         embed = Embed(title='Batsu Games Subbing Status', description=legend, color=0xFF0000)
 
         height = math.ceil(len(status_report) / float(limits.EMBED_INLINE_FIELD_LIMIT))
-        padding = height * limits.EMBED_INLINE_FIELD_LIMIT - len(status_report)
 
-        for r in range(height):
-            column_height = height
-            for c in range(limits.EMBED_INLINE_FIELD_LIMIT):
-                if c == padding:
-                    column_height -= 1
+        for _ in range(height * limits.EMBED_INLINE_FIELD_LIMIT):
+            embed.add_field(name='\u200b', value='\u200b')
 
-                field_pos = c * column_height + r
-                if c >= padding:
-                    field_pos += (limits.EMBED_INLINE_FIELD_LIMIT - padding)
+        r = 0
+        c = 0
+        for i in range(len(status_report)):
+            if len(status_report[i + 1][0]) == 1:
+                status_display = 'Complete!'
+            else:
+                status_display = ''
+                for time, status in status_report[i + 1]:
+                    status_display += f'{time} | {status}\n'
+                if len(status_display) == 0:
+                    status_display = '\u200b'
 
-                status_idx = r * limits.EMBED_INLINE_FIELD_LIMIT + c
-                print(f'FIELD {field_pos} - STATUS {status_idx}')
-                if len(status_report[status_idx + 1][0]) == 1:
-                    status_display = 'Complete!'
-                else:
-                    status_display = ''
-                    for time, status in status_report[status_idx + 1]:
-                        status_display += f'{time} | {status}\n'
-                    if len(status_display) == 0:
-                        status_display = '-'
+            embed.set_field_at(r * limits.EMBED_INLINE_FIELD_LIMIT + c, name=f'Part {i + 1}', value=status_display)
 
-                embed.insert_field_at(field_pos, name=f'Part {status_idx + 1}', value=status_display)
+            r = (r + 1) % height
+            if r == 0:
+                c += 1
 
         await ctx.send(embed=embed)
 
