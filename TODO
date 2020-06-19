@@ -1,0 +1,5 @@
+Override message sending in bot and split messages and embeds into multiple, if need be
+Finish kv store
+Fix sound player concurrency issue
+Implement video streaming
+Create webhook
