@@ -131,9 +131,6 @@ class SoundManager(commands.Cog):
 
     @commands.command(aliases=['list'])
     async def clips(self, ctx, *, category: str = None):
-        # TODO list all for everything
-        #  list category_name for specific category and different embed for such case
-        #  list by itself for category names and different embed for such case
         if category is None or category == 'all':
             categories = filter(lambda f: os.path.isdir(os.path.join(self._clips_dir, f)), os.listdir(self._clips_dir))
         else:
