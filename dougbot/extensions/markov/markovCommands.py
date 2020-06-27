@@ -103,7 +103,7 @@ class MarkovCommands(commands.Cog):
             if attempts >= 10:
                 await ctx.send("Exceeded number of attempts for " + str(userOne))
             else:
-                embed = Embed(title="", color=0x228B22)
+                embed = Embed(title="Markov", color=0x228B22)
                 embed.add_field(name=str(userOne), value=phrase.capitalize())
                 await ctx.send(embed=embed)
         else:
