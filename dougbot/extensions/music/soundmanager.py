@@ -69,7 +69,23 @@ class SoundManager(commands.Cog):
 
         try:
             os.remove(clip_path)
-        except OSError:
+        except (FileNotFoundError, OSError):
+            await self.bot.confusion(ctx.message)
+            return
+
+        await self.bot.confirmation(ctx.message)
+
+    @commands.command(aliases=['remove_category'])
+    @admin_command()
+    async def remove_category(self, ctx, *, category: str):
+        category_path = os.path.join(self._clips_dir, category)
+        if not os.path.isdir(category_path):
+            await self.bot.confusion(ctx.message)
+            return
+
+        try:
+            os.rmdir(category_path)
+        except (FileNotFoundError, OSError):
             await self.bot.confusion(ctx.message)
             return
 
