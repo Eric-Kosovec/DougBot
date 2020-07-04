@@ -75,7 +75,7 @@ class SoundManager(commands.Cog):
 
         await self.bot.confirmation(ctx.message)
 
-    @commands.command(aliases=['remove_category'])
+    @commands.command()
     @admin_command()
     async def remove_category(self, ctx, *, category: str):
         category_path = os.path.join(self._clips_dir, category)
