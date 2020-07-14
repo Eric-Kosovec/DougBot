@@ -2,12 +2,13 @@
 Discord bot for the saddoug channel.<br/>
 <br/>
 To begin development/testing:<br/>
-Install Python version 3.6, and while installing do not forget to check the add Python to PATH variable, otherwise it must be done manually.<br/>
-Put the folder "DougBot" containing ffmpeg.exe into your Windows path variable and restart your machine.<br/>
-Run setup.bat or run setup.py from the console through command "py setup.py".<br/>
+Install Python version 3.7 or higher. While installing, check the button to add Python to PATH variable, otherwise it must be done manually.<br/>
+Put the folder "DougBot/bin" into your Windows path variable and restart your machine.<br/>
+Run setup.py from the console through command "python setup.py".
+Under the 'config' directory, create your own token file called 'token' containing solely the token given to you from Discord for your registered bot. Then change the 'config.ini' file to suit your needs: i.e., change OwnerID, AdminRoleID, etc.<br/>
 <br/>
 To update/install requirements:<br/>
-Run update_deps.bat or use the command "py update_deps.py".<br/>
+Run setup.py from the console through command "python setup.py".<br/>
 <br/>
 To run DougBot:<br/>
-Run run.bat, from console use command "py run.py", or use command "py bot.py" while in the "DougBot/dougbot/core" directory.<br/>
+Run file 'run.bat' or from the console use command "python run.py".<br/>
