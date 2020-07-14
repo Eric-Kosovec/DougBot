@@ -1,5 +1,5 @@
 # DougBot
-Discord bot for the saddoug channel.<br/>
+Discord bot for the SadDoug Guild.<br/>
 
 ## Running/Development Prerequisites:<br/>
 Install Python version 3.7 or higher. While installing, check the button to add Python to PATH variable, otherwise it must be done manually.<br/>
