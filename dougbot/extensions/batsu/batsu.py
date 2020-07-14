@@ -11,14 +11,20 @@ from dougbot.common import limits
 
 class Batsu(commands.Cog):
 
-    _SUB_STATUS_URL = 'https://www.teamgaki.com/status/ajax.php'
+    _SUB_STATUS_PAGE = 'https://www.teamgaki.com/statuspage/'
+    _SUB_STATUS = 'https://www.teamgaki.com/status/ajax.php'
 
     def __init__(self, bot):
         self.bot = bot
 
     @commands.command(aliases=['batsu', 'gaki'])
     async def substatus(self, ctx):
-        page = requests.get(self._SUB_STATUS_URL).text
+        status_html = requests.get(self._SUB_STATUS).text
+        status_page_html = requests.get(self._SUB_STATUS_PAGE).text
+
+        menu_item_re = re.compile(r'<li id="menu-item-\d+".+?><a href="(.+?)">.+?</a></li>')
+        games = re.findall(menu_item_re, status_page_html)
+        latest_batsu_game = games[0] if len(games) > 0 else None
 
         sections_re = r'<tr>.*?</tr>'
         completed_re = re.compile(r'Part (\d+) Complete')
@@ -26,7 +32,7 @@ class Batsu(commands.Cog):
         in_progress_re = re.compile(r'<td>(\d+)</td><td>(\d+?\s*?-\s*?\d+?)</td><td.+?>(.+?)</td>')
 
         status_report = defaultdict(lambda: [])
-        for section in re.findall(sections_re, page):
+        for section in re.findall(sections_re, status_html):
             completed_match = completed_re.search(section)
             if completed_match is not None:
                 status_report[int(completed_match.group(1))].append((f'Part {int(completed_match.group(1))} Complete!',))
@@ -35,12 +41,15 @@ class Batsu(commands.Cog):
                 if in_progress_match is not None:
                     status_report[int(in_progress_match.group(1))].append((in_progress_match.group(2), in_progress_match.group(3)))
 
-        await self._embed_substatus(ctx, status_report)
+        await self._embed_substatus(ctx, status_report, latest_batsu_game)
 
     @staticmethod
-    async def _embed_substatus(ctx, status_report):
+    async def _embed_substatus(ctx, status_report, link=None):
         legend = 'Not Started > Typesetting > Translating > Quality/English Check > Prep For Release > Complete!'
         embed = Embed(title='Batsu Games Subbing Status', description=legend, color=0xFF0000)
+
+        if link is not None:
+            embed.url = link
 
         height = math.ceil(len(status_report) / float(limits.EMBED_INLINE_FIELD_LIMIT))
 
