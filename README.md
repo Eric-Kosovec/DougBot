@@ -9,7 +9,7 @@ Discord bot for the SadDoug Guild.
 * To start the bot, run 'run.bat' or from the console through the command `python run.py`.
 
 ## Updating Requirements
-Run 'setup.py' from the console through command `python setup.py`.
+Run 'setup.py' from the console through the command `python setup.py`.
 
 ## Extension Development
 Coming soon...
