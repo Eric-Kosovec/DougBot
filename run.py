@@ -2,6 +2,7 @@ import sys
 
 from dougbot.core.bot import DougBot
 
+
 try:
     assert sys.version_info >= (3, 7)
 except AssertionError:
@@ -12,7 +13,6 @@ except AssertionError:
 def main():
     bot = DougBot('config/token', 'config/config.ini')
     bot.run()
-    return
 
 
 if __name__ == '__main__':
