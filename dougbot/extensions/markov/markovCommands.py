@@ -73,7 +73,7 @@ class MarkovCommands(commands.Cog):
                 timeStamps[text_channel.name] = str(message.created_at)
                 Markov.save_json(timeStamps, os.path.join(self._chains_dir, str(user) + MarkovCommands._TIMESTAMPEXT))
             if collected != 0: #Dont Bother updating if no new messages
-                Markov.save_json(markovDict, os.path.join(self._chains_dir, str(user) + MarkovCommands._CHAINSEXT))
+                Markov.save_pickle(markovDict, os.path.join(self._chains_dir, str(user) + MarkovCommands._CHAINSEXT))
             
             #Output
             if existingDict:
@@ -95,15 +95,18 @@ class MarkovCommands(commands.Cog):
         phrase = ""
         text_channel = ctx.channel #chat channel
         
-        markovDict, existingDict = Markov.load_json(os.path.join(self._chains_dir, str(userOne) + MarkovCommands._CHAINSEXT))
+        markovDict, existingDict = Markov.load_pickle(os.path.join(self._chains_dir, str(userOne) + MarkovCommands._CHAINSEXT))
         if existingDict:
             while((phrase == "" or length < 5) and attempts < 10): #Generate new phrase if last one sucked
-                phrase, length = Markov.generateChain(markovDict, True)
+                try:
+                    phrase, length = Markov.generateChain(markovDict, True)
+                except (KeyError): #On error just make a new phrase (I'll fix this later maybe)
+                    continue
                 
             if attempts >= 10:
                 await ctx.send("Exceeded number of attempts for " + str(userOne))
             else:
-                embed = Embed(title="Markov", color=0x228B22)
+                embed = Embed(title=':speaking_head: Markov :person_shrugging:', color=0x228B22)
                 embed.add_field(name=str(userOne), value=phrase.capitalize())
                 await ctx.send(embed=embed)
         else:
