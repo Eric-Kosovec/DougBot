@@ -60,7 +60,7 @@ class Delivery(commands.Cog):
     @staticmethod
     async def _restart_bot(ctx):
         await ctx.send('Restarting...')
-        os.execl(sys.executable, os.path.abspath(__file__), *sys.argv)
+        os.execl(sys.executable, sys.executable, *sys.argv)
         await ctx.send('Failed to restart')
 
     @staticmethod
