@@ -52,7 +52,7 @@ class MarkovCommands(commands.Cog):
         thinkingReact = await collectMsg.add_reaction(MarkovCommands._THINKING_EMOJI)
         
         try:
-            markovDict, existingDict = Markov.load_json(os.path.join(self._chains_dir, str(user) + MarkovCommands._CHAINSEXT))
+            markovDict, existingDict = Markov.load_pickle(os.path.join(self._chains_dir, str(user) + MarkovCommands._CHAINSEXT))
                 
             #If Dictionary exists then load the timestamp dictionary
             if existingDict:
@@ -80,7 +80,7 @@ class MarkovCommands(commands.Cog):
                 dictExistanceString = "**Updated:** "
             else:
                 dictExistanceString = "**New:** "
-            await ctx.send(dictExistanceString + "Collected " + str(collected) + " message(s) from <@" + str(user.id)+ ">")
+            await ctx.send(dictExistanceString + "Collected " + str(collected) + " message(s) from <@" + str(user.id)+ "> from " + str(text_channel.name) + ".")
             await collectMsg.delete()
         except ValueError as e:
             await collectMsg.remove_reaction(MarkovCommands._THINKING_EMOJI, collectMsg.author)
