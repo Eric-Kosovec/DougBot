@@ -1,5 +1,4 @@
 import asyncio
-import importlib
 import inspect
 import logging
 import os
@@ -117,17 +116,17 @@ class DougBot(commands.Bot):
         caller_stack = inspect.stack()[1]
         module = inspect.getmodule(caller_stack[0]).__name__
 
-        print(module)
-        print(sibling_module)
+        #print(module)
+        #print(sibling_module)
 
-        self._is_same_package(module, sibling_module)
+        #self._is_same_package(module, sibling_module)
 
-        if sibling_module is not None:
-            # TODO MAKE SURE UNDER SAME PACKAGE
-            pass
-        else:
-            module = module.replace('.', '_')
-            return KVStore(self._dougdb, module)
+        #if sibling_module is not None:
+        #    # TODO MAKE SURE UNDER SAME PACKAGE
+        #    pass
+        #else:
+        module = module.replace('.', '_')
+        return KVStore(self._dougdb, module)
 
     async def join_voice_channel(self, channel):
         if channel is not None:
@@ -165,17 +164,20 @@ class DougBot(commands.Bot):
 
     def _is_same_package(self, main_module: str, sibling_module: str):
         module_prefix = 'dougbot.extensions'
-        print(main_module)
+        #print(main_module)
         prefix_packages = main_module[:main_module.rfind('.')]
 
         if not sibling_module.startswith(prefix_packages):
             sibling_module = f'{prefix_packages}.{sibling_module}'
 
         # If it exists, then same, otherwise not
-        importlib
+        #importlib
 
-        print(prefix_packages)
-        pass
+        # TODO
+
+        #print(prefix_packages)
+        return True
+
 
 if __name__ == '__main__':
     dougbot = DougBot('../../config/token', '../../config/config.ini')

@@ -137,11 +137,3 @@ class RootDirectory:
                 os.path.commonpath([path, self.root()]) != self.root():
             return False
         return True
-
-
-def main():
-    rd = RootDirectory('E:\\Programming\\Projects\\DougBot\\resources\\audio')
-    print(rd.root())
-    print(rd.find_file('hello.mp3'))
-
-main()
