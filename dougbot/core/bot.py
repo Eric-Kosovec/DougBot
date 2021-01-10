@@ -111,8 +111,8 @@ class DougBot(commands.Bot):
             if confirm_msg is not None:
                 await message.channel.send(confirm_msg)
 
-    # Per module KVStore
-    async def kv_store(self, sibling_module=None):
+    # Per module KVStore - Must not be asynchronous as to allow being called from __init__s.
+    def kv_store(self, sibling_module=None):
         caller_stack = inspect.stack()[1]
         module = inspect.getmodule(caller_stack[0]).__name__
 
