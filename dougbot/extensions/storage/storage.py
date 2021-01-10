@@ -11,7 +11,6 @@ class Storage(commands.Cog):
         self._file_dir = os.path.join(self.bot.ROOT_DIR, 'resources', 'files')
         #if not os.path.isdir(self._file_dir):
 
-
     @commands.command(aliases=['image'])
     async def file(self, ctx, image: str):
         path = await self._find_file(image)
