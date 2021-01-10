@@ -1,13 +1,13 @@
-import re
 import string
-import copy
-import array
-import sys
-import os
 import random
 import json
 
 from json.decoder import JSONDecodeError
+import json
+import random
+import string
+from json.decoder import JSONDecodeError
+
 
 #Generates Markov chains from discord chat
 ##Dictionary Template: defaultdict(lambda:[0, defaultdict(int)])   #{'the': (7, {'wood': 5})}
@@ -23,21 +23,16 @@ class Markov():
     @staticmethod
     def load_json(path):
         try:
-            try:
-                with open(path,'r') as f:
-                    jsonObj = json.load(f)
-                    f.close()
-                    return jsonObj, True
-            except IOError:
-                return {}, False
-        except JSONDecodeError:
+            with open(path,'r') as f:
+                json_dict = json.load(f)
+                return json_dict, True
+        except (IOError, JSONDecodeError):
             return {}, False
 
     @staticmethod
-    def save_json(jsonObj, path):
+    def save_json(json_dict, path):
         with open(path, 'w+') as f:
-            json.dump(jsonObj, f)
-            f.close()
+            json.dump(json_dict, f)
             
     #Adds a new word to the dictionary
     ##markovDict    - Dictionary to populate

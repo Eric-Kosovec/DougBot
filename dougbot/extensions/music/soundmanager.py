@@ -6,90 +6,72 @@ import discord
 import requests
 from discord.ext import commands
 
+from dougbot.extensions.common.admin_check import admin_command
+from dougbot.extensions.common.rootdirectory import RootDirectory
 from dougbot.extensions.music.supportedformats import PLAYER_FILE_TYPES
-from dougbot.extensions.util.admin_check import admin_command
 
 
 class SoundManager(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self._clip_root = RootDirectory(os.path.join(self.bot.ROOT_DIR, 'resources', 'audio'))
         self._clips_dir = os.path.join(self.bot.ROOT_DIR, 'resources', 'audio')
+
+    # TODO ALLOW CLIPS TO HAVE DIRECTORIES SPECIFIED IN THEM
 
     @commands.command()
     @admin_command()
     async def renameclip(self, ctx, from_clip: str, *, to_clip: str):
-        clip_path = await self._get_clip_path(from_clip)
-        if clip_path is None:
+        from_path = self._clip_root.find_file(from_clip)
+        if from_path is None:
             await self.bot.confusion(ctx.message)
             return
 
-        clip_basename = os.path.basename(clip_path)
-        dest_path = os.path.join(os.path.dirname(clip_path), f'{to_clip}{clip_basename[clip_basename.rfind("."):]}')
+        # TODO SPLITEXT
+        if os.curdir in to_clip:
+            to_clip = to_clip[:to_clip.rfind(os.curdir)]
+
+        to_path = os.path.join(os.path.dirname(from_path), f'{to_clip}{from_path[from_path.rfind(os.curdir):]}')
         try:
-            os.rename(clip_path, dest_path)
+            self._clip_root.rename_file(from_path, to_path)
+            await self.bot.confirmation(ctx.message)
         except OSError:
             await self.bot.confusion(ctx.message)
-            return
-
-        await self.bot.confirmation(ctx.message)
 
     @commands.command()
     @admin_command()
     async def moveclip(self, ctx, clip: str, *, dest: str):
-        clip_path = await self._get_clip_path(clip)
+        clip_path = self._clip_root.find_file(clip)
         if clip_path is None:
             await self.bot.confusion(ctx.message)
             return
 
-        dest_path = os.path.join(self._clips_dir, dest)
-        if not os.path.exists(dest_path):
-            try:
-                os.makedirs(dest_path, exist_ok=True)
-            except OSError:
-                await self.bot.confusion(ctx.message)
-                return
-
+        dest_path = os.path.join(dest, os.path.basename(clip_path))
         try:
-            dest_path = os.path.join(dest_path, os.path.basename(clip_path))
-            os.rename(clip_path, dest_path)
+            self._clip_root.move_file(clip_path, dest_path)
+            await self.bot.confirmation(ctx.message)
         except OSError:
             await self.bot.confusion(ctx.message)
-            return
 
-        await self.bot.confirmation(ctx.message)
-
-    @commands.command(aliases=['removeclip'])
+    @commands.command(aliases=['deleteclip'])
     @admin_command()
-    async def deleteclip(self, ctx, *, clip: str):
-        clip_path = await self._get_clip_path(clip)
-        if clip_path is None:
-            await self.bot.confusion(ctx.message)
-            return
-
+    async def removeclip(self, ctx, *, clip: str):
+        # TODO DETERMINE IF A DIRECTORY IS GIVEN IN CLIP AND SPLIT OUT
         try:
-            os.remove(clip_path)
+            self._clip_root.delete_file(clip)
+            await self.bot.confirmation(ctx.message)
         except (FileNotFoundError, OSError):
             await self.bot.confusion(ctx.message)
-            return
 
-        await self.bot.confirmation(ctx.message)
-
-    @commands.command()
+    @commands.command(aliases=['removecategory'])
     @admin_command()
-    async def remove_category(self, ctx, *, category: str):
-        category_path = os.path.join(self._clips_dir, category)
-        if not os.path.isdir(category_path):
-            await self.bot.confusion(ctx.message)
-            return
-
+    async def removecat(self, ctx, *, category: str):
         try:
-            os.rmdir(category_path)
+            self._clip_root.delete_dir(category)
+            await self.bot.confirmation(ctx.message)
         except (FileNotFoundError, OSError):
             await self.bot.confusion(ctx.message)
-            return
-
-        await self.bot.confirmation(ctx.message)
 
     @commands.command()
     async def getclip(self, ctx, *, clip: str):

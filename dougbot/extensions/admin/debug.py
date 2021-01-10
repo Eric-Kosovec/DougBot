@@ -1,6 +1,6 @@
 from discord.ext import commands
 
-from dougbot.extensions.util.admin_check import admin_command
+from dougbot.extensions.common.admin_check import admin_command
 
 
 class Debug(commands.Cog):

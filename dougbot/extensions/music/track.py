@@ -1,15 +1,12 @@
-from dougbot.extensions.music.error import TrackNotExistError
-
 
 class Track:
 
-    def __init__(self, src, is_link):
+    def __init__(self, src, is_link, repeat=1):
         self.src = src
         self.is_link = is_link
+        self.repeat = repeat
 
         if not self.is_link:
-            try:
-                with open(self.src, 'r'):
-                    pass
-            except IOError:
-                raise TrackNotExistError()
+            # Will throw IOError if file doesn't exist.
+            with open(self.src, 'r'):
+                pass

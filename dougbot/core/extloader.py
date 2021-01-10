@@ -44,4 +44,4 @@ class ExtensionLoader:
         if path is None:
             return False
         return not (os.path.basename(path).startswith('__') or os.path.basename(path).startswith('example') or
-                    os.path.basename(path).startswith('util'))
+                    os.path.basename(path).startswith('util') or os.path.basename(path).startswith('common'))

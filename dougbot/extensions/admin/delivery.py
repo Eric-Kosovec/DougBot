@@ -5,7 +5,7 @@ import sys
 from discord.ext import commands
 from discord.ext.commands.errors import *
 
-from dougbot.extensions.util.admin_check import admin_command
+from dougbot.extensions.common.admin_check import admin_command
 
 
 class Delivery(commands.Cog):

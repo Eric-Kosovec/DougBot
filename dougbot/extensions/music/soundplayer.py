@@ -10,10 +10,10 @@ import youtube_dl
 from discord.ext import commands
 
 from dougbot.common.cache import LRUCache
+from dougbot.extensions.common.mic_check import voice_command
 from dougbot.extensions.music.error import TrackNotExistError
 from dougbot.extensions.music.supportedformats import PLAYER_FILE_TYPES
 from dougbot.extensions.music.track import Track
-from dougbot.extensions.util.mic_check import voice_command
 
 
 class SoundPlayer(commands.Cog):
@@ -82,7 +82,7 @@ class SoundPlayer(commands.Cog):
     @commands.guild_only()
     @voice_command()
     async def vol(self, ctx, volume: float):
-        voice = await self.bot.get_voice_in(ctx.message.author.voice.channel)
+        voice = await self.bot.get_voice(ctx.message.author.voice.channel)
         if voice is not None:
             self._volume = max(0.0, min(100.0, volume)) / 100.0
             if voice.is_playing():
@@ -92,7 +92,7 @@ class SoundPlayer(commands.Cog):
     @commands.guild_only()
     @voice_command()
     async def pause(self, ctx):
-        voice = await self.bot.get_voice_in(ctx.message.author.voice.channel)
+        voice = await self.bot.get_voice(ctx.message.author.voice.channel)
         if voice is not None and voice.is_playing():
             voice.pause()
 
@@ -100,7 +100,7 @@ class SoundPlayer(commands.Cog):
     @commands.guild_only()
     @voice_command()
     async def resume(self, ctx):
-        voice = await self.bot.get_voice_in(ctx.message.author.voice.channel)
+        voice = await self.bot.get_voice(ctx.message.author.voice.channel)
         if voice is not None and voice.is_paused():
             voice.resume()
 
@@ -108,7 +108,7 @@ class SoundPlayer(commands.Cog):
     @commands.guild_only()
     @voice_command()
     async def skip(self, ctx):
-        voice = await self.bot.get_voice_in(ctx.message.author.voice.channel)
+        voice = await self.bot.get_voice(ctx.message.author.voice.channel)
         if voice is not None and voice.is_playing():
             voice.stop()
             self._skip = True
@@ -119,7 +119,7 @@ class SoundPlayer(commands.Cog):
     async def leave(self, ctx):
         # TODO MIGHT CAUSE AN ISSUE IF MULTIPLE SOUNDS ARE "QUEUED" UP, AS ONCE THE BLOCK IS SKIPPED AND VOICE ->
         # TODO DISCONNECTED, IT WILL REJOIN TO PLAY THE NEXT BLOCK OF SOUNDS.
-        voice = await self.bot.get_voice_in(ctx.message.author.voice.channel)
+        voice = await self.bot.get_voice(ctx.message.author.voice.channel)
         if voice is not None:
             await self._quit_playing(voice)
 
@@ -131,7 +131,7 @@ class SoundPlayer(commands.Cog):
             return
         # Make sure there are no humans in the voice channel.
         if next(filter(lambda m: not m.bot, before.channel.members), None) is None:
-            voice = await self.bot.get_voice_in(before.channel)
+            voice = await self.bot.get_voice(before.channel)
             await self._quit_playing(voice)
 
     async def _quit_playing(self, voice):

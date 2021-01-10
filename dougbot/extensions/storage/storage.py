@@ -4,11 +4,13 @@ import discord
 from discord.ext import commands
 
 
-class FileManager(commands.Cog):
+class Storage(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
         self._file_dir = os.path.join(self.bot.ROOT_DIR, 'resources', 'files')
+        #if not os.path.isdir(self._file_dir):
+
 
     @commands.command(aliases=['image'])
     async def file(self, ctx, image: str):
@@ -44,4 +46,4 @@ class FileManager(commands.Cog):
 
 
 def setup(bot):
-    bot.add_cog(FileManager(bot))
+    bot.add_cog(Storage(bot))

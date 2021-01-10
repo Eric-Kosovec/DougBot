@@ -1,4 +1,4 @@
-from Lib.configparser import ConfigParser
+from configparser import ConfigParser
 
 
 class Config:
