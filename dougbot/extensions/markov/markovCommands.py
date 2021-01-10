@@ -52,11 +52,11 @@ class MarkovCommands(commands.Cog):
         thinkingReact = await collectMsg.add_reaction(MarkovCommands._THINKING_EMOJI)
         
         try:
-            markovDict, existingDict = Markov.load_pickle(os.path.join(self._chains_dir, str(user) + MarkovCommands._CHAINSEXT))
+            markovDict, existingDict = await Markov.load_pickle(os.path.join(self._chains_dir, str(user) + MarkovCommands._CHAINSEXT))
                 
             #If Dictionary exists then load the timestamp dictionary
             if existingDict:
-                timeStamps, _ = Markov.load_json(os.path.join(self._chains_dir, str(user) + MarkovCommands._TIMESTAMPEXT))
+                timeStamps, _ = await Markov.load_json(os.path.join(self._chains_dir, str(user) + MarkovCommands._TIMESTAMPEXT))
                 lastTimestamp = timeStamps.get(text_channel.name)
                 if lastTimestamp:
                     lastTimestamp = datetime.strptime(timeStamps[text_channel.name], '%Y-%m-%d %H:%M:%S.%f')
@@ -66,14 +66,14 @@ class MarkovCommands(commands.Cog):
                 and not any(symbol in message.content for symbol in MarkovCommands._BANNED) #Does not contain symbols from banned list
                 and len(message.content.split()) > 1                    #Is long enough to produce a chain
                 ):
-                    Markov.addSentenceToDict(markovDict, message.clean_content)
+                    await Markov.addSentenceToDict(markovDict, message.clean_content)
                     collected += 1
                     
             if message is not None: #Throws error on case where no messages are read in
                 timeStamps[text_channel.name] = str(message.created_at)
-                Markov.save_json(timeStamps, os.path.join(self._chains_dir, str(user) + MarkovCommands._TIMESTAMPEXT))
+                await Markov.save_json(timeStamps, os.path.join(self._chains_dir, str(user) + MarkovCommands._TIMESTAMPEXT))
             if collected != 0: #Dont Bother updating if no new messages
-                Markov.save_pickle(markovDict, os.path.join(self._chains_dir, str(user) + MarkovCommands._CHAINSEXT))
+                await Markov.save_pickle(markovDict, os.path.join(self._chains_dir, str(user) + MarkovCommands._CHAINSEXT))
             
             #Output
             if existingDict:
@@ -95,11 +95,11 @@ class MarkovCommands(commands.Cog):
         phrase = ""
         text_channel = ctx.channel #chat channel
         
-        markovDict, existingDict = Markov.load_pickle(os.path.join(self._chains_dir, str(userOne) + MarkovCommands._CHAINSEXT))
+        markovDict, existingDict = await Markov.load_pickle(os.path.join(self._chains_dir, str(userOne) + MarkovCommands._CHAINSEXT))
         if existingDict:
             while((phrase == "" or length < 5) and attempts < 10): #Generate new phrase if last one sucked
                 try:
-                    phrase, length = Markov.generateChain(markovDict, True)
+                    phrase, length = await Markov.generateChain(markovDict, True)
                 except (KeyError): #On error just make a new phrase (I'll fix this later maybe)
                     continue
                 
@@ -112,7 +112,7 @@ class MarkovCommands(commands.Cog):
         else:
             await ctx.send("No existing Markov dictionary for " + str(userOne) + ".\nUse \"d!collect <@" + str(userOne.id)+ ">\"")
         
-    #Lists all the chains currenty gathered
+    #Lists all the chains currently gathered
     @commands.command(aliases=['userChains'])
     async def listChains(self, ctx):
         files = []

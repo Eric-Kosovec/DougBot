@@ -22,7 +22,7 @@ class Markov():
     _SYMBOLS = ['.','-',',','!','?','(','_',')', '[', ']', '{', '}', '+', '=', '*', '/', '\\', '#', '$', '%', '^', '&', ';', '\'', '"', '`', '~']
     
     @staticmethod
-    def load_json(path):
+    async def load_json(path):
         try:
             with open(path,'r') as f:
                 jsonObj = json.load(f)
@@ -31,12 +31,12 @@ class Markov():
                 return {}, False
 
     @staticmethod
-    def save_json(jsonObj, path):
+    async def save_json(jsonObj, path):
         with open(path, 'w+') as f:
             json.dump(jsonObj, f)
             
     @staticmethod
-    def load_pickle(path):
+    async def load_pickle(path):
         try:
             with open(path,'rb') as f:
                 pickleObj = pickle.load(f)
@@ -45,7 +45,7 @@ class Markov():
             return {}, False
             
     @staticmethod
-    def save_pickle(pickleObj, path):
+    async def save_pickle(pickleObj, path):
         pickle.dump(pickleObj, open( path, "wb" ))
     
     #Adds a new word to the dictionary
@@ -53,7 +53,7 @@ class Markov():
     ##rootWord      - The initial word
     ##leafWord      - The word that comes after the rootWord
     @staticmethod
-    def addWordToDict(markovDict, rootOne, rootTwo, leafWord):
+    async def addWordToDict(markovDict, rootOne, rootTwo, leafWord):
         if (rootOne, rootTwo) not in markovDict:
             markovDict[(rootOne, rootTwo)] = [0, {leafWord: 0}]
         if leafWord not in markovDict[(rootOne, rootTwo)][Markov._WORDS]:
@@ -65,7 +65,7 @@ class Markov():
     ##markovDict    - Dictionary to populate
     ##sentence      - Sentence to be added to dictionary
     @staticmethod
-    def addSentenceToDict(markovDict, sentence):
+    async def addSentenceToDict(markovDict, sentence):
         prevWord1 = ""
         prevWord2 = ""
         
@@ -82,7 +82,7 @@ class Markov():
         prevWord2 = sentenceList[0].lower()
         word = sentenceList[1].lower()
         
-        Markov.addWordToDict(markovDict, prevWord1, prevWord2, word)
+        await Markov.addWordToDict(markovDict, prevWord1, prevWord2, word)
         
         for i in range(0, len(sentenceList)):
             if len(sentenceList) > i+2:
@@ -90,21 +90,21 @@ class Markov():
                 prevWord2 = sentenceList[i+1].lower()
                 word = sentenceList[i+2].lower()
             
-                Markov.addWordToDict(markovDict, prevWord1, prevWord2, word)
+                await Markov.addWordToDict(markovDict, prevWord1, prevWord2, word)
             
         if(word not in string.punctuation):
-            Markov.addWordToDict(markovDict, prevWord2, word, ".")
+            await Markov.addWordToDict(markovDict, prevWord2, word, ".")
             
             
     #Populates the dictionary from a file of strings
     ##markovDict     - Dictionary to populate
     ##fileName       - string The path to file containing strings
     @staticmethod
-    def readFile(markovDict, fileName):
+    async def readFile(markovDict, fileName):
         with open(fileName, "r", encoding='utf-8') as file:
             lines = file.readlines()
             for line in lines:
-                Markov.addSentenceToDict(markovDict, line)
+                await Markov.addSentenceToDict(markovDict, line)
         return
         
     
@@ -112,7 +112,7 @@ class Markov():
     ##markovDict    - Dictionary containing the words and counts
     ##weighted      - Bool Whether a weighted probability based on occurance should be used
     @staticmethod
-    def generateChain(markovDict, weighted):
+    async def generateChain(markovDict, weighted):
         phrase = ""
         curWord = ""
         length = 1
@@ -122,7 +122,7 @@ class Markov():
         phrase += curTuple[1]
         
         if weighted: #Control
-            while curWord not in Markov._ENDPUNCTUATION and curTuple[1] != '':
+            while curWord not in Markov._ENDPUNCTUATION and curTuple[1] != '' and length < 100:
                 curWord = random.choices(list(markovDict[curTuple][1].keys()), weights=list(markovDict[curTuple][Markov._WORDS].values()))[0]
                 if(curWord not in string.punctuation and length > 0):
                     phrase += " "
