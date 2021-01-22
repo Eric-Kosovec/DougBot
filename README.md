@@ -9,7 +9,7 @@ Discord bot for the SadDoug guild.
 * Under the 'config' directory, create your own token file called 'token' containing solely the token given to you from Discord for your registered bot, then change the 'config.ini' file to suit your needs.
 * To start the bot, run 'run.bat' or from the console through the command `python run.py`.
 
-## Updating Requirements
+## Installing/Updating Required Libraries
 Run 'setup.py' from the console through the command `python setup.py`.
 
 ## Extension Development
