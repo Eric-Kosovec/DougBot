@@ -13,4 +13,6 @@ Discord bot for the SadDoug guild.
 Run 'setup.py' from the console through the command `python setup.py`.
 
 ## Extension Development
-Coming soon...
+Skeleton extension in 'dougbot/extensions/example'. Skeleton.py can be used as the basis for any new extension, changing the class name accordingly. 
+
+Note: The setup function is required for a file containing extensions and is meant to register the extension classes to the bot. All extension classes must subclass commands.Cog.
