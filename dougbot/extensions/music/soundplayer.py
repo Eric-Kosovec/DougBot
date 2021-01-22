@@ -24,11 +24,12 @@ class SoundPlayer(commands.Cog):
         self._threads = ThreadPoolExecutor()
         self._clips_dir = os.path.join(self.bot.ROOT_DIR, 'resources', 'audio')
         self._cache_dir = os.path.join(self.bot.ROOT_DIR, 'cache')
+        self._kv = self.bot.kv_store()
         self._path_cache = LRUCache(20)
         self._play_lock = asyncio.Lock()  # Stop multiple threads from being created and playing audio over each other.
         self._notify_done_playing = asyncio.Semaphore(0)  # For notifying thread is done playing clip
         self._links_to_play = 0
-        self._volume = 1.0
+        self._volume = 1.0 if not self._kv.contains('volume') else self._kv['volume']
         self._skip = False
 
     @commands.command()
@@ -87,6 +88,7 @@ class SoundPlayer(commands.Cog):
             self._volume = max(0.0, min(100.0, volume)) / 100.0
             if voice.is_playing():
                 voice.source.volume = self._volume
+            self._kv['volume'] = self._volume
 
     @commands.command()
     @commands.guild_only()

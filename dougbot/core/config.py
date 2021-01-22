@@ -11,10 +11,7 @@ class Config:
 
         self.token = self._read_token(token_file)
         self.command_prefix = config_parser.get('Meta', 'CommandPrefix')
-        self.owner = int(config_parser.get('Permissions', 'OwnerID'))
         self.admin_role_id = int(config_parser.get('Permissions', 'AdminRoleID'))
-        self.description = config_parser.get('Meta', 'Description')
-        self.source_code = config_parser.get('Meta', 'SourceCode')
         self.logging_channel_id = int(config_parser.get('Channels', 'LoggingChannelID'))
 
     @staticmethod

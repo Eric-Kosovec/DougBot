@@ -8,6 +8,7 @@ class KVStore:
     _TABLE_SCHEMA = f'{_KEY_COLUMN} TEXT PRIMARY KEY, {_VALUE_COLUMN} BLOB'
 
     # TODO PROTECT FROM SQL-INJECTION. SQLITE PYTHON DOESN'T ALLOW PARAMETERIZING TABLE NAMES AND COLUMN NAMES
+    # TODO CACHING
 
     def __init__(self, db, table_name):
         if db is None or table_name is None:

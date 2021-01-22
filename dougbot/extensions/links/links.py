@@ -12,7 +12,7 @@ class Links(commands.Cog):
 
     @commands.command()
     async def git(self, ctx):
-        await ctx.send((await self.bot.get_config()).source_code)
+        await ctx.send('https://github.com/Eric-Kosovec/DougBot')
 
 
 def setup(bot):

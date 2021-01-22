@@ -24,6 +24,7 @@ class DougBot(commands.Bot):
         # internet, as on_ready can be called multiple times in such a case.
         self._on_ready_called = False
         self._log_channel = None
+        self._appinfo = None
         self._config = Config(token_file, config_file)
         self._dougdb = DougBotDB()  # For core bot settings
 
@@ -61,6 +62,7 @@ class DougBot(commands.Bot):
                 await self._log_channel.send('I am sad.')
 
             self._on_ready_called = True
+            self._appinfo = await self.application_info()
 
     async def on_command_error(self, ctx, error):
         if ctx is None or error is None:
@@ -154,6 +156,9 @@ class DougBot(commands.Bot):
 
     def get_config(self):
         return self._config
+
+    def owner_id(self):
+        return self._appinfo.owner.id
 
     ''' Begin private methods '''
 
