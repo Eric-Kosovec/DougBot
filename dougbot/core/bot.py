@@ -18,6 +18,7 @@ from dougbot.core.util.channelhandler import ChannelHandler
 
 class DougBot(commands.Bot):
     ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    RESOURCES_DIR = os.path.join(ROOT_DIR, 'resources')
 
     def __init__(self, token_file, config_file):
         # For notifying text channels the bot is online. Used to prevent spamming in case of shaky
@@ -26,7 +27,7 @@ class DougBot(commands.Bot):
         self._log_channel = None
         self._appinfo = None
         self._config = Config(token_file, config_file)
-        self._dougdb = DougBotDB()  # For core bot settings
+        self._dougdb = DougBotDB(os.path.join(self.ROOT_DIR, 'db', 'dougbot.db'))  # For core bot settings
 
         intent = discord.Intents.default()
         intent.members = True
@@ -113,22 +114,22 @@ class DougBot(commands.Bot):
             if confirm_msg is not None:
                 await message.channel.send(confirm_msg)
 
-    # Per module KVStore - Must not be asynchronous as to allow being called from __init__s.
     def kv_store(self, sibling_module=None):
         caller_stack = inspect.stack()[1]
         module = inspect.getmodule(caller_stack[0]).__name__
 
-        #print(module)
-        #print(sibling_module)
+        if sibling_module is not None:
+            sibling_module = sibling_module.replace(os.sep, '.')
+            if self._is_same_package(module, sibling_module):
+                main_package = module[:module.rfind('.')]
+                module = f'{main_package}.{sibling_module}'
+            else:
+                return None
 
-        #self._is_same_package(module, sibling_module)
+        return KVStore(self._dougdb, module.replace('.', '_'))
 
-        #if sibling_module is not None:
-        #    # TODO MAKE SURE UNDER SAME PACKAGE
-        #    pass
-        #else:
-        module = module.replace('.', '_')
-        return KVStore(self._dougdb, module)
+    async def kv_store_async(self, sibling_module=None):
+        return self.kv_store(sibling_module)
 
     async def join_voice_channel(self, channel):
         if channel is not None:
@@ -160,28 +161,29 @@ class DougBot(commands.Bot):
     def owner_id(self):
         return self._appinfo.owner.id
 
-    ''' Begin private methods '''
+    ''' PRIVATE METHODS '''
 
     def _init_logging(self, channel):
         if channel is not None and self.loop is not None:
             # Add the custom handler to the root logger, so it applies to every time logging is called.
             logging.getLogger('').addHandler(ChannelHandler(self.ROOT_DIR, channel, self.loop))
 
-    def _is_same_package(self, main_module: str, sibling_module: str):
-        module_prefix = 'dougbot.extensions'
-        #print(main_module)
-        prefix_packages = main_module[:main_module.rfind('.')]
+    @staticmethod
+    def _is_same_package(main_module: str, sibling_module: str):
+        if main_module is None or sibling_module is None:
+            return False
 
-        if not sibling_module.startswith(prefix_packages):
-            sibling_module = f'{prefix_packages}.{sibling_module}'
+        last_dot = main_module.rfind('.')
+        if last_dot <= 0:
+            return False
 
-        # If it exists, then same, otherwise not
-        #importlib
+        main_package = main_module[:last_dot]
+        possible_package = f'{main_package}.{sibling_module}'
 
-        # TODO
-
-        #print(prefix_packages)
-        return True
+        possible_path = f'{os.path.join(DougBot.ROOT_DIR, possible_package.replace(".", os.path.sep))}.py'
+        if os.path.exists(possible_path):
+            return True
+        return False
 
 
 if __name__ == '__main__':
