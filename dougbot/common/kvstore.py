@@ -8,7 +8,6 @@ class KVStore:
     _TABLE_SCHEMA = f'{_KEY_COLUMN} TEXT PRIMARY KEY, {_VALUE_COLUMN} BLOB'
 
     # TODO PROTECT FROM SQL-INJECTION. SQLITE PYTHON DOESN'T ALLOW PARAMETERIZING TABLE NAMES AND COLUMN NAMES
-    # TODO CACHING
 
     def __init__(self, db, table_name):
         if db is None or table_name is None:
@@ -17,11 +16,10 @@ class KVStore:
             raise ValueError('KVStore table name cannot start with an underscore')
 
         self._db = db
-        self._table = table_name
+        self._table_name = table_name
         self._iterator = None
 
-        if not self._db.has_table(self._table):
-            self._db.execute(f'CREATE TABLE IF NOT EXISTS {self._table}({self._TABLE_SCHEMA})')
+        self._db.execute(f'CREATE TABLE IF NOT EXISTS {self._table_name}({self._TABLE_SCHEMA})')
 
     def insert(self, key, value):
         if key is None or value is None:
@@ -29,7 +27,10 @@ class KVStore:
         if type(key) != str:
             raise ValueError('KVStore insert key must be a string')
 
-        self._db.execute(f'REPLACE INTO {self._table} VALUES (?, ?)', (key, self._serialize_value(value),))
+        self._db.execute(f'REPLACE INTO {self._table_name} VALUES (?, ?)', (key, self._serialize_value(value),))
+
+    async def insert_async(self, key, value):
+        self.insert(key, value)
 
     def remove(self, key):
         if key is None:
@@ -37,7 +38,10 @@ class KVStore:
         if type(key) != str:
             raise ValueError('KVStore remove key must be a string')
 
-        self._db.execute(f'DELETE FROM {self._table} WHERE {self._KEY_COLUMN} = ?', (key,))
+        self._db.execute(f'DELETE FROM {self._table_name} WHERE {self._KEY_COLUMN} = ?', (key,))
+
+    async def remove_async(self, key):
+        self.remove(key)
 
     def contains(self, key, value=None):
         if key is None:
@@ -46,14 +50,17 @@ class KVStore:
             raise ValueError('KVStore contains key must be a string')
 
         if value is None:
-            result = self._db.execute(f'SELECT {self._KEY_COLUMN} FROM {self._table}')
+            result = self._db.execute(f'SELECT {self._KEY_COLUMN} FROM {self._table_name}')
         else:
             serialized_value = self._serialize_value(value)
-            result = self._db.execute(f'SELECT {self._KEY_COLUMN} FROM {self._table} WHERE {self._KEY_COLUMN} = ? and {self._VALUE_COLUMN} = ?', (key, serialized_value,))
+            result = self._db.execute(f'SELECT {self._KEY_COLUMN} FROM {self._table_name} WHERE {self._KEY_COLUMN} = ? and {self._VALUE_COLUMN} = ?', (key, serialized_value,))
         try:
             return result is not None and next(result) is not None
         except StopIteration:
             return False
+
+    async def contains_async(self, key, value=None):
+        return self.contains(key, value)
 
     def get(self, key):
         if key is None:
@@ -61,13 +68,16 @@ class KVStore:
         if type(key) != str:
             raise ValueError('KVStore get key must be a string')
 
-        result = self._db.execute(f'SELECT {self._VALUE_COLUMN} FROM {self._table} WHERE {self._KEY_COLUMN} = ?', (key,))
+        result = self._db.execute(f'SELECT {self._VALUE_COLUMN} FROM {self._table_name} WHERE {self._KEY_COLUMN} = ?', (key,))
         if result is None:
             return None
         try:
             return self._deserialize_value(next(result)[0])
         except StopIteration:
             return None
+
+    async def get_async(self, key):
+        return self.get(key)
 
     @staticmethod
     def _serialize_value(value):
@@ -86,11 +96,14 @@ class KVStore:
             return None
         return self.get(key)
 
+    def __delitem__(self, key):
+        self.remove(key)
+
     def __setitem__(self, key, value):
         self.insert(key, value)
 
     def __iter__(self):
-        self._iterator = self._db.execute(f'SELECT {self._KEY_COLUMN}, {self._VALUE_COLUMN} FROM {self._table}')
+        self._iterator = self._db.execute(f'SELECT {self._KEY_COLUMN}, {self._VALUE_COLUMN} FROM {self._table_name}')
         return self
 
     def __next__(self):

@@ -3,12 +3,10 @@ import sqlite3
 
 
 class DougBotDB:
-    DB_NAME = 'dougbot.db'
-    DB_PATH = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-    DB_PATH = os.path.join(DB_PATH, 'db', DB_NAME)
 
-    def __init__(self):
+    def __init__(self, path):
         self._connection = self._create_connection()
+        self._path = path
 
     def execute(self, sql, parameters=None):
         cursor = self._get_cursor()
@@ -28,9 +26,10 @@ class DougBotDB:
         return self._get_connection()
 
     def close(self):
-        self._connection.commit()
-        self._connection.close()
-        self._connection = None
+        if self._connection is not None:
+            self._connection.commit()
+            self._connection.close()
+            self._connection = None
 
     def _get_connection(self):
         if self._connection is None:
@@ -38,7 +37,7 @@ class DougBotDB:
         return self._connection
 
     def _create_connection(self):
-        return sqlite3.connect(self.DB_PATH)
+        return sqlite3.connect(self._path)
 
     def _get_cursor(self):
         if self._connection is None:
