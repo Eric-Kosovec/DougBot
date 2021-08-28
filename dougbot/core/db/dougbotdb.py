@@ -5,8 +5,9 @@ import sqlite3
 class DougBotDB:
 
     def __init__(self, path):
-        self._connection = self._create_connection()
         self._path = path
+        self._create_if_not_exists(path)
+        self._connection = self._create_connection()
 
     def execute(self, sql, parameters=None):
         cursor = self._get_cursor()
@@ -43,3 +44,11 @@ class DougBotDB:
         if self._connection is None:
             self._connection = self._create_connection()
         return self._connection.cursor()
+
+    @staticmethod
+    def _create_if_not_exists(path):
+        if path is None:
+            return
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, 'w') as _:
+            pass
