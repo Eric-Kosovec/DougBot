@@ -19,9 +19,13 @@ class DougBotDB:
         return iter(cursor.fetchall())
 
     def has_table(self, table):
-        cursor = self._get_cursor()
-        cursor.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table}'")
-        return cursor.fetchone() is not None
+        try:
+            if not self.valid_input(table):
+                raise ValueError('Invalid table name')
+            next(self.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table}'"))
+            return True
+        except StopIteration:
+            return False
 
     def open(self):
         return self._get_connection()
@@ -31,6 +35,10 @@ class DougBotDB:
             self._connection.commit()
             self._connection.close()
             self._connection = None
+
+    @staticmethod
+    def valid_input(text):
+        return str.isidentifier(text)
 
     def _get_connection(self):
         if self._connection is None:
@@ -47,8 +55,7 @@ class DougBotDB:
 
     @staticmethod
     def _create_if_not_exists(path):
-        if path is None:
-            return
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, 'w') as _:
-            pass
+        if path is not None:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, 'w') as _:
+                pass

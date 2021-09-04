@@ -1,7 +1,8 @@
-pip
 aiohttp
 discord.py
 discord.py[voice]
+pip
 PyNaCl
-youtube_dl
 requests
+symspellpy
+youtube_dl

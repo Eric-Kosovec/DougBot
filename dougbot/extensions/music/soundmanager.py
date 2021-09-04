@@ -149,7 +149,7 @@ class SoundManager(commands.Cog):
 
                 for _, _, filenames in os.walk(os.path.join(self._clips_dir, category)):
                     field_value += ' '.join(
-                        [f'`{f[:f.rfind(".")]}`' for f in filenames if await self._is_audio_track(f)]
+                        [f'`{f[:f.rfind(".")]}`' for f in filenames if self._is_audio_track(f)]
                     )
 
                 if len(field_value) > 0:
@@ -159,10 +159,16 @@ class SoundManager(commands.Cog):
             description = ''
             # List clips in specific category
             for _, _, filenames in os.walk(categories[0]):
-                description += ' '.join([f'`{f[:f.rfind(".")]}`' for f in filenames if await self._is_audio_track(f)])
+                description += ' '.join([f'`{f[:f.rfind(".")]}`' for f in filenames if self._is_audio_track(f)])
             embed.description = description
 
         await ctx.send(embed=embed)
+
+    def clip_names(self):
+        clips = []
+        for _, _, filenames in os.walk(self._clips_dir):
+            clips.extend([f[:f.rfind('.')] for f in filenames if self._is_audio_track(f)])
+        return clips
 
     ''' Begin private methods '''
 
@@ -178,7 +184,7 @@ class SoundManager(commands.Cog):
         return None
 
     @staticmethod
-    async def _is_audio_track(filename):
+    def _is_audio_track(filename):
         return type(filename) == str and '.' in filename and filename[filename.rfind('.'):] in PLAYER_FILE_TYPES
 
     @staticmethod

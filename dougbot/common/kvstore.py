@@ -1,5 +1,7 @@
 import pickle
 
+from dougbot.core.db.dougbotdb import DougBotDB
+
 
 class KVStore:
 
@@ -7,13 +9,13 @@ class KVStore:
     _VALUE_COLUMN = 'kv_value'
     _TABLE_SCHEMA = f'{_KEY_COLUMN} TEXT PRIMARY KEY, {_VALUE_COLUMN} BLOB'
 
-    # TODO PROTECT FROM SQL-INJECTION. SQLITE PYTHON DOESN'T ALLOW PARAMETERIZING TABLE NAMES AND COLUMN NAMES
-
-    def __init__(self, db, table_name):
+    def __init__(self, db: DougBotDB, table_name):
         if db is None or table_name is None:
             raise ValueError('KVStore init given None value')
         if table_name.startswith('_'):
             raise ValueError('KVStore table name cannot start with an underscore')
+        if not db.valid_input(table_name):
+            raise ValueError('KVStore table name is invalid')
 
         self._db = db
         self._table_name = table_name
