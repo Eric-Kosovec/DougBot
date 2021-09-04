@@ -27,7 +27,7 @@ class SoundPlayer(commands.Cog):
         self._threads = ThreadPoolExecutor()
         self._clips_dir = os.path.join(self.bot.ROOT_DIR, 'resources', 'audio')
         self._cache_dir = os.path.join(self.bot.ROOT_DIR, 'cache')
-        self._autocorrect = Autocorrect(self.bot.get_cog(SoundManager.__name__).clip_names())  # Hack until rewrite
+        self._autocorrect = Autocorrect(self._clip_names())  # Hack until rewrite
         self._kv = self.bot.kv_store()
         self._path_cache = LRUCache(20)
         self._play_lock = asyncio.Lock()  # Stop multiple threads from being created and playing audio over each other.
@@ -263,7 +263,6 @@ class SoundPlayer(commands.Cog):
     def _clip_names(self):
         clips = []
         for _, _, filenames in os.walk(self._clips_dir):
-            print(filenames)
             clips.extend([f[:f.rfind('.')] for f in filenames if self._is_audio_track(f)])
         return clips
 
