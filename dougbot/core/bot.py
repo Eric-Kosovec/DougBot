@@ -18,6 +18,7 @@ from dougbot.core.util.channelhandler import ChannelHandler
 
 class DougBot(commands.Bot):
     ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    RESOURCES_DIR = os.path.join(ROOT_DIR, 'resources')
 
     def __init__(self, token_file, config_file):
         # For notifying text channels the bot is online. Used to prevent spamming in case of shaky
@@ -26,7 +27,7 @@ class DougBot(commands.Bot):
         self._log_channel = None
         self._appinfo = None
         self._config = Config(token_file, config_file)
-        self._dougdb = DougBotDB()  # For core bot settings
+        self._dougdb = DougBotDB(os.path.join(self.RESOURCES_DIR, 'db', 'dougbot.db'))  # For core bot settings
 
         intent = discord.Intents.default()
         intent.members = True
@@ -44,10 +45,10 @@ class DougBot(commands.Bot):
             print(f'\nFATAL EXCEPTION: Uncaught exception while running bot: {e}', file=sys.stderr)
             traceback.print_exc()
         finally:
-            print("\nI'm dying...", file=sys.stderr)
+            print("\nI'm dying...")
             if self.loop is not None and not self.loop.is_closed():
                 asyncio.run_coroutine_threadsafe(self.logout(), self.loop)
-            print("\nI've perished.", file=sys.stderr)
+            print("\nI've perished.")
 
     async def on_ready(self):
         if not self._on_ready_called:
@@ -65,18 +66,13 @@ class DougBot(commands.Bot):
             self._appinfo = await self.application_info()
 
     async def on_command_error(self, ctx, error):
-        if ctx is None or error is None:
-            logger = logging.getLogger(__file__)
-            logger.log(logging.ERROR, 'on_command_error got None argument(s)')
-            return
-
         error_texts = {
             commands.errors.MissingRequiredArgument: f'Missing argument(s), type {self._config.command_prefix}help <command_name>',
             commands.errors.CheckFailure: f'{ctx.author.mention} You do not have permissions for this command.',
             commands.errors.NoPrivateMessage: 'Command cannot be used in private messages.',
             commands.errors.DisabledCommand: 'Command disabled and cannot be used.',
             commands.errors.CommandNotFound: 'Command not found.',
-            commands.errors.CommandOnCooldown: 'Command on cooldown.',
+            commands.errors.CommandOnCooldown: 'Command on cooldown.'
         }
 
         for error_class, error_msg in error_texts.items():
@@ -114,21 +110,20 @@ class DougBot(commands.Bot):
                 await message.channel.send(confirm_msg)
 
     # Per module KVStore - Must not be asynchronous as to allow being called from __init__s.
+    # Sibling module is a python file within the same package as the caller.
     def kv_store(self, sibling_module=None):
         caller_stack = inspect.stack()[1]
         module = inspect.getmodule(caller_stack[0]).__name__
 
-        #print(module)
-        #print(sibling_module)
+        if sibling_module is not None:
+            sibling_module = sibling_module.replace(os.sep, '.')
+            if self._is_same_package(module, sibling_module):
+                main_package = module[:module.rfind('.')]
+                module = f'{main_package}.{sibling_module}'
+            else:
+                return None
 
-        #self._is_same_package(module, sibling_module)
-
-        #if sibling_module is not None:
-        #    # TODO MAKE SURE UNDER SAME PACKAGE
-        #    pass
-        #else:
-        module = module.replace('.', '_')
-        return KVStore(self._dougdb, module)
+        return KVStore(self._dougdb, module.replace('.', '_'))
 
     async def join_voice_channel(self, channel):
         if channel is not None:
@@ -167,21 +162,22 @@ class DougBot(commands.Bot):
             # Add the custom handler to the root logger, so it applies to every time logging is called.
             logging.getLogger('').addHandler(ChannelHandler(self.ROOT_DIR, channel, self.loop))
 
-    def _is_same_package(self, main_module: str, sibling_module: str):
-        module_prefix = 'dougbot.extensions'
-        #print(main_module)
-        prefix_packages = main_module[:main_module.rfind('.')]
+    @staticmethod
+    def _is_same_package(main_module: str, sibling_module: str):
+        if main_module is None or sibling_module is None:
+            return False
 
-        if not sibling_module.startswith(prefix_packages):
-            sibling_module = f'{prefix_packages}.{sibling_module}'
+        last_dot = main_module.rfind('.')
+        if last_dot <= 0:
+            return False
 
-        # If it exists, then same, otherwise not
-        #importlib
+        main_package = main_module[:last_dot]
+        possible_package = f'{main_package}.{sibling_module}'
 
-        # TODO
-
-        #print(prefix_packages)
-        return True
+        possible_path = f'{os.path.join(DougBot.ROOT_DIR, possible_package.replace(".", os.path.sep))}.py'
+        if os.path.exists(possible_path):
+            return True
+        return False
 
 
 if __name__ == '__main__':

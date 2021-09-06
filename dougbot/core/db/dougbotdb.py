@@ -1,13 +1,10 @@
-import os
 import sqlite3
 
 
 class DougBotDB:
-    DB_NAME = 'dougbot.db'
-    DB_PATH = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-    DB_PATH = os.path.join(DB_PATH, 'db', DB_NAME)
 
-    def __init__(self):
+    def __init__(self, path):
+        self._path = path
         self._connection = self._create_connection()
 
     def execute(self, sql, parameters=None):
@@ -21,7 +18,7 @@ class DougBotDB:
 
     def has_table(self, table):
         cursor = self._get_cursor()
-        cursor.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table}'")
+        cursor.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table,))
         return cursor.fetchone() is not None
 
     def open(self):
@@ -38,7 +35,7 @@ class DougBotDB:
         return self._connection
 
     def _create_connection(self):
-        return sqlite3.connect(self.DB_PATH)
+        return sqlite3.connect(self._path)
 
     def _get_cursor(self):
         if self._connection is None:

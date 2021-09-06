@@ -7,14 +7,14 @@ class KVStore:
     _VALUE_COLUMN = 'kv_value'
     _TABLE_SCHEMA = f'{_KEY_COLUMN} TEXT PRIMARY KEY, {_VALUE_COLUMN} BLOB'
 
-    # TODO PROTECT FROM SQL-INJECTION. SQLITE PYTHON DOESN'T ALLOW PARAMETERIZING TABLE NAMES AND COLUMN NAMES
-    # TODO CACHING
-
-    def __init__(self, db, table_name):
+    ''' Not to be created directly. Get from bot class. '''
+    def __init__(self, db, table_name: str):
         if db is None or table_name is None:
             raise ValueError('KVStore init given None value')
         if table_name.startswith('_'):
-            raise ValueError('KVStore table name cannot start with an underscore')
+            raise ValueError(f"KVStore table name '{table_name}' cannot start with an underscore")
+        if not table_name.isidentifier():
+            raise ValueError(f"KVStore table name '{table_name}' is invalid")
 
         self._db = db
         self._table = table_name
@@ -24,8 +24,8 @@ class KVStore:
             self._db.execute(f'CREATE TABLE IF NOT EXISTS {self._table}({self._TABLE_SCHEMA})')
 
     def insert(self, key, value):
-        if key is None or value is None:
-            raise ValueError('KVStore insert given None value')
+        if key is None:
+            raise ValueError('KVStore insert given None key')
         if type(key) != str:
             raise ValueError('KVStore insert key must be a string')
 
@@ -33,7 +33,7 @@ class KVStore:
 
     def remove(self, key):
         if key is None:
-            raise ValueError('KVStore remove given None value')
+            raise ValueError('KVStore remove given None key')
         if type(key) != str:
             raise ValueError('KVStore remove key must be a string')
 
@@ -41,7 +41,7 @@ class KVStore:
 
     def contains(self, key, value=None):
         if key is None:
-            raise ValueError('KVStore contains given None value')
+            raise ValueError('KVStore contains given None key')
         if type(key) != str:
             raise ValueError('KVStore contains key must be a string')
 
@@ -57,7 +57,7 @@ class KVStore:
 
     def get(self, key):
         if key is None:
-            raise ValueError('KVStore get given None value')
+            raise ValueError('KVStore get given None key')
         if type(key) != str:
             raise ValueError('KVStore get key must be a string')
 
@@ -82,8 +82,6 @@ class KVStore:
         return pickle.loads(serial)
 
     def __getitem__(self, key):
-        if key is None:
-            return None
         return self.get(key)
 
     def __setitem__(self, key, value):
