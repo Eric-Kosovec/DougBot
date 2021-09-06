@@ -10,7 +10,9 @@ import youtube_dl
 from discord.ext import commands
 
 from dougbot.common.cache import LRUCache
-from dougbot.extensions.common.mic_check import voice_command
+from dougbot.core.bot import DougBot
+from dougbot.extensions.common.autocorrect import Autocorrect
+from dougbot.extensions.common.miccheck import voice_command
 from dougbot.extensions.music.error import TrackNotExistError
 from dougbot.extensions.music.supportedformats import PLAYER_FILE_TYPES
 from dougbot.extensions.music.track import Track
@@ -18,12 +20,13 @@ from dougbot.extensions.music.track import Track
 
 class SoundPlayer(commands.Cog):
 
-    def __init__(self, bot):
+    def __init__(self, bot: DougBot):
         self.bot = bot
         self.bot.event(self.on_voice_state_update)
         self._threads = ThreadPoolExecutor()
         self._clips_dir = os.path.join(self.bot.ROOT_DIR, 'resources', 'audio')
         self._cache_dir = os.path.join(self.bot.ROOT_DIR, 'cache')
+        self._autocorrect = Autocorrect(self._clip_names())  # Hack until rewrite
         self._kv = self.bot.kv_store()
         self._path_cache = LRUCache(20)
         self._play_lock = asyncio.Lock()  # Stop multiple threads from being created and playing audio over each other.
@@ -40,6 +43,8 @@ class SoundPlayer(commands.Cog):
         if times <= 0:
             await self.bot.confusion(ctx.message)
             return
+
+        source = self._autocorrect.correct(source)
 
         # Acquire lock so only one thread will play the clips; otherwise, sounds will interleave.
         await self._play_lock.acquire()
@@ -67,7 +72,6 @@ class SoundPlayer(commands.Cog):
                 voice.play(await self._create_audio_source(track), after=self._finished)
                 # Wait until thread is done playing current audio before playing the next in the clip block.
                 await self._notify_done_playing.acquire()
-
             if track.is_link:
                 self._links_to_play -= times
         except TrackNotExistError:
@@ -254,6 +258,16 @@ class SoundPlayer(commands.Cog):
             times = 1
 
         return source, times
+
+    def _clip_names(self):
+        clips = []
+        for _, _, filenames in os.walk(self._clips_dir):
+            clips.extend([f[:f.rfind('.')] for f in filenames if self._is_audio_track(f)])
+        return clips
+
+    @staticmethod
+    def _is_audio_track(filename):
+        return type(filename) == str and '.' in filename and filename[filename.rfind('.'):] in PLAYER_FILE_TYPES
 
 
 def setup(bot):

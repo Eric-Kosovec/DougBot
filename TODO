@@ -1,5 +1,6 @@
 Override message sending in bot and split messages and embeds into multiple, if need be
-Finish kv store
-Fix sound player concurrency issue
-Implement video streaming
+Rewrite sound player as producer/consumer threads
 Create webhook
+Create game engine - text and image based
+Spell check
+Restructure

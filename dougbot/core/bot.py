@@ -109,7 +109,6 @@ class DougBot(commands.Bot):
             if confirm_msg is not None:
                 await message.channel.send(confirm_msg)
 
-    # Per module KVStore - Must not be asynchronous as to allow being called from __init__s.
     # Sibling module is a python file within the same package as the caller.
     def kv_store(self, sibling_module=None):
         caller_stack = inspect.stack()[1]
@@ -124,6 +123,9 @@ class DougBot(commands.Bot):
                 return None
 
         return KVStore(self._dougdb, module.replace('.', '_'))
+
+    async def kv_store_async(self, sibling_module=None):
+        return self.kv_store(sibling_module)
 
     async def join_voice_channel(self, channel):
         if channel is not None:
@@ -155,7 +157,7 @@ class DougBot(commands.Bot):
     def owner_id(self):
         return self._appinfo.owner.id
 
-    ''' Begin private methods '''
+    ''' PRIVATE METHODS '''
 
     def _init_logging(self, channel):
         if channel is not None and self.loop is not None:
