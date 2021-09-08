@@ -23,7 +23,8 @@ class ExtensionLoader:
             for filename in files:
                 if ExtensionLoader._is_extension_module(root, filename):
                     try:
-                        client.load_extension(f'dougbot.extensions.{os.path.basename(root)}.{filename[:-3]}')
+                        module_path = (root[len(client.ROOT_DIR) + 1:] + os.sep + filename[:-3]).replace(os.sep, '.')
+                        client.load_extension(module_path)
                     except Exception as e:
                         if "no 'setup' function" in str(e):
                             # Ignore when there is no setup function. Can't know if it is an intentional issue or not.
