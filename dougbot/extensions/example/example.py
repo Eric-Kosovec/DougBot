@@ -1,7 +1,7 @@
 from discord.ext import commands
 
 from dougbot.core.bot import DougBot
-from dougbot.extensions.common.admin_check import admin_command
+from extensions.common.annotations.admin_check import admin_command
 from dougbot.extensions.common.mic_check import voice_command
 
 
