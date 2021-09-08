@@ -1,8 +1,8 @@
 from discord.ext import commands
 
 from dougbot.core.bot import DougBot
-from extensions.common.annotations.admin_check import admin_command
-from dougbot.extensions.common.mic_check import voice_command
+from dougbot.extensions.common.annotations.admincheck import admin_command
+from dougbot.extensions.common.annotations.miccheck import voice_command
 
 
 class Example(commands.Cog):

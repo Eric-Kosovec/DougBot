@@ -1,6 +1,6 @@
 from discord.ext import commands
 
-from extensions.common.annotations.admincheck import admin_command
+from dougbot.extensions.common.annotations.admincheck import admin_command
 
 
 class Purview(commands.Cog):
