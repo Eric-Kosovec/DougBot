@@ -109,20 +109,25 @@ class DougBot(commands.Bot):
             if confirm_msg is not None:
                 await message.channel.send(confirm_msg)
 
-    # Sibling module is a python file within the same package as the caller.
+    # Sibling module is a python file within the same package as the caller, unless caller is a core or admin module.
     def kv_store(self, sibling_module=None):
         caller_stack = inspect.stack()[1]
-        module = inspect.getmodule(caller_stack[0]).__name__
+        calling_module = inspect.getmodule(caller_stack[0]).__name__
 
         if sibling_module is not None:
             sibling_module = sibling_module.replace(os.sep, '.')
-            if self._is_same_package(module, sibling_module):
-                main_package = module[:module.rfind('.')]
-                module = f'{main_package}.{sibling_module}'
-            else:
-                return None
+            extension_package = 'dougbot.extensions'
+            if not sibling_module.startswith(extension_package):
+                sibling_module = f'{extension_package}.{sibling_module}'
 
-        return KVStore(self._dougdb, module.replace('.', '_'))
+            if self._is_admin_package(calling_module) or self._same_extension_package(calling_module, sibling_module):
+                table_name = sibling_module.replace('.', '_')
+            else:
+                raise ValueError(f"Cannot get sibling module: {sibling_module}")
+        else:
+            table_name = calling_module.replace('.', '_')
+
+        return KVStore(self._dougdb, table_name)
 
     async def kv_store_async(self, sibling_module=None):
         return self.kv_store(sibling_module)
@@ -160,26 +165,33 @@ class DougBot(commands.Bot):
     ''' PRIVATE METHODS '''
 
     def _init_logging(self, channel):
-        if channel is not None and self.loop is not None:
-            # Add the custom handler to the root logger, so it applies to every time logging is called.
-            logging.getLogger('').addHandler(ChannelHandler(self.ROOT_DIR, channel, self.loop))
+        # Add the custom handler to the root logger, so it applies to every time logging is called.
+        logging.getLogger('').addHandler(ChannelHandler(self.ROOT_DIR, channel, self.loop))
 
     @staticmethod
-    def _is_same_package(main_module: str, sibling_module: str):
-        if main_module is None or sibling_module is None:
-            return False
+    def _same_extension_package(main_module: str, sibling_module: str):
+        extension_package = 'dougbot.extension'
+        i = 0
+        if main_module.startswith(extension_package):
+            i = len(extension_package) + 1
 
-        last_dot = main_module.rfind('.')
-        if last_dot <= 0:
-            return False
+        j = 0
+        if sibling_module.startswith(extension_package):
+            j = len(extension_package) + 1
 
-        main_package = main_module[:last_dot]
-        possible_package = f'{main_package}.{sibling_module}'
+        while i < len(main_module) and j < len(sibling_module):
+            if main_module[i] != sibling_module[j]:
+                return False
+            if main_module[i] == sibling_module[j] == '.':
+                return True
+            i += 1
+            j += 1
 
-        possible_path = f'{os.path.join(DougBot.ROOT_DIR, possible_package.replace(".", os.path.sep))}.py'
-        if os.path.exists(possible_path):
-            return True
         return False
+
+    @staticmethod
+    def _is_admin_package(module):
+        return module.startswith(f'dougbot.core') or module.startswith(f'dougbot.extensions.admin')
 
 
 if __name__ == '__main__':

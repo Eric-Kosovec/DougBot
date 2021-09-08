@@ -1,7 +1,5 @@
 import pickle
 
-from dougbot.core.db.dougbotdb import DougBotDB
-
 
 class KVStore:
 
