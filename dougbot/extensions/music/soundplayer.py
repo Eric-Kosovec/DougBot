@@ -3,6 +3,7 @@ import functools
 import hashlib
 import os
 import sys
+import traceback
 from concurrent.futures import ThreadPoolExecutor
 
 import discord
@@ -12,7 +13,7 @@ from discord.ext import commands
 from dougbot.common.cache import LRUCache
 from dougbot.core.bot import DougBot
 from dougbot.extensions.common.autocorrect import Autocorrect
-from extensions.common.annotations.miccheck import voice_command
+from dougbot.extensions.common.miccheck import voice_command
 from dougbot.extensions.music.error import TrackNotExistError
 from dougbot.extensions.music.supportedformats import PLAYER_FILE_TYPES
 from dougbot.extensions.music.track import Track
@@ -79,6 +80,7 @@ class SoundPlayer(commands.Cog):
         except Exception as e:
             await self.bot.confusion(ctx.message)
             print(f'ERROR: Exception raised in SoundPlayer method play: {e}', file=sys.stderr)
+            traceback.print_exc()
         finally:
             self._play_lock.release()
 
@@ -176,7 +178,7 @@ class SoundPlayer(commands.Cog):
         if audio is None:
             return None
 
-        audio_path = await self._path_cache.get(audio)
+        audio_path = await self._path_cache.get_async(audio)
         if audio_path is not None:
             return audio_path
 
@@ -184,7 +186,7 @@ class SoundPlayer(commands.Cog):
             for ending in PLAYER_FILE_TYPES:
                 if f'{audio}{ending}'.lower() in self._lowercase_gen(files):
                     audio_path = os.path.join(path, f'{audio}{ending}')
-                    await self._path_cache.insert(audio, audio_path)
+                    await self._path_cache.insert_async(audio, audio_path)
                     return audio_path
 
         return None
