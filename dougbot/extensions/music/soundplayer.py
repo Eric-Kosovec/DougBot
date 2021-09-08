@@ -13,7 +13,7 @@ from discord.ext import commands
 from dougbot.common.cache import LRUCache
 from dougbot.core.bot import DougBot
 from dougbot.extensions.common.autocorrect import Autocorrect
-from dougbot.extensions.common.miccheck import voice_command
+from dougbot.extensions.common.annotations.miccheck import voice_command
 from dougbot.extensions.music.error import TrackNotExistError
 from dougbot.extensions.music.supportedformats import PLAYER_FILE_TYPES
 from dougbot.extensions.music.track import Track

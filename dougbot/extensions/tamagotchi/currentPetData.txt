@@ -1,1 +1,1 @@
-{"tama": [null]}
+{"tama": [{"name": "TheRealDoug", "lastchecked": "07/09/21 22:12:22", "type": "SadBoy", "level": 1, "birthdate": "07/09/21 22:12:22", "deathdate": "", "deathreason": "", "maxhealth": 100, "currenthealth": 50, "attack": 1, "defence": 1, "food": 50, "water": 50, "cleanliness": 50}]}

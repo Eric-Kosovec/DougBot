@@ -30,14 +30,20 @@ class LRUCache:
         self._cache[key] = self._Node(value)
 
     async def get_async(self, key):
-        node = self._cache[key]
-        await node.update_time_async()
-        return node.value
+        try:
+            node = self._cache[key]
+            await node.update_time_async()
+            return node.value
+        except KeyError:
+            return None
 
     def get(self, key):
-        node = self._cache[key]
-        node.update_time()
-        return node.value
+        try:
+            node = self._cache[key]
+            node.update_time()
+            return node.value
+        except KeyError:
+            return None
 
     async def remove_async(self, key):
         self.remove(key)
