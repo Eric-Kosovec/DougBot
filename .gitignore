@@ -7,4 +7,5 @@ cache/*
 /config/bot_config.ini
 /config/token
 **/dougbot.db
-resources/*
+resources/audio/
+resources/db/
