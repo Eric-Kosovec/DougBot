@@ -1,9 +1,10 @@
-__pycache__/
+__pycache__
 .idea
 *.py[cod]
 *$py.class
 
-*/cache/*
-*/token
-/resources/*
-*/dougbot.db
+cache/*
+/config/bot_config.ini
+/config/token
+**/dougbot.db
+resources/*
