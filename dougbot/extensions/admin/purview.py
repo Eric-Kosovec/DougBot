@@ -10,11 +10,6 @@ class Purview(commands.Cog):
 
     @commands.command()
     @admin_command()
-    async def hi(self, ctx):
-        await ctx.send('Hello?')
-
-    @commands.command()
-    @admin_command()
     async def view_kv(self, ctx, module):
         pass
 
