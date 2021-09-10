@@ -1,7 +1,9 @@
 import time
 
+from collections import UserDict
 
-class LRUCache:
+
+class LRUCache(UserDict):
 
     class _Node:
 
@@ -16,69 +18,49 @@ class LRUCache:
             self.time_used = time.time()
 
     def __init__(self, limit):
-        self._cache = {}
+        super().__init__()
         self._limit = limit
 
-    async def insert_async(self, key, value):
-        if len(self) >= self._limit:
-            await self._evict_async()
-        self._cache[key] = self._Node(value)
-
-    def insert(self, key, value):
-        if len(self) >= self._limit:
+    def __setitem__(self, key, value):
+        while len(self.data) >= self._limit:
             self._evict()
-        self._cache[key] = self._Node(value)
+        self.data[key] = self._Node(value)
 
-    async def get_async(self, key):
+    def __getitem__(self, key):
         try:
-            node = self._cache[key]
-            await node.update_time_async()
-            return node.value
-        except KeyError:
-            return None
-
-    def get(self, key):
-        try:
-            node = self._cache[key]
+            node = self.data[key]
             node.update_time()
             return node.value
         except KeyError:
             return None
 
-    async def remove_async(self, key):
-        self.remove(key)
+    def __delitem__(self, key):
+        self.data.pop(key)
 
-    def remove(self, key):
-        value = None
-        if key in self._cache:
-            value = self._cache[key]
-            del self._cache[key]
-        return value
+    def __len__(self):
+        return len(self.data)
+
+    async def insert(self, key, value):
+        while len(self.data) >= self._limit:
+            await self._evict_async()
+        self.data[key] = self._Node(value)
+
+    async def get(self, key):
+        return self[key]
+
+    async def remove(self, key):
+        del self[key]
 
     async def _evict_async(self):
-        lru_key = None
-        lru_time = None
-
-        for key in self._cache.keys():
-            if lru_key is None or self._cache[key].time_used < lru_time:
-                lru_time = self._cache[key].time_used
-                lru_key = key
-
-        await self.remove_async(lru_key)
+        self._evict()
 
     def _evict(self):
         lru_key = None
         lru_time = None
 
-        for key in self._cache.keys():
-            if lru_key is None or self._cache[key].time_used < lru_time:
-                lru_time = self._cache[key].time_used
+        for key in self.data.keys():
+            if lru_key is None or self.data[key].time_used < lru_time:
+                lru_time = self.data[key].time_used
                 lru_key = key
 
-        self.remove(lru_key)
-
-    def __getitem__(self, item):
-        return self.get(item)
-
-    def __len__(self):
-        return len(self._cache)
+        self.data.pop(lru_key)

@@ -178,7 +178,7 @@ class SoundPlayer(commands.Cog):
         if audio is None:
             return None
 
-        audio_path = await self._path_cache.get_async(audio)
+        audio_path = await self._path_cache.get(audio)
         if audio_path is not None:
             return audio_path
 
@@ -186,7 +186,7 @@ class SoundPlayer(commands.Cog):
             for ending in PLAYER_FILE_TYPES:
                 if f'{audio}{ending}'.lower() in self._lowercase_gen(files):
                     audio_path = os.path.join(path, f'{audio}{ending}')
-                    await self._path_cache.insert_async(audio, audio_path)
+                    await self._path_cache.insert(audio, audio_path)
                     return audio_path
 
         return None
