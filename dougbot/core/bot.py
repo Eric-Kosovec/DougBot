@@ -20,13 +20,13 @@ class DougBot(commands.Bot):
     ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     RESOURCES_DIR = os.path.join(ROOT_DIR, 'resources')
 
-    def __init__(self, token_file, config_file):
+    def __init__(self, token_file, bot_config, server_config):
         # For notifying text channels the bot is online. Used to prevent spamming in case of shaky
         # internet, as on_ready can be called multiple times in such a case.
         self._on_ready_called = False
         self._log_channel = None
         self._appinfo = None
-        self._config = Config(token_file, config_file)
+        self._config = Config(token_file, bot_config, server_config)
         self._dougdb = DougBotDB(os.path.join(self.RESOURCES_DIR, 'db', 'dougbot.db'))  # For core bot settings
 
         intent = discord.Intents.default()
@@ -195,5 +195,5 @@ class DougBot(commands.Bot):
 
 
 if __name__ == '__main__':
-    dougbot = DougBot('../../config/token', '../../config/config.ini')
+    dougbot = DougBot('../../config/token', '../../config/bot_config.ini', '../../config/server_config.ini')
     dougbot.run()

@@ -4,7 +4,7 @@ import sys
 try:
     assert sys.version_info >= (3, 7)
 except AssertionError:
-    print('Fatal Error: DougBot supports only Python 3.7+')
+    print('Fatal Error: DougBot supports only Python 3.7+', file=sys.stderr)
     exit(1)
 
 
