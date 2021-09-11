@@ -17,6 +17,9 @@ class LRUCache(UserDict):
         def update_time(self):
             self.time_used = time.time()
 
+        def __repr__(self):
+            return f'{self.value.__repr__()}'
+
     def __init__(self, limit):
         super().__init__()
         self._limit = limit
@@ -39,6 +42,12 @@ class LRUCache(UserDict):
 
     def __len__(self):
         return len(self.data)
+
+    def __repr__(self):
+        return f'{type(self).__name__}({super().__repr__()})'
+
+    def __str__(self):
+        return self.data.__str__()
 
     async def insert(self, key, value):
         while len(self.data) >= self._limit:
