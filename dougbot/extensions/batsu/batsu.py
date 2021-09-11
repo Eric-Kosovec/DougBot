@@ -6,7 +6,7 @@ import requests
 from discord import Embed
 from discord.ext import commands
 
-from dougbot.common import limits
+from dougbot.common.limits import Limits
 
 
 class Batsu(commands.Cog):
@@ -51,9 +51,9 @@ class Batsu(commands.Cog):
         if link is not None:
             embed.url = link
 
-        height = math.ceil(len(status_report) / float(limits.EMBED_INLINE_FIELD_LIMIT))
+        height = math.ceil(len(status_report) / float(Limits.EMBED_INLINE_FIELD_LIMIT))
 
-        for _ in range(height * limits.EMBED_INLINE_FIELD_LIMIT):
+        for _ in range(height * Limits.EMBED_INLINE_FIELD_LIMIT):
             embed.add_field(name='\u200b', value='\u200b')
 
         r = 0
@@ -68,7 +68,7 @@ class Batsu(commands.Cog):
                 if len(status_display) == 0:
                     status_display = '\u200b'
 
-            embed.set_field_at(r * limits.EMBED_INLINE_FIELD_LIMIT + c, name=f'Part {i + 1}', value=status_display)
+            embed.set_field_at(r * Limits.EMBED_INLINE_FIELD_LIMIT + c, name=f'Part {i + 1}', value=status_display)
 
             r = (r + 1) % height
             if r == 0:

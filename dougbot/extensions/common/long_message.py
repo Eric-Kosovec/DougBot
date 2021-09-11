@@ -1,9 +1,9 @@
 import string
 
-import dougbot.common.limits as limits
+from dougbot.common.limits import Limits
 
 
-def is_long_message(message, limit=limits.MESSAGE_CHARACTER_LIMIT):
+def is_long_message(message, limit=Limits.MESSAGE_CHARACTER_LIMIT):
     if message is None or type(message) != str:
         return False
     return len(message) > limit
@@ -13,7 +13,7 @@ def columnize(message):
     return
 
 
-def long_message(message, limit=limits.MESSAGE_CHARACTER_LIMIT):
+def long_message(message, limit=Limits.MESSAGE_CHARACTER_LIMIT):
     if not is_long_message(message, limit):
         return [message]
 
