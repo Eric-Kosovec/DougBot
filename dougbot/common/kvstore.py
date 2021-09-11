@@ -15,8 +15,6 @@ class KVStore:
             raise ValueError(f"KVStore table name '{table_name}' cannot start with an underscore")
         if not table_name.isidentifier():
             raise ValueError(f"KVStore table name '{table_name}' is invalid")
-        if not db.valid_input(table_name):
-            raise ValueError('KVStore table name is invalid')
 
         self._db = db
         self._table_name = table_name
@@ -72,27 +70,14 @@ class KVStore:
             raise ValueError('KVStore get key must be a string')
 
         result = self._db.execute(f'SELECT {self._VALUE_COLUMN} FROM {self._table_name} WHERE {self._KEY_COLUMN} = ?', (key,))
-        if result is None:
-            return None
+
         try:
             return self._deserialize_value(next(result)[0])
-        except StopIteration:
-            return None
+        except StopIteration or TypeError:
+            raise ValueError('KVStore get key does not exist')
 
     async def get_async(self, key):
         return self.get(key)
-
-    @staticmethod
-    def _serialize_value(value):
-        if value is None:
-            return b'\0'
-        return pickle.dumps(value)
-
-    @staticmethod
-    def _deserialize_value(serial):
-        if serial is None:
-            return None
-        return pickle.loads(serial)
 
     def __getitem__(self, key):
         return self.get(key)
@@ -108,11 +93,17 @@ class KVStore:
         return self
 
     def __next__(self):
-        if self._iterator is None:
-            raise StopIteration
         try:
             item = next(self._iterator)
             return item[0], self._deserialize_value(item[1])
-        except StopIteration:
+        except StopIteration or TypeError:
             self._iterator = None
             raise StopIteration
+
+    @staticmethod
+    def _serialize_value(value):
+        return pickle.dumps(value) if value is not None else b'\0'
+
+    @staticmethod
+    def _deserialize_value(serial):
+        return pickle.loads(serial) if serial is not None else None

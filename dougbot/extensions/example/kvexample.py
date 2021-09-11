@@ -7,12 +7,12 @@ class KVExample(commands.Cog):
         self.bot = bot
         self.kv = None
 
-    async def random_command(self, ctx):
+    async def random_command(self, _):
         # For now, can only get kv store for your own module. Will be able to get kv stores for modules under same package (folder).
         self.kv = self.bot.kv_store()
         self.kv['THIS MUST BE A STRING'] = 'THIS CAN BE ANYTHING, NOT NECESSARY A STRING'
         self.kv['TEST'] = 5
-        my_value = self.kv['TEST']
+        _ = self.kv['TEST']
 
 
 def setup(bot):
