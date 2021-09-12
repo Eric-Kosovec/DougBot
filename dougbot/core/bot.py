@@ -11,7 +11,7 @@ from discord.utils import find
 
 from dougbot.common.kvstore import KVStore
 from dougbot.core.config import Config
-from dougbot.core.db.dougbotdb import DougBotDB
+from common.database import Database
 from dougbot.core.extloader import ExtensionLoader
 from dougbot.core.util.channelhandler import ChannelHandler
 
@@ -27,7 +27,7 @@ class DougBot(commands.Bot):
         self._log_channel = None
         self._appinfo = None
         self._config = Config(token_file, bot_config, server_config)
-        self._dougdb = DougBotDB(os.path.join(self.RESOURCES_DIR, 'db', 'dougbot.db'))  # For core bot settings
+        self._dougdb = Database(os.path.join(self.RESOURCES_DIR, 'db', 'core', 'dougbot.db'))  # For core bot settings
 
         intent = discord.Intents.default()
         intent.members = True

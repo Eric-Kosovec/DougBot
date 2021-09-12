@@ -3,9 +3,8 @@ __pycache__
 *.py[cod]
 *$py.class
 
-cache/*
-/config/bot_config.ini
+/cache/*
 /config/token
-**/dougbot.db
-resources/audio/
-resources/db/
+/resources/audio/**/*.*
+/resources/db/**/*.*
+/config/bot_config.ini
