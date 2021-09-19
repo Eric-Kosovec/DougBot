@@ -12,46 +12,22 @@ class WebServer(ThreadingHTTPServer):
         self._serve_thread = None
 
     def serve_forever(self, poll_interval=0.5):
-        with self._lock:
-            if self._serve_thread is None:
-                self._serve_thread = threading.Thread(target=super().serve_forever, args=(poll_interval,))
-                self._serve_thread.start()
+        # Don't want to unnecessarily block the async loop, if called from there, so spawn thread to grab lock
+        serve_thread = threading.Thread(target=self._serve_forever, args=(poll_interval,))
+        serve_thread.start()
 
     def shutdown(self):
         # BaseServer shutdown is blocking
-        shutdown_thread = threading.Thread(target=self._kill_server())
+        shutdown_thread = threading.Thread(target=self._shutdown_server)
         shutdown_thread.start()
 
-    def _kill_server(self):
+    def _serve_forever(self, poll_interval):
+        with self._lock:
+            if self._serve_thread is None:
+                self._serve_thread = threading.current_thread()
+        super().serve_forever(poll_interval)
+
+    def _shutdown_server(self):
         with self._lock:
             self._serve_thread.shutdown()
             self._serve_thread = None
-
-'''
-class Handler(CGIHTTPRequestHandler):
-
-    def do_HEAD(self):
-        pass
-
-    def do_GET(self):
-        self.send_response(200)
-        self.send_header("Content-type", "text/html")
-        self.end_headers()
-        with open('E:\\Programming\\Projects\\DougBot\\resources\\hello.html', 'r') as fd:
-            data = fd.read()
-        self.wfile.write(bytes(data, 'utf-8'))
-
-    def do_POST(self):
-        pass
-
-
-def main():
-    ws = WebServer(('localhost', 8080), Handler)
-    ws.serve_forever()
-    while True:
-        pass
-
-
-if __name__ == '__main__':
-    main()
-'''

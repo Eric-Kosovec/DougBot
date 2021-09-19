@@ -11,7 +11,7 @@ from discord.utils import find
 
 from dougbot.common.kvstore import KVStore
 from dougbot.core.config import Config
-from common.database import Database
+from dougbot.common.database import Database
 from dougbot.core.extloader import ExtensionLoader
 from dougbot.core.util.channelhandler import ChannelHandler
 
