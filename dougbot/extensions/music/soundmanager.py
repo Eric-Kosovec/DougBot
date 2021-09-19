@@ -15,8 +15,8 @@ class SoundManager(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self._clip_root = RootDirectory(os.path.join(self.bot.ROOT_DIR, 'resources', 'audio'))
-        self._clips_dir = os.path.join(self.bot.ROOT_DIR, 'resources', 'audio')
+        self._clip_root = RootDirectory(os.path.join(self.bot.ROOT_DIR, 'resources', 'extensions', 'music', 'audio'))
+        self._clips_dir = os.path.join(self.bot.ROOT_DIR, 'resources', 'extensions', 'music', 'audio')
 
     # TODO ALLOW CLIPS TO HAVE DIRECTORIES SPECIFIED IN THEM
 

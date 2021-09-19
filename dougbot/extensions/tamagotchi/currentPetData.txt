@@ -1,1 +1,1 @@
-{"tama": [{"name": "TheRealDoug", "lastchecked": "07/09/21 23:18:38", "type": "SadBoy", "level": 1, "birthdate": "07/09/21 23:18:38", "deathdate": "", "deathreason": "", "maxhealth": 100, "currenthealth": 50, "attack": 1, "defence": 1, "food": 50, "water": 50, "cleanliness": 50}]}
+{"tama": [{"name": "TheRealDoug", "lastchecked": "18/09/21 19:55:49", "type": "SadBoy", "level": 1, "birthdate": "18/09/21 19:55:49", "deathdate": "", "deathreason": "", "maxhealth": 100, "currenthealth": 50, "attack": 1, "defence": 1, "food": 50, "water": 50, "cleanliness": 50}]}

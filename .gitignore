@@ -5,6 +5,6 @@ __pycache__
 
 /cache/*
 /config/token
-/resources/audio/**/*.*
-/resources/db/**/*.*
+/resources/core/db/
+/resources/extensions/
 /config/bot_config.ini

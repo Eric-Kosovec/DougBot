@@ -27,7 +27,7 @@ class DougBot(commands.Bot):
         self._log_channel = None
         self._appinfo = None
         self._config = Config(token_file, bot_config, server_config)
-        self._dougdb = Database(os.path.join(self.RESOURCES_DIR, 'db', 'core', 'dougbot.db'))  # For core bot settings
+        self._dougdb = Database(os.path.join(self.RESOURCES_DIR, 'core', 'db', 'dougbot.db'))  # For core bot settings
 
         intent = discord.Intents.default()
         intent.members = True

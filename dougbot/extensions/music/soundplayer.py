@@ -25,7 +25,7 @@ class SoundPlayer(commands.Cog):
         self.bot = bot
         self.bot.event(self.on_voice_state_update)
         self._threads = ThreadPoolExecutor()
-        self._clips_dir = os.path.join(self.bot.ROOT_DIR, 'resources', 'audio')
+        self._clips_dir = os.path.join(self.bot.ROOT_DIR, 'resources', 'extensions', 'music', 'audio')
         self._cache_dir = os.path.join(self.bot.ROOT_DIR, 'cache')
         self._autocorrect = Autocorrect(self._clip_names())  # Hack until rewrite
         self._kv = self.bot.kv_store()
