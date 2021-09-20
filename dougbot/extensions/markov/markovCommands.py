@@ -34,7 +34,7 @@ class MarkovCommands(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self._chains_dir = os.path.join(self.bot.ROOT_DIR, 'resources', 'chains')
+        self._chains_dir = os.path.join(self.bot.ROOT_DIR, 'resources', 'extensions', 'chains')
         
     @commands.command(aliases=['collect'])
     async def updateFromChat(self, ctx, user: User, text_channel: TextChannel = None):
