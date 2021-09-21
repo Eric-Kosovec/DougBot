@@ -89,8 +89,8 @@ class SoundPlayer(commands.Cog):
     @commands.command()
     @commands.guild_only()
     @voice_command()
-    async def ytplay(self, ctx, *, source: str):
-        results = YoutubeSearch(source, max_results=1).to_dict()[0]['url_suffix']
+    async def ytplay(self, ctx, *, searchTerms: str):
+        results = YoutubeSearch(searchTerms, max_results=1).to_dict()[0]['url_suffix']
         ytURL = r'https://www.youtube.com' + results
         await self.play(ctx, source = ytURL, times = '1')
 
