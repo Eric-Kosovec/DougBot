@@ -42,67 +42,96 @@ class PetCommands(commands.Cog):
                 PetHandler.puttorest(pet)
                 await ctx.send('rip ' + pet['name'] + '. ' + pet['deathreason'])
             PetHandler.savedata(pet)
-            embed = PetCommands.buildembed(pet)
+            embed = PetCommands.buildembed(pet, True, None)
             await ctx.send(embed=embed)
         else:
             await ctx.send(pet['name'] + ' is dead. ' + pet['deathreason'])
 
     @commands.command()
     async def feedpet(self, ctx):
+        ableto = True
         pet = PetHandler.getcurrentpet()
         currentdate = datetime.datetime.now()
         foodlastdate = datetime.datetime.strptime(pet['lastfeed'], '%m/%d/%y %H:%M:%S')
         fooddelta = currentdate - foodlastdate
         foodhourspassed = math.floor((fooddelta.days * 24) + (fooddelta.seconds / 3600))
         if foodhourspassed > 1:
-            pet = PetHandler.feed(pet, 10)
+            pet = PetHandler.feed(pet, 20)
+        else:
+            ableto = False
         pet = PetHandler.checkpet(pet)
         PetHandler.savedata(pet)
-        embed = PetCommands.buildembed(pet)
+        embed = PetCommands.buildembed(pet, ableto, 'feed')
         await ctx.send(embed=embed)
 
     @commands.command()
     async def waterpet(self, ctx):
+        ableto = True
         pet = PetHandler.getcurrentpet()
         currentdate = datetime.datetime.now()
         waterlastdate = datetime.datetime.strptime(pet['lastwatered'], '%m/%d/%y %H:%M:%S')
         waterdelta = currentdate - waterlastdate
         waterhourspassed = math.floor((waterdelta.days * 24) + (waterdelta.seconds / 3600))
         if waterhourspassed > 1:
-            pet = PetHandler.water(pet, 10)
+            pet = PetHandler.water(pet, 20)
+        else:
+            ableto = False
         pet = PetHandler.checkpet(pet)
         PetHandler.savedata(pet)
-        embed = PetCommands.buildembed(pet)
+        embed = PetCommands.buildembed(pet, ableto, 'water')
         await ctx.send(embed=embed)
 
     @commands.command()
     async def cleanpet(self, ctx):
+        ableto = True
         pet = PetHandler.getcurrentpet()
         currentdate = datetime.datetime.now()
         cleanlastdate = datetime.datetime.strptime(pet['lastcleaned'], '%m/%d/%y %H:%M:%S')
         cleandelta = currentdate - cleanlastdate
         cleanhourspassed = math.floor((cleandelta.days * 24) + (cleandelta.seconds / 3600))
         if cleanhourspassed > 1:
-            pet = PetHandler.clean(pet, 10)
+            pet = PetHandler.clean(pet, 20)
+        else:
+            ableto = False
         pet = PetHandler.checkpet(pet)
         PetHandler.savedata(pet)
-        embed = PetCommands.buildembed(pet)
+        embed = PetCommands.buildembed(pet, ableto, 'clean')
+        await ctx.send(embed=embed)
+
+    @commands.command()
+    async def petpet(self, ctx):
+        ableto = False
+        pet = PetHandler.getcurrentpet()
+        currentdate = datetime.datetime.now()
+        petlastdate = datetime.datetime.strptime(pet['lastpet'], '%m/%d/%y %H:%M:%S')
+        petdelta = currentdate - petlastdate
+        pethourspassed = math.floor((petdelta.days * 24) + (petdelta.seconds / 3600))
+        if pethourspassed > 1:
+            pet = PetHandler.happy(pet, 20)
+        else:
+            ableto = False
+        pet = PetHandler.checkpet(pet)
+        PetHandler.savedata(pet)
+        embed = PetCommands.buildembed(pet, ableto, 'pet')
         await ctx.send(embed=embed)
 
     @commands.command()
     async def newpet(self, ctx, name: str):
         pet = PetHandler.newpet(name)
-        embed = PetCommands.buildembed(pet)
+        embed = PetCommands.buildembed(pet, True, None)
         await ctx.send(embed=embed)
 
     @staticmethod
-    def buildembed(json_object):
+    def buildembed(json_object, ableto, type):
         embed = Embed(title='<:sipsScared:819393684549533716> Name: ' + str(json_object['name']), color=0x228B22)
         embed.add_field(name='Health', value=str(json_object['currenthealth']) + '/' + str(json_object['maxhealth']), inline=True)
         embed.add_field(name='Food', value=str(json_object['food']) + '/100', inline=True)
         embed.add_field(name='Water', value=str(json_object['water']) + '/100', inline=True)
         embed.add_field(name='Cleanliness', value=str(json_object['cleanliness']) + '/100', inline=True)
         embed.add_field(name='Happiness', value=str(json_object['happiness']) + '/100', inline=True)
+        if not ableto:
+            ##maybe add time to this foooter
+            embed.set_footer(text='Unable to ' + type + ' right now.')
         return embed
 
 

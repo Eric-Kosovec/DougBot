@@ -179,6 +179,8 @@ class PetHandler:
         if hourspassed > 0:
             if json_object['food'] > 70 and json_object['water'] > 75 and json_object['cleanliness'] > 60:
                 json_object = PetHandler.increasecurrenthealth(json_object, (hourspassed * 5))
+            if json_object['food'] > 90 and json_object['water'] > 95 and json_object['cleanliness'] > 90:
+                json_object = PetHandler.happy(json_object, (hourspassed * 5))
 
         json_object['lastchecked'] = currentdate.strftime('%m/%d/%y %H:%M:%S')
 
