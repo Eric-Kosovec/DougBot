@@ -29,5 +29,5 @@ class WebServer(ThreadingHTTPServer):
 
     def _shutdown_server(self):
         with self._lock:
-            self._serve_thread.shutdown()
+            self.server_close()
             self._serve_thread = None

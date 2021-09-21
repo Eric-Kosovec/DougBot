@@ -15,7 +15,7 @@ class Example(commands.Cog):
     @commands.guild_only()  # Prevents command from being used in private messages.
     @admin_command()  # Specifies that the command can only be used by people with the admin role.
     @voice_command()  # Specifies command can only be used while user is in a voice channel.
-    def example_command(self, ctx):
+    async def example_command(self, ctx):
         pass
 
 
