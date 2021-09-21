@@ -8,6 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import discord
 import youtube_dl
+from youtube_search import YoutubeSearch
 from discord.ext import commands
 
 from dougbot.common.cache import LRUCache
@@ -83,6 +84,15 @@ class SoundPlayer(commands.Cog):
             traceback.print_exc()
         finally:
             self._play_lock.release()
+            
+    #Searches for a youtube video based on the search terms given and sends the url to the play function
+    @commands.command()
+    @commands.guild_only()
+    @voice_command()
+    async def ytplay(self, ctx, *, source: str):
+        results = YoutubeSearch(source, max_results=1).to_dict()[0]['url_suffix']
+        ytURL = r'https://www.youtube.com' + results
+        await self.play(ctx, source = ytURL, times = '1')
 
     # Volume is already a superclass' method, so beware.
     @commands.command(name='volume', aliases=['vol'])
