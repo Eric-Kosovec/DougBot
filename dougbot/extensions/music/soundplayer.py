@@ -90,8 +90,13 @@ class SoundPlayer(commands.Cog):
     @commands.guild_only()
     @voice_command()
     async def ytplay(self, ctx, *, searchTerms: str):
-        results = YoutubeSearch(searchTerms, max_results=1).to_dict()[0]['url_suffix']
-        ytURL = r'https://www.youtube.com' + results
+        maxSearch = 20
+        results = YoutubeSearch(searchTerms, max_results=maxSearch).to_dict()
+        for i in range(0,maxSearch):
+            if(results[i]['publish_time']!=0):
+                 ytURL = r'https://www.youtube.com' + results[i]['url_suffix']
+                 break
+        await ctx.send("Added " + ytURL + " to the queue...")
         await self.play(ctx, source = ytURL, times = '1')
 
     # Volume is already a superclass' method, so beware.
