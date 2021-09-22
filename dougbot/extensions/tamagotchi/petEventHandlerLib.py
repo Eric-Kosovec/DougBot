@@ -37,7 +37,7 @@ class PetEventHandler:
             happinessamount = 0
 
         msg = 'You take ' + name + ' for a walk and ' + name + ' '
-        eventtext.replace("+name+", name)
+        eventtext = eventtext.replace('+name+', name)
         combinedmsg = msg + eventtext
 
         evnt = PetEvent(combinedmsg, type, 0, foodamount, wateramount, cleanlinessamount, happinessamount)
