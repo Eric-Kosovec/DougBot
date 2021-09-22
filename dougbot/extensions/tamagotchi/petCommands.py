@@ -3,6 +3,7 @@ from discord.ext import commands
 from dougbot.core.bot import DougBot
 
 from dougbot.extensions.tamagotchi.petHandlerLib import *
+from dougbot.extensions.tamagotchi.petEventHandlerLib import *
 from discord import Embed
 
 
@@ -100,7 +101,7 @@ class PetCommands(commands.Cog):
 
     @commands.command()
     async def petpet(self, ctx):
-        ableto = False
+        ableto = True
         pet = PetHandler.getcurrentpet()
         currentdate = datetime.datetime.now()
         petlastdate = datetime.datetime.strptime(pet['lastpet'], '%m/%d/%y %H:%M:%S')
@@ -120,6 +121,34 @@ class PetCommands(commands.Cog):
         pet = PetHandler.newpet(name)
         embed = PetCommands.buildembed(pet, True, None)
         await ctx.send(embed=embed)
+
+    @commands.command()
+    async def walkpet(self, ctx):
+        pet = PetHandler.getcurrentpet()
+        evnt = PetEventHandler.walkevent(pet['name'])
+        if evnt.type == 'good':
+            pet = PetHandler.feed(pet,evnt.food)
+            pet = PetHandler.water(pet,evnt.water)
+            pet = PetHandler.clean(pet,evnt.cleanliness)
+            pet = PetHandler.happy(pet,evnt.happiness)
+            PetHandler.savedata(pet)
+            await ctx.send('<:mushWalk:255486412403638274> ' + evnt.text)
+            embed = PetCommands.buildembed(pet, True, None)
+            await ctx.send(embed = embed)
+        if evnt.type == 'bad':
+            pet = PetHandler.starve(pet, evnt.food)
+            pet = PetHandler.dehydrate(pet, evnt.water)
+            pet = PetHandler.dirty(pet, evnt.cleanliness)
+            pet = PetHandler.sadness(pet, evnt.happiness)
+            PetHandler.savedata(pet)
+            await ctx.send(':skull: ' + evnt.text)
+            embed = PetCommands.buildembed(pet, True, None)
+            await ctx.send(embed=embed)
+        if evnt.type == 'neutral':
+            PetHandler.savedata(pet)
+            await ctx.send(':man_shrugging: ' + evnt.text)
+            embed = PetCommands.buildembed(pet, True, None)
+            await ctx.send(embed=embed)
 
     @staticmethod
     def buildembed(json_object, ableto, type):
