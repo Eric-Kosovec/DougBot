@@ -157,11 +157,10 @@ class PetHandler:
         cleandelta = currentdate - cleanlastdate
         dayspassed = delta.days
 
-        hourspassed = math.floor((delta.days * 24) + (delta.seconds/3600))
-        foodhourspassed = math.floor((fooddelta.days * 24) + (fooddelta.seconds/3600))
-        waterhourspassed = math.floor((waterdelta.days * 24) + (waterdelta.seconds/3600))
-        cleanhourspassed = math.floor((cleandelta.days * 24) + (cleandelta.seconds/3600))
-
+        hourspassed = math.floor((delta.days * 24) + (delta.seconds / 3600))
+        foodhourspassed = math.floor((fooddelta.days * 24) + (fooddelta.seconds / 3600))
+        waterhourspassed = math.floor((waterdelta.days * 24) + (waterdelta.seconds / 3600))
+        cleanhourspassed = math.floor((cleandelta.days * 24) + (cleandelta.seconds / 3600))
 
         if foodhourspassed > 0:
             json_object = PetHandler.starve(json_object, (hourspassed * 2))
@@ -179,6 +178,10 @@ class PetHandler:
         if hourspassed > 0:
             if json_object['food'] > 70 and json_object['water'] > 75 and json_object['cleanliness'] > 60:
                 json_object = PetHandler.increasecurrenthealth(json_object, (hourspassed * 5))
+            if json_object['food'] > 90 and json_object['water'] > 95 and json_object['cleanliness'] > 90:
+                json_object = PetHandler.happy(json_object, (hourspassed * 5))
+            if json_object['food'] < 60 and json_object['water'] < 60 and json_object['cleanliness'] < 60:
+                json_object = PetHandler.sadness(json_object, (hourspassed * 5))
 
         json_object['lastchecked'] = currentdate.strftime('%m/%d/%y %H:%M:%S')
 
