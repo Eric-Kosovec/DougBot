@@ -8,3 +8,7 @@ __pycache__
 /resources/core/db/
 /resources/extensions/
 /config/bot_config.ini
+/resources/extensions/music/audio/*.mp3
+/resources/extensions/music/audio/*.mp3
+/resources/core/db/*.db
+/resources/extensions/music/audio/*.mp3
