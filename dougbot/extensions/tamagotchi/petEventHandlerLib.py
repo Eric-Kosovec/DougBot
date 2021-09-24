@@ -12,35 +12,26 @@ class PetEventHandler:
         eventtype = random.randint(0, 2)
         walkevents = PetEventHandler.getwalkevents()
         if eventtype == 0:
-            rand = random.randint(0, len(walkevents['goodevents']) - 1)
-            eventtext = walkevents['goodevents'][rand]['message']
-            type = 'good'
-            foodamount = random.randint(0, 5)
-            wateramount = random.randint(0, 5)
-            cleanlinessamount = random.randint(0, 5)
-            happinessamount = random.randint(0, 5)
+            etype = 'good'
         if eventtype == 1:
-            rand = random.randint(0, len(walkevents['badevents']) - 1)
-            eventtext = walkevents['badevents'][rand]['message']
-            type = 'bad'
-            foodamount = -random.randint(0, 5)
-            wateramount = -random.randint(0, 5)
-            cleanlinessamount = -random.randint(0, 5)
-            happinessamount = -random.randint(0, 5)
+            etype = 'bad'
         if eventtype == 2:
-            rand = random.randint(0, len(walkevents['neutralevents']) - 1)
-            eventtext = walkevents['neutralevents'][rand]['message']
-            type = 'neutral'
-            foodamount = 0
-            wateramount = 0
-            cleanlinessamount = 0
-            happinessamount = 0
+            etype = 'neutral'
+
+        rand = random.randint(0, len(walkevents['goodevents']) - 1)
+        typename = etype + 'events'
+        eventtext = walkevents[typename][rand]['message']
+        healthamount = walkevents[typename][rand]['health']
+        foodamount = walkevents[typename][rand]['food']
+        wateramount = walkevents[typename][rand]['water']
+        cleanlinessamount = walkevents[typename][rand]['cleanliness']
+        happinessamount = walkevents[typename][rand]['happiness']
 
         msg = 'You take ' + name + ' for a walk and ' + name + ' '
         eventtext = eventtext.replace('+name+', name)
         combinedmsg = msg + eventtext
 
-        evnt = PetEvent(combinedmsg, type, 0, foodamount, wateramount, cleanlinessamount, happinessamount)
+        evnt = PetEvent(combinedmsg, etype, 0, foodamount, wateramount, cleanlinessamount, happinessamount)
 
         return evnt
 
