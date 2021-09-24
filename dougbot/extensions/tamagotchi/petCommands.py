@@ -199,6 +199,17 @@ class PetCommands(commands.Cog):
             embed = PetCommands.buildembed(pet, True, None)
             await ctx.send(embed=embed)
 
+    @commands.command()
+    async def checktime(self, ctx):
+        pet = PetHandler.getcurrentpet()
+        embed = Embed(title=':motorized_wheelchair: Name: ' + str(pet['name'] + ' :motorized_wheelchair:'), color=0x228B22)
+        embed.add_field(name='Last Checked', value=str(pet['lastchecked']), inline=True)
+        embed.add_field(name='Last Fed', value=str(pet['lastfeed']), inline=True)
+        embed.add_field(name='Last Watered', value=str(pet['lastwatered']), inline=True)
+        embed.add_field(name='Last Cleaned', value=str(pet['lastcleaned']), inline=True)
+        embed.add_field(name='Last Pet', value=str(pet['lastpet']), inline=True)
+        await ctx.send(embed=embed)
+
     @staticmethod
     def buildembed(json_object, ableto, type):
         embed = Embed(title='<:sipsScared:819393684549533716> Name: ' + str(json_object['name']), color=0x228B22)
