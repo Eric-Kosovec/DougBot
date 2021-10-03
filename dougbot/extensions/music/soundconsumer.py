@@ -1,7 +1,7 @@
 import inspect
 import logging
 
-from Lib.queue import Queue, Empty
+from queue import Queue
 from threading import Lock, Semaphore
 
 import discord
