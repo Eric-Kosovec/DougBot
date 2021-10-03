@@ -29,103 +29,86 @@ class PetHandler:
         return pet
 
     @staticmethod
-    def increasecurrenthealth(json_object, amount):
+    def currenthealth(json_object, amount):
         maxhealth = json_object['maxhealth']
         currenthealth = json_object['currenthealth']
-        if maxhealth < (currenthealth + amount):
-            json_object['currenthealth'] = maxhealth
-        else:
-            json_object['currenthealth'] = currenthealth + amount
-
-        return json_object
-
-    @staticmethod
-    def decreasecurrenthealth(json_object, amount):
-        currenthealth = json_object['currenthealth']
-        if 0 > (currenthealth - amount):
-            json_object['currenthealth'] = 0
-        else:
-            json_object['currenthealth'] = currenthealth - amount
+        if amount > 0:
+            if maxhealth < (currenthealth + amount):
+                json_object['currenthealth'] = maxhealth
+            else:
+                json_object['currenthealth'] = currenthealth + amount
+        if amount < 0:
+            if 0 > (currenthealth + amount):
+                json_object['currenthealth'] = 0
+            else:
+                json_object['currenthealth'] = currenthealth + amount
 
         return json_object
 
     @staticmethod
     def feed(json_object, amount):
         currentamount = json_object['food']
-        if 100 < (currentamount + amount):
-            json_object['food'] = 100
-        else:
-            json_object['food'] = currentamount + amount
-        json_object['lastfeed'] = datetime.datetime.now().strftime('%m/%d/%y %H:%M:%S')
-        return json_object
-
-    @staticmethod
-    def starve(json_object, amount):
-        currentamount = json_object['food']
-        if 0 > (currentamount - amount):
-            json_object['food'] = 0
-        else:
-            json_object['food'] = currentamount - amount
-
+        if amount > 0:
+            if 100 < (currentamount + amount):
+                json_object['food'] = 100
+            else:
+                json_object['food'] = currentamount + amount
+            json_object['lastfeed'] = datetime.datetime.now().strftime('%m/%d/%y %H:%M:%S')
+        if amount < 0:
+            if 0 > (currentamount + amount):
+                json_object['food'] = 0
+            else:
+                json_object['food'] = currentamount + amount
         return json_object
 
     @staticmethod
     def water(json_object, amount):
         currentamount = json_object['water']
-        if 100 < (currentamount + amount):
-            json_object['water'] = 100
-        else:
-            json_object['water'] = currentamount + amount
-        json_object['lastwatered'] = datetime.datetime.now().strftime('%m/%d/%y %H:%M:%S')
-        return json_object
-
-    @staticmethod
-    def dehydrate(json_object, amount):
-        currentamount = json_object['water']
-        if 0 > (currentamount - amount):
-            json_object['water'] = 0
-        else:
-            json_object['water'] = currentamount - amount
+        if amount > 0:
+            if 100 < (currentamount + amount):
+                json_object['water'] = 100
+            else:
+                json_object['water'] = currentamount + amount
+            json_object['lastwatered'] = datetime.datetime.now().strftime('%m/%d/%y %H:%M:%S')
+        if amount < 0:
+            if 0 > (currentamount + amount):
+                json_object['water'] = 0
+            else:
+                json_object['water'] = currentamount + amount
 
         return json_object
 
     @staticmethod
     def clean(json_object, amount):
         currentamount = json_object['cleanliness']
-        if 100 < (currentamount + amount):
-            json_object['cleanliness'] = 100
-        else:
-            json_object['cleanliness'] = currentamount + amount
-        json_object['lastcleaned'] = datetime.datetime.now().strftime('%m/%d/%y %H:%M:%S')
-        return json_object
-
-    @staticmethod
-    def dirty(json_object, amount):
-        currentamount = json_object['cleanliness']
-        if 0 > (currentamount - amount):
-            json_object['cleanliness'] = 0
-        else:
-            json_object['cleanliness'] = currentamount - amount
+        if amount > 0:
+            if 100 < (currentamount + amount):
+                json_object['cleanliness'] = 100
+            else:
+                json_object['cleanliness'] = currentamount + amount
+            json_object['lastcleaned'] = datetime.datetime.now().strftime('%m/%d/%y %H:%M:%S')
+        if amount < 0:
+            if 0 > (currentamount + amount):
+                json_object['cleanliness'] = 0
+            else:
+                json_object['cleanliness'] = currentamount + amount
 
         return json_object
 
     @staticmethod
     def happy(json_object, amount):
         currentamount = json_object['happiness']
-        if 100 < (currentamount + amount):
-            json_object['happiness'] = 100
-        else:
-            json_object['happiness'] = currentamount + amount
-        json_object['lastpet'] = datetime.datetime.now().strftime('%m/%d/%y %H:%M:%S')
-        return json_object
-
-    @staticmethod
-    def sadness(json_object, amount):
-        currentamount = json_object['happiness']
-        if 0 > (currentamount - amount):
-            json_object['happiness'] = 0
-        else:
-            json_object['happiness'] = currentamount - amount
+        if amount > 0:
+            if 100 < (currentamount + amount):
+                json_object['happiness'] = 100
+            else:
+                json_object['happiness'] = currentamount + amount
+            json_object['lastpet'] = datetime.datetime.now().strftime('%m/%d/%y %H:%M:%S')
+        if amount < 0:
+            if 0 > (currentamount + amount):
+                json_object['happiness'] = 0
+            else:
+                json_object['happiness'] = currentamount + amount
 
         return json_object
 
@@ -163,25 +146,25 @@ class PetHandler:
         cleanhourspassed = math.floor((cleandelta.days * 24) + (cleandelta.seconds / 3600))
 
         if foodhourspassed > 0:
-            json_object = PetHandler.starve(json_object, (hourspassed * 2))
+            json_object = PetHandler.feed(json_object, -(hourspassed * 2))
             if json_object['food'] == 0:
-                json_object = PetHandler.decreasecurrenthealth(json_object, 10)
+                json_object = PetHandler.currenthealth(json_object, -10)
         if waterhourspassed > 0:
-            json_object = PetHandler.dehydrate(json_object, (hourspassed * 2))
+            json_object = PetHandler.water(json_object, -(hourspassed * 2))
             if json_object['water'] == 0:
-                json_object = PetHandler.decreasecurrenthealth(json_object, 10)
+                json_object = PetHandler.currenthealth(json_object, -10)
         if cleanhourspassed > 0:
-            json_object = PetHandler.dirty(json_object, (hourspassed * 2))
+            json_object = PetHandler.clean(json_object, -(hourspassed * 2))
             if json_object['cleanliness'] == 0:
-                json_object = PetHandler.decreasecurrenthealth(json_object, 10)
+                json_object = PetHandler.currenthealth(json_object, -10)
 
         if hourspassed > 0:
             if json_object['food'] > 70 and json_object['water'] > 75 and json_object['cleanliness'] > 60:
-                json_object = PetHandler.increasecurrenthealth(json_object, (hourspassed * 5))
+                json_object = PetHandler.currenthealth(json_object, (hourspassed * 5))
             if json_object['food'] > 90 and json_object['water'] > 95 and json_object['cleanliness'] > 90:
                 json_object = PetHandler.happy(json_object, (hourspassed * 5))
             if json_object['food'] < 60 and json_object['water'] < 60 and json_object['cleanliness'] < 60:
-                json_object = PetHandler.sadness(json_object, (hourspassed * 5))
+                json_object = PetHandler.happy(json_object, -(hourspassed * 5))
 
         json_object['lastchecked'] = currentdate.strftime('%m/%d/%y %H:%M:%S')
 

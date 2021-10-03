@@ -117,6 +117,59 @@ class PetCommands(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.command()
+    async def careforpet(self, ctx):
+        ableto = True
+        type = []
+        typestr = ''
+        pet = PetHandler.getcurrentpet()
+        currentdate = datetime.datetime.now()
+        foodlastdate = datetime.datetime.strptime(pet['lastfeed'], '%m/%d/%y %H:%M:%S')
+        waterlastdate = datetime.datetime.strptime(pet['lastwatered'], '%m/%d/%y %H:%M:%S')
+        cleanlastdate = datetime.datetime.strptime(pet['lastcleaned'], '%m/%d/%y %H:%M:%S')
+        petlastdate = datetime.datetime.strptime(pet['lastpet'], '%m/%d/%y %H:%M:%S')
+        fooddelta = currentdate - foodlastdate
+        waterdelta = currentdate - waterlastdate
+        cleandelta = currentdate - cleanlastdate
+        petdelta = currentdate - petlastdate
+        foodhourspassed = math.floor((fooddelta.days * 24) + (fooddelta.seconds / 3600))
+        waterhourspassed = math.floor((waterdelta.days * 24) + (waterdelta.seconds / 3600))
+        cleanhourspassed = math.floor((cleandelta.days * 24) + (cleandelta.seconds / 3600))
+        pethourspassed = math.floor((petdelta.days * 24) + (petdelta.seconds / 3600))
+        if foodhourspassed > 1:
+            pet = PetHandler.feed(pet, 20)
+        else:
+            ableto = False
+            type.append('feed')
+        if waterhourspassed > 1:
+            pet = PetHandler.water(pet, 20)
+        else:
+            ableto = False
+            type.append('water')
+        if cleanhourspassed > 1:
+            pet = PetHandler.clean(pet, 20)
+        else:
+            ableto = False
+            type.append('clean')
+        if pethourspassed > 1:
+            pet = PetHandler.happy(pet, 20)
+        else:
+            ableto = False
+            type.append('pet')
+
+        for idx, val in enumerate(type):
+            if len(type) == 1:
+                typestr = type[idx]
+                break
+            if idx == (len(type) - 1) and idx != 0:
+                typestr = typestr + 'or ' + type[idx]
+            else:
+                typestr = typestr + type[idx] + ', '
+        pet = PetHandler.checkpet(pet)
+        PetHandler.savedata(pet)
+        embed = PetCommands.buildembed(pet, ableto, typestr)
+        await ctx.send(embed=embed)
+
+    @commands.command()
     async def newpet(self, ctx, name: str):
         pet = PetHandler.newpet(name)
         embed = PetCommands.buildembed(pet, True, None)
@@ -126,29 +179,36 @@ class PetCommands(commands.Cog):
     async def walkpet(self, ctx):
         pet = PetHandler.getcurrentpet()
         evnt = PetEventHandler.walkevent(pet['name'])
+        pet = PetHandler.feed(pet, evnt.food)
+        pet = PetHandler.water(pet, evnt.water)
+        pet = PetHandler.clean(pet, evnt.cleanliness)
+        pet = PetHandler.happy(pet, evnt.happiness)
+        pet = PetHandler.checkpet(pet)
+        PetHandler.savedata(pet)
         if evnt.type == 'good':
-            pet = PetHandler.feed(pet,evnt.food)
-            pet = PetHandler.water(pet,evnt.water)
-            pet = PetHandler.clean(pet,evnt.cleanliness)
-            pet = PetHandler.happy(pet,evnt.happiness)
             PetHandler.savedata(pet)
             await ctx.send('<:mushWalk:255486412403638274> ' + evnt.text)
             embed = PetCommands.buildembed(pet, True, None)
-            await ctx.send(embed = embed)
+            await ctx.send(embed=embed)
         if evnt.type == 'bad':
-            pet = PetHandler.starve(pet, evnt.food)
-            pet = PetHandler.dehydrate(pet, evnt.water)
-            pet = PetHandler.dirty(pet, evnt.cleanliness)
-            pet = PetHandler.sadness(pet, evnt.happiness)
-            PetHandler.savedata(pet)
             await ctx.send(':skull: ' + evnt.text)
             embed = PetCommands.buildembed(pet, True, None)
             await ctx.send(embed=embed)
         if evnt.type == 'neutral':
-            PetHandler.savedata(pet)
             await ctx.send(':man_shrugging: ' + evnt.text)
             embed = PetCommands.buildembed(pet, True, None)
             await ctx.send(embed=embed)
+
+    @commands.command()
+    async def checktime(self, ctx):
+        pet = PetHandler.getcurrentpet()
+        embed = Embed(title=':motorized_wheelchair: Name: ' + str(pet['name'] + ' :motorized_wheelchair:'), color=0x228B22)
+        embed.add_field(name='Last Checked', value=str(pet['lastchecked']), inline=True)
+        embed.add_field(name='Last Fed', value=str(pet['lastfeed']), inline=True)
+        embed.add_field(name='Last Watered', value=str(pet['lastwatered']), inline=True)
+        embed.add_field(name='Last Cleaned', value=str(pet['lastcleaned']), inline=True)
+        embed.add_field(name='Last Pet', value=str(pet['lastpet']), inline=True)
+        await ctx.send(embed=embed)
 
     @staticmethod
     def buildembed(json_object, ableto, type):
@@ -166,4 +226,3 @@ class PetCommands(commands.Cog):
 
 def setup(bot):
     bot.add_cog(PetCommands(bot))
-
