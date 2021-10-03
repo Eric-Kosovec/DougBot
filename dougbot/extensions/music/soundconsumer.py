@@ -1,50 +1,102 @@
+import inspect
 import logging
+
+from Lib.queue import Queue, Empty
+from threading import Lock, Semaphore
 
 import discord
 
 
 class SoundConsumer:
 
-    def __init__(self, bot, queue, done_playing_lock, volume, channel=None, voice=None):
+    __sound_consumer_lock = Lock()
+    __sound_consumer = None
+
+    @classmethod
+    def get_soundconsumer(cls, bot, volume, callback=None, notify_lock=None):
+        with cls.__sound_consumer_lock:
+            if cls.__sound_consumer is None:
+                cls.__sound_consumer = SoundConsumer(bot, volume, callback, notify_lock)
+            return cls.__sound_consumer
+
+    def __init__(self, bot, volume, callback=None, notify_lock=None):
         self._bot = bot
-        self._queue = queue
-        self._done_playing_lock = done_playing_lock
-        self._volume = volume
-        self._channel = channel
-        self._voice = voice
-        self._run = False
+        self._callback = callback
+        self._notify_lock = notify_lock
+
+        # TODO IMPROVE VOLUME SITUATION, SKIPPING, STOPPING, DOWNLOADING
+
+        self._stop = False
         self._skip = False
+        self._voice = None
+        self._volume = volume
+        self._queue = Queue()  # Thread-safe queue
+        self._done_playing_lock = Semaphore(0)
+
+    def enqueue(self, track):
+        if track is not None:
+            self._queue.put_nowait(track)
 
     def run(self):
-        self._run = True
-        while self._run:
+        while True:
             track = self._queue.get()
 
-            if not self._run:
-                break
-
-            if self._voice is None and self._channel is not None:
-                self._voice = self._bot.loop.run_until_complete(self._bot.join_voice_channel(self._channel))
+            if self._stop:
+                self._clear_queue()
+                continue
 
             for _ in range(track.repeat):
-                if self._skip:
-                    self._skip = False
+                if self._stop or self._skip:
                     break
-                self._voice.play(self._create_audio_source(track), after=self._finished)
+                self._voice = track.voice
+                self._voice.play(self._create_audio_source(track, self._volume), after=self._finished)
                 self._done_playing_lock.acquire()
 
-    def set_voice(self, voice):
-        self._voice = voice
+            self._queue.task_done()
+            self._skip = False
 
-    def set_channel(self, channel):
-        self._channel = channel
+            if self._callback is not None:
+                if inspect.iscoroutinefunction(self._callback):
+                    self._bot.loop.call_soon_threadsafe(self._callback, track)
+                else:
+                    self._callback(track)
+
+            if self._notify_lock is not None:
+                self._notify_lock.release()
+
+    def set_volume(self, volume):
+        self._volume = volume
+
+    # TODO LOCK AROUND SKIP/STOP???
+    def skip_track(self):
+        if self._queue.empty() and not self._voice.is_playing():
+            return
+        self._skip = True
+        if self._voice is not None and self._voice.is_playing():
+            self._voice.stop()
+
+    def stop_playing(self):
+        self._stop = True
+        if self._voice is not None and self._voice.is_playing():
+            self._voice.stop()
+        self._queue.join()
+        self._stop = False
+
+    def _clear_queue(self):
+            try:
+                while True:
+                    self._queue.get_nowait()
+                    self._queue.task_done()
+            except Empty:
+                pass
 
     def _finished(self, error):
         if error is not None:
             logging.getLogger(__file__).log(logging.ERROR, f'SoundPlayer finished error: {error}')
         self._done_playing_lock.release()
 
-    def _create_audio_source(self, track):
+    @staticmethod
+    def _create_audio_source(track, volume):
         audio_source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(track.src, options='-loglevel quiet'))
-        audio_source.volume = self._volume
+        audio_source.volume = volume
         return audio_source

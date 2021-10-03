@@ -45,6 +45,7 @@ class Batsu(commands.Cog):
 
     @staticmethod
     async def _embed_substatus(ctx, status_report, link=None):
+        blank_data = '\u200b'
         legend = 'Not Started > Typesetting > Translating > Quality/English Check > Prep For Release > Complete!'
         embed = Embed(title='Batsu Games Subbing Status', description=legend, color=0xFF0000)
 
@@ -54,7 +55,7 @@ class Batsu(commands.Cog):
         height = math.ceil(len(status_report) / float(Limits.EMBED_INLINE_FIELD_LIMIT))
 
         for _ in range(height * Limits.EMBED_INLINE_FIELD_LIMIT):
-            embed.add_field(name='\u200b', value='\u200b')
+            embed.add_field(name=blank_data, value=blank_data)
 
         r = 0
         c = 0
@@ -66,7 +67,7 @@ class Batsu(commands.Cog):
                 for time, status in status_report[i + 1]:
                     status_display += f'{time} | {status}\n'
                 if len(status_display) == 0:
-                    status_display = '\u200b'
+                    status_display = blank_data
 
             embed.set_field_at(r * Limits.EMBED_INLINE_FIELD_LIMIT + c, name=f'Part {i + 1}', value=status_display)
 

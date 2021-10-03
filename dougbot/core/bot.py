@@ -88,7 +88,7 @@ class DougBot(commands.Bot):
     @staticmethod
     async def check_log(message, error_msg=None):
         if message is not None:
-            page_emoji = '📄'
+            page_emoji = '\U0001F4C4'
             await message.add_reaction(page_emoji)
             if error_msg is not None:
                 await message.channel.send(error_msg)

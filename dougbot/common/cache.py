@@ -24,6 +24,9 @@ class LRUCache(UserDict):
         super().__init__()
         self._limit = limit
 
+    def __contains__(self, item):
+        return item in self.data
+
     def __setitem__(self, key, value):
         while len(self.data) >= self._limit:
             self._evict()

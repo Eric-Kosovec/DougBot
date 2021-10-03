@@ -8,7 +8,6 @@ from discord.ext import commands
 
 from dougbot.extensions.common.annotations.admincheck import admin_command
 from dougbot.extensions.common.rootdirectory import RootDirectory
-from dougbot.extensions.music.supportedformats import PLAYER_FILE_TYPES
 
 
 class SoundManager(commands.Cog):
@@ -75,7 +74,7 @@ class SoundManager(commands.Cog):
 
     @commands.command()
     async def getclip(self, ctx, *, clip: str):
-        path = await self._get_clip_path(clip)
+        path = await self.clip_path(clip)
         if path is None:
             await self.bot.confusion(ctx.message)
             return
@@ -105,10 +104,7 @@ class SoundManager(commands.Cog):
             await self.bot.confusion(ctx.message)
             return
 
-        if '.' in clip_name and clip_name[clip_name.rfind('.'):] not in PLAYER_FILE_TYPES:
-            await self.bot.confusion(ctx.message, f"{clip_name[clip_name.rfind('.'):]} unsupported file type.")
-            return
-        elif '.' not in clip_name:
+        if '.' not in clip_name:
             clip_name += url[url.rfind('.'):]
 
         file = await self._download_file(url)
@@ -170,22 +166,22 @@ class SoundManager(commands.Cog):
             clips.extend([f[:f.rfind('.')] for f in filenames if self._is_audio_track(f)])
         return clips
 
-    ''' Begin private methods '''
-
-    @staticmethod
-    async def _safe_path(path):
-        return path is not None and '..' not in path and not os.path.isabs(path)
-
-    async def _get_clip_path(self, clip):
+    async def clip_path(self, clip):
         for dirpath, _, filenames in os.walk(self._clips_dir):
             for file in filenames:
                 if '.' in file and file[:file.rfind('.')] == clip:
                     return os.path.join(dirpath, file)
         return None
 
+    ''' Begin private methods '''
+
+    @staticmethod
+    async def _safe_path(path):
+        return path is not None and '..' not in path and not os.path.isabs(path)
+
     @staticmethod
     def _is_audio_track(filename):
-        return type(filename) == str and '.' in filename and filename[filename.rfind('.'):] in PLAYER_FILE_TYPES
+        return type(filename) == str and '.' in filename
 
     @staticmethod
     async def _is_link(candidate):
@@ -195,8 +191,7 @@ class SoundManager(commands.Cog):
         return candidate.startswith('https://') or candidate.startswith('http://') or candidate.startswith('www.')
 
     async def _check_url(self, url):
-        return url is not None and await self._is_link(url) and '.' in url \
-               and url[url.rfind('.'):] in PLAYER_FILE_TYPES
+        return url is not None and await self._is_link(url) and '.' in url
 
     async def _download_file(self, url):
         if not await self._check_url(url):

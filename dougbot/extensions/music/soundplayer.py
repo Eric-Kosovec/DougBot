@@ -3,10 +3,10 @@ import functools
 import hashlib
 import os
 import sys
-import traceback
+import threading
+
 from concurrent.futures import ThreadPoolExecutor
 
-import discord
 import youtube_dl
 from youtube_search import YoutubeSearch
 from discord.ext import commands
@@ -15,27 +15,30 @@ from dougbot.common.cache import LRUCache
 from dougbot.core.bot import DougBot
 from dougbot.extensions.common.autocorrect import Autocorrect
 from dougbot.extensions.common.annotations.miccheck import voice_command
-from dougbot.extensions.music.error import TrackNotExistError
-from dougbot.extensions.music.supportedformats import PLAYER_FILE_TYPES
+from dougbot.extensions.music.soundconsumer import SoundConsumer
 from dougbot.extensions.music.track import Track
 
 
-class SoundPlayer(commands.Cog):
+class SoundPlayer2(commands.Cog):
 
     def __init__(self, bot: DougBot):
         self.bot = bot
         self.bot.event(self.on_voice_state_update)
-        self._threads = ThreadPoolExecutor()
-        self._clips_dir = os.path.join(self.bot.ROOT_DIR, 'resources', 'extensions', 'music', 'audio')
-        self._cache_dir = os.path.join(self.bot.ROOT_DIR, 'cache')
-        self._autocorrect = Autocorrect(self._clip_names())  # Hack until rewrite
-        self._kv = self.bot.kv_store()
-        self._path_cache = LRUCache(20)
-        self._play_lock = asyncio.Lock()  # Stop multiple threads from being created and playing audio over each other.
-        self._notify_done_playing = asyncio.Semaphore(0)  # For notifying thread is done playing clip
-        self._links_to_play = 0
-        self._volume = 1.0 if not self._kv.contains('volume') else self._kv['volume']
-        self._skip = False
+
+        self.path_cache = LRUCache(20)
+        self.threads = ThreadPoolExecutor()
+
+        self.kv = self.bot.kv_store()
+        self.order_lock = asyncio.Lock()  # Keeps order tracks are played in.
+        self.volume = 1.0 if 'volume' not in self.kv else self.kv['volume']
+
+        self.clips_dir = os.path.join(self.bot.ROOT_DIR, 'resources', 'extensions', 'music', 'audio')
+        self.cache_dir = os.path.join(self.bot.ROOT_DIR, 'cache')
+        self.autocorrect = Autocorrect(self._clip_names())  # Hack
+
+        self.sound_consumer = SoundConsumer.get_soundconsumer(self.bot, self.volume)
+        self.sound_consumer_thread = threading.Thread(target=self.sound_consumer.run, name='Sound Consumer')
+        self.sound_consumer_thread.start()
 
     @commands.command()
     @commands.guild_only()
@@ -46,46 +49,17 @@ class SoundPlayer(commands.Cog):
             await self.bot.confusion(ctx.message)
             return
 
-        source = self._autocorrect.correct(source)
-
-        # Acquire lock so only one thread will play the clips; otherwise, sounds will interleave.
-        await self._play_lock.acquire()
-        try:
-            voice = await self.bot.join_voice_channel(ctx.message.author.voice.channel)
-            if voice is None:
-                self._play_lock.release()
-                await self.bot.confusion(ctx.message)
-                return
-
-            track = await self._create_track(source)
-            if track is None:
-                await self.bot.confusion(ctx.message)
-                return
-
-            # Track how many links will be played, for clearing cache.
-            if track.is_link:
-                self._links_to_play += times
-
-            # Begin clip block.
-            self._skip = False
-            for _ in range(times):
-                if self._skip:
-                    break
-                voice.play(await self._create_audio_source(track), after=self._finished)
-                # Wait until thread is done playing current audio before playing the next in the clip block.
-                await self._notify_done_playing.acquire()
-            if track.is_link:
-                self._links_to_play -= times
-        except TrackNotExistError:
+        voice = await self.bot.join_voice_channel(ctx.message.author.voice.channel)
+        if voice is None:
             await self.bot.confusion(ctx.message)
-        except Exception as e:
-            await self.bot.confusion(ctx.message)
-            print(f'ERROR: Exception raised in SoundPlayer method play: {e}', file=sys.stderr)
-            traceback.print_exc()
-        finally:
-            self._play_lock.release()
-            
-    #Searches for a youtube video based on the search terms given and sends the url to the play function
+            return
+
+        # TODO EXPLORE CREATING TRACK WHILE WAITING
+        # Keep ordering of clips
+        async with self.order_lock:
+            await self._enqueue_audio(ctx, voice, source, times)
+
+    # Searches for a youtube video based on the search terms given and sends the url to the play function
     @commands.command()
     @commands.guild_only()
     @voice_command()
@@ -95,27 +69,28 @@ class SoundPlayer(commands.Cog):
             ytURL = searchTerms
         else:
             results = YoutubeSearch(searchTerms, max_results=20).to_dict()
-            for i in range(0,len(results)):
-                if(results[i]['publish_time']!=0):
-                     ytURL = r'https://www.youtube.com' + results[i]['url_suffix']
-                     break
+            for i in range(0, len(results)):
+                if (results[i]['publish_time'] != 0):
+                    ytURL = r'https://www.youtube.com' + results[i]['url_suffix']
+                    break
         if ytURL != '':
             await ctx.send("Added " + ytURL + " to the queue...")
-            await self.play(ctx, source = ytURL, times = '1')
+            await self.play(ctx, source=ytURL, times='1')
         else:
             await ctx.send("Could not find track to add.")
 
-    # Volume is already a superclass' method, so beware.
+    # 'volume' is already a superclass' method, so can't use that method name.
     @commands.command(name='volume', aliases=['vol'])
     @commands.guild_only()
     @voice_command()
     async def vol(self, ctx, volume: float):
         voice = await self.bot.get_voice(ctx.message.author.voice.channel)
         if voice is not None:
-            self._volume = max(0.0, min(100.0, volume)) / 100.0
+            self.volume = max(0.0, min(100.0, volume)) / 100.0
             if voice.is_playing():
-                voice.source.volume = self._volume
-            self._kv['volume'] = self._volume
+                voice.source.volume = self.volume
+            self.kv['volume'] = self.volume
+        self.sound_consumer.set_volume(volume)
 
     @commands.command()
     @commands.guild_only()
@@ -133,21 +108,18 @@ class SoundPlayer(commands.Cog):
         if voice is not None and voice.is_paused():
             voice.resume()
 
-    @commands.command(aliases=['next'])
+    @commands.command()
     @commands.guild_only()
     @voice_command()
     async def skip(self, ctx):
         voice = await self.bot.get_voice(ctx.message.author.voice.channel)
         if voice is not None and voice.is_playing():
-            voice.stop()
-            self._skip = True
+            self.sound_consumer.skip_track()
 
     @commands.command(aliases=['stop'])
     @commands.guild_only()
     @voice_command()
     async def leave(self, ctx):
-        # TODO MIGHT CAUSE AN ISSUE IF MULTIPLE SOUNDS ARE "QUEUED" UP, AS ONCE THE BLOCK IS SKIPPED AND VOICE ->
-        # TODO DISCONNECTED, IT WILL REJOIN TO PLAY THE NEXT BLOCK OF SOUNDS.
         voice = await self.bot.get_voice(ctx.message.author.voice.channel)
         if voice is not None:
             await self._quit_playing(voice)
@@ -164,64 +136,64 @@ class SoundPlayer(commands.Cog):
             await self._quit_playing(voice)
 
     async def _quit_playing(self, voice):
-        self._skip = True
-        self._links_to_play = 0
+        await self.bot.loop.run_in_executor(self.threads, self.sound_consumer.stop_playing)
         if voice is not None:
-            voice.stop()
             await voice.disconnect()
         await self._clear_cache()
 
-    async def _create_audio_source(self, track):
-        audio_source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(track.src, options='-loglevel quiet'))
-        audio_source.volume = self._volume
-        return audio_source
+    async def _clear_cache(self):
+        async with self.order_lock:
+            task = functools.partial(self._remove_files, self.cache_dir)
+            await self.bot.loop.run_in_executor(self.threads, task)
 
-    def _finished(self, error):
-        if error is not None:
-            print(f'ERROR: SoundPlayer finished error: {error}', file=sys.stderr)
-        self._notify_done_playing.release()
+    @staticmethod
+    def _remove_files(directory):
+        for path, _, files in os.walk(directory):
+            for file in files:
+                try:
+                    os.remove(os.path.join(path, file))
+                except Exception as e:
+                    print(f'Failed to remove sound player cache file(s): {e}', file=sys.stderr)
 
-    async def _create_track(self, source):
+    async def _enqueue_audio(self, ctx, voice, source, times):
+        self.sound_consumer.enqueue(await self._create_track(ctx, voice, source, times))
+
+    async def _create_track(self, ctx, voice, source, times):
         is_link = await self._is_link(source)
+
         if not is_link:
-            source = await self._create_path(source)
+            source = await self._get_path(source)
+            if source is None:  # Could be a typo, try again
+                source = self.autocorrect.correct(source)
+                source = await self._get_path(source)
         else:
             source = await self._download_link(source)
-        return Track(source, is_link) if source is not None else None
+
+        return Track(ctx, voice, source, is_link, times)
 
     @staticmethod
     async def _is_link(candidate):
-        # Rudimentary link detection
-        return type(candidate) == str and (candidate.startswith('https://') or candidate.startswith('http://')
-                                           or candidate.startswith('www.'))
+        return candidate.startswith('https://') or candidate.startswith('http://') or candidate.startswith('www.')
 
-    async def _create_path(self, audio):
-        if audio is None:
-            return None
-
-        audio_path = await self._path_cache.get(audio)
+    async def _get_path(self, audio):
+        audio_path = await self.path_cache.get(audio)
         if audio_path is not None:
             return audio_path
 
-        for path, _, files in os.walk(self._clips_dir):
-            for ending in PLAYER_FILE_TYPES:
-                if f'{audio}{ending}'.lower() in self._lowercase_gen(files):
-                    audio_path = os.path.join(path, f'{audio}{ending}')
-                    await self._path_cache.insert(audio, audio_path)
+        for path, _, files in os.walk(self.clips_dir):
+            for filename in files:
+                if audio.lower() == os.path.splitext(filename)[0].lower():
+                    audio_path = os.path.join(path, filename)
+                    await self.path_cache.insert(audio, audio_path)
                     return audio_path
 
         return None
 
-    @staticmethod
-    def _lowercase_gen(strings):
-        for string in strings:
-            yield string.lower()
-
     async def _download_link(self, link):
-        if link is None:
-            return None
+        dl_path = os.path.join(self.cache_dir, await self._link_hash(link))
+        if os.path.exists(dl_path):
+            return dl_path
 
-        dl_path = os.path.join(self._cache_dir, await self._link_hash(link))
         ytdl_params = {
             'format': 'bestaudio/best',
             'extractaudio': True,
@@ -239,36 +211,17 @@ class SoundPlayer(commands.Cog):
         }
         ytdl = youtube_dl.YoutubeDL(ytdl_params)
 
-        if not os.path.exists(dl_path):
-            task = functools.partial(ytdl.extract_info, link)
-            await self.bot.loop.run_in_executor(self._threads, task)
+        task = functools.partial(ytdl.extract_info, link)
+        await self.bot.loop.run_in_executor(self.threads, task)
 
         return dl_path
 
-    async def _clear_cache(self):
-        async with self._play_lock:
-            if self._links_to_play > 0:
-                return
-            task = functools.partial(self._remove_files, self._cache_dir)
-            await self.bot.loop.run_in_executor(self._threads, task)
-
     @staticmethod
     async def _link_hash(link):
-        if link is None:
-            return None
         link = 'yt_' + link
         md5hash = hashlib.new('md5')
         md5hash.update(link.encode('utf-8'))
         return md5hash.hexdigest()
-
-    @staticmethod
-    def _remove_files(directory):
-        for path, _, files in os.walk(directory):
-            for file in files:
-                try:
-                    os.remove(os.path.join(path, file))
-                except Exception as e:
-                    print(f'Failed to remove sound player cache file(s): {e}', file=sys.stderr)
 
     @staticmethod
     async def _custom_play_parse(source, times):
@@ -284,14 +237,10 @@ class SoundPlayer(commands.Cog):
 
     def _clip_names(self):
         clips = []
-        for _, _, filenames in os.walk(self._clips_dir):
-            clips.extend([f[:f.rfind('.')] for f in filenames if self._is_audio_track(f)])
+        for _, _, filenames in os.walk(self.clips_dir):
+            clips.extend([f[:f.rfind('.')] for f in filenames])
         return clips
-
-    @staticmethod
-    def _is_audio_track(filename):
-        return type(filename) == str and '.' in filename and filename[filename.rfind('.'):] in PLAYER_FILE_TYPES
 
 
 def setup(bot):
-    bot.add_cog(SoundPlayer(bot))
+    bot.add_cog(SoundPlayer2(bot))
