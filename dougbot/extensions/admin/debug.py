@@ -16,10 +16,6 @@ class Debug(commands.Cog):
             await log_channel.purge(check=lambda m: m.author.id == ctx.me.id, bulk=False)
             await ctx.message.delete()
 
-    @commands.command()
-    async def hi(self, ctx):
-        await ctx.send('Hello?')
-
 
 def setup(bot):
     bot.add_cog(Debug(bot))

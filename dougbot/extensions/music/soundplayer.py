@@ -19,7 +19,7 @@ from dougbot.extensions.music.soundconsumer import SoundConsumer
 from dougbot.extensions.music.track import Track
 
 
-class SoundPlayer2(commands.Cog):
+class SoundPlayer(commands.Cog):
 
     def __init__(self, bot: DougBot):
         self.bot = bot
@@ -243,4 +243,4 @@ class SoundPlayer2(commands.Cog):
 
 
 def setup(bot):
-    bot.add_cog(SoundPlayer2(bot))
+    bot.add_cog(SoundPlayer(bot))

@@ -25,7 +25,7 @@ class Delivery(commands.Cog):
     @commands.command()
     @admin_command()
     async def force_update(self, ctx):
-        await self._update(ctx, ['git', 'fetch', '--all'], ['git', 'reset', '--hard', 'origin/master'])
+        await self._update(ctx, ['git', 'reset', '--hard', 'origin/master'])
 
     @commands.command()
     @admin_command()
@@ -34,28 +34,18 @@ class Delivery(commands.Cog):
         await self._restart_bot(ctx)
 
     async def _update(self, ctx, *cmds):
-        if ctx is None or cmds is None:
-            return
-
         cwd = os.getcwd()
         os.chdir(self.bot.ROOT_DIR)
 
-        # Find which files will change - core files or extensions.
-        # Extensions can be reloaded, core files require restarting
-        await self._process_commands(['git', 'fetch'])
-        subprocess.check_output(['git', 'diff', 'master', 'origin/master', '--name-only'])
-
-        # Update code
         try:
+            await self._process_commands(['git', 'fetch', '--all'])
             await self._process_commands(*cmds)
-        except subprocess.CalledProcessError:
-            if ctx is not None:
-                await self.bot.confusion(ctx.message)
-                os.chdir(cwd)
-                return
-
-        await self._restart_bot(ctx)
-        os.chdir(cwd)  # Just in case restarting fails
+            await self._restart_bot(ctx)
+        except Exception as e:
+            await self.bot.confusion(ctx.message)
+            raise e
+        finally:
+            os.chdir(cwd)
 
     @staticmethod
     async def _restart_bot(ctx):
@@ -65,8 +55,6 @@ class Delivery(commands.Cog):
 
     @staticmethod
     async def _process_commands(*cmds):
-        if cmds is None:
-            return
         for command in cmds:
             subprocess.call(command)
 
