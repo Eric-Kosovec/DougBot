@@ -2,7 +2,6 @@ import asyncio
 import functools
 import hashlib
 import os
-import sys
 import threading
 
 from concurrent.futures import ThreadPoolExecutor
@@ -63,21 +62,21 @@ class SoundPlayer(commands.Cog):
     @commands.command()
     @commands.guild_only()
     @voice_command()
-    async def ytplay(self, ctx, *, searchTerms: str):
-        ytURL = ''
-        if await self._is_link(searchTerms):
-            ytURL = searchTerms
+    async def ytplay(self, ctx, *, search_terms: str):
+        yt_url = ''
+        if await self._is_link(search_terms):
+            yt_url = search_terms
         else:
-            results = YoutubeSearch(searchTerms, max_results=20).to_dict()
+            results = YoutubeSearch(search_terms, max_results=20).to_dict()
             for i in range(0, len(results)):
-                if (results[i]['publish_time'] != 0):
-                    ytURL = r'https://www.youtube.com' + results[i]['url_suffix']
+                if results[i]['publish_time'] != 0:
+                    yt_url = f"https://www.youtube.com{results[i]['url_suffix']}"
                     break
-        if ytURL != '':
-            await ctx.send("Added " + ytURL + " to the queue...")
-            await self.play(ctx, source=ytURL, times='1')
+        if len(yt_url) > 0:
+            await ctx.send(f'Added {yt_url} to the queue...')
+            await self.play(ctx, source=yt_url, times='1')
         else:
-            await ctx.send("Could not find track to add.")
+            await ctx.send('Could not find track to add.')
 
     # 'volume' is already a superclass' method, so can't use that method name.
     @commands.command(name='volume', aliases=['vol'])
@@ -153,7 +152,7 @@ class SoundPlayer(commands.Cog):
                 try:
                     os.remove(os.path.join(path, file))
                 except Exception as e:
-                    print(f'Failed to remove sound player cache file(s): {e}', file=sys.stderr)
+                    raise e
 
     async def _enqueue_audio(self, ctx, voice, source, times):
         self.sound_consumer.enqueue(await self._create_track(ctx, voice, source, times))

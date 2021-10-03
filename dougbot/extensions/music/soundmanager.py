@@ -1,6 +1,5 @@
 import os
 import shutil
-import sys
 
 import discord
 import requests
@@ -35,8 +34,9 @@ class SoundManager(commands.Cog):
         try:
             self._clip_root.rename_file(from_path, to_path)
             await self.bot.confirmation(ctx.message)
-        except OSError:
+        except OSError as e:
             await self.bot.confusion(ctx.message)
+            raise e
 
     @commands.command()
     @admin_command()
@@ -50,8 +50,9 @@ class SoundManager(commands.Cog):
         try:
             self._clip_root.move_file(clip_path, dest_path)
             await self.bot.confirmation(ctx.message)
-        except OSError:
+        except OSError as e:
             await self.bot.confusion(ctx.message)
+            raise e
 
     @commands.command(aliases=['deleteclip'])
     @admin_command()
@@ -60,8 +61,9 @@ class SoundManager(commands.Cog):
         try:
             self._clip_root.delete_file(clip)
             await self.bot.confirmation(ctx.message)
-        except (FileNotFoundError, OSError):
+        except Exception as e:
             await self.bot.confusion(ctx.message)
+            raise e
 
     @commands.command(aliases=['removecategory'])
     @admin_command()
@@ -69,8 +71,9 @@ class SoundManager(commands.Cog):
         try:
             self._clip_root.delete_dir(category)
             await self.bot.confirmation(ctx.message)
-        except (FileNotFoundError, OSError):
+        except Exception as e:
             await self.bot.confusion(ctx.message)
+            raise e
 
     @commands.command()
     async def getclip(self, ctx, *, clip: str):
@@ -89,9 +92,9 @@ class SoundManager(commands.Cog):
         if not os.path.exists(os.path.join(self._clips_dir, folder)):
             try:
                 os.makedirs(os.path.join(self._clips_dir, folder), exist_ok=True)
-            except OSError:
+            except OSError as e:
                 await self.bot.confusion(ctx.message)
-                return
+                raise e
 
         if url is None or len(url) <= 0:
             # If no url was provided, then there has to be an audio attachment.
@@ -117,9 +120,8 @@ class SoundManager(commands.Cog):
             with open(path, 'wb') as out_file:
                 shutil.copyfileobj(file.raw, out_file)
         except Exception as e:
-            print(f'ERROR: Failed to write sound file: {e}', file=sys.stderr)
             await self.bot.confusion(ctx.message)
-            return
+            raise e
 
         await self.bot.confirmation(ctx.message)
 

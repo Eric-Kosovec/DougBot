@@ -1,15 +1,16 @@
 import os
 import sys
-import traceback
 
 
 class ExtensionLoader:
     EXTENSIONS_BASE = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'extensions')
 
     @staticmethod
-    def load_extensions(client):
+    def load_extensions(bot):
+        exceptions = []
+
         if not os.path.exists(ExtensionLoader.EXTENSIONS_BASE):
-            print(f"Path to extensions, '{ExtensionLoader.EXTENSIONS_BASE},' does not exist.", file=sys.stderr)
+            exceptions.append(Exception(f"Path to extensions, '{ExtensionLoader.EXTENSIONS_BASE},' does not exist."))
             return
 
         # Add extension package to where the system looks for files.
@@ -23,15 +24,16 @@ class ExtensionLoader:
             for filename in files:
                 if ExtensionLoader._is_extension_module(root, filename):
                     try:
-                        module_path = (root[len(client.ROOT_DIR) + 1:] + os.sep + filename[:-3]).replace(os.sep, '.')
-                        client.load_extension(module_path)
+                        module_path = (root[len(bot.ROOT_DIR) + 1:] + os.sep + filename[:-3]).replace(os.sep, '.')
+                        bot.load_extension(module_path)
                     except Exception as e:
                         if "no 'setup' function" in str(e):
                             # Ignore when there is no setup function. Can't know if it is an intentional issue or not.
                             # If an extension SHOULD exist, but doesn't, this is likely the issue.
                             continue
-                        print(f'\n{os.path.basename(root)}.{filename[:-3]} extension failed to load', file=sys.stderr)
-                        traceback.print_exc()
+                        exceptions.append(e)
+
+        return exceptions
 
     @staticmethod
     def _is_extension_module(path, filename):

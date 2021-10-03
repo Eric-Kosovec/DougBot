@@ -11,8 +11,6 @@ class ChannelHandler(Handler):
 
     def __init__(self, root_dir, channel, loop):
         super().__init__()
-        if root_dir is None or channel is None or loop is None:
-            raise ValueError('ChannelHandler init given None value')
         self._root_dir = root_dir
         self._channel = channel
         self._loop = loop

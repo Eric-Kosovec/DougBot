@@ -17,7 +17,7 @@ class Batsu(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(aliases=['batsu', 'gaki'])
+    @commands.command(aliases=['batsu'])
     async def substatus(self, ctx):
         status_html = requests.get(self._SUB_STATUS).text
         status_page_html = requests.get(self._SUB_STATUS_PAGE).text

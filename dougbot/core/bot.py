@@ -34,7 +34,7 @@ class DougBot(commands.Bot):
         intent.presences = True
 
         super().__init__(self._config.command_prefix, intents=intent, case_insensitive=True)
-        ExtensionLoader.load_extensions(self)
+        self._extension_errors = ExtensionLoader.load_extensions(self)
 
     def run(self, *args, **kwargs):
         try:
@@ -65,6 +65,10 @@ class DougBot(commands.Bot):
             self._on_ready_called = True
             self._appinfo = await self.application_info()
 
+            if len(self._extension_errors) > 0:
+                for exception in self._extension_errors:
+                    logging.getLogger(__file__).log(logging.ERROR, exception)
+
     async def on_command_error(self, ctx, error):
         error_texts = {
             commands.errors.MissingRequiredArgument: f'Missing argument(s), type {self._config.command_prefix}help <command_name>',
@@ -81,8 +85,7 @@ class DougBot(commands.Bot):
                 return
 
         if isinstance(error, commands.CommandInvokeError):  # Catches rest of exceptions
-            logger = logging.getLogger(__file__)
-            logger.log(logging.ERROR, f'{error}\n{traceback.format_tb(error.original.__traceback__)}')
+            logging.getLogger(__file__).log(logging.ERROR, f'{error}\n{traceback.format_tb(error.original.__traceback__)}')
             await self.check_log(ctx.message)
 
     @staticmethod
