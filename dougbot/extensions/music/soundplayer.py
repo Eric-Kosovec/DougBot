@@ -37,7 +37,7 @@ class SoundPlayer(commands.Cog):
         self.autocorrect = Autocorrect(self._clip_names())  # Hack
 
         self.sound_consumer = SoundConsumer.get_soundconsumer(self.bot, self.volume)
-        self.sound_consumer_thread = threading.Thread(target=self.sound_consumer.run, name='Sound Consumer')
+        self.sound_consumer_thread = threading.Thread(target=self.sound_consumer.run, name='Sound_Consumer')
         self.sound_consumer_thread.start()
 
     @commands.command()
