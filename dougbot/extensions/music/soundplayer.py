@@ -166,17 +166,17 @@ class SoundPlayer(commands.Cog):
         is_link = await self._is_link(source)
 
         if not is_link:
-            source = await self._get_path(source)
-            if source is None:  # Could be a typo, try again
+            track_source = await self._get_path(source)
+            if track_source is None:  # Could be a typo, try again
                 source = self.autocorrect.correct(source)
-                source = await self._get_path(source)
+                track_source = await self._get_path(source)
         else:
-            source = await self._download_link(source)
+            track_source = await self._download_link(source)
 
-        if source is None:
+        if track_source is None:
             return None
 
-        return Track(ctx, voice, source, is_link, times)
+        return Track(ctx, voice, track_source, is_link, times)
 
     @staticmethod
     async def _is_link(candidate):
