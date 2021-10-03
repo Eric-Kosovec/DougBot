@@ -1,6 +1,7 @@
 aiohttp
 discord.py
 discord.py[voice]
+Lib
 pip
 PyNaCl
 requests

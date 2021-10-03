@@ -30,7 +30,7 @@ class Delivery(commands.Cog):
     @commands.command()
     @admin_command()
     async def update_pkgs(self, ctx):
-        await self._update(ctx, ['python', os.path.join(self.bot.ROOT_DIR, 'setup.py')])
+        await self._update(ctx, ['python3', os.path.join(self.bot.ROOT_DIR, 'setup.py')])
         await self._restart_bot(ctx)
 
     async def _update(self, ctx, *cmds):
