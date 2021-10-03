@@ -155,7 +155,12 @@ class SoundPlayer(commands.Cog):
                     raise e
 
     async def _enqueue_audio(self, ctx, voice, source, times):
-        self.sound_consumer.enqueue(await self._create_track(ctx, voice, source, times))
+        track = await self._create_track(ctx, voice, source, times)
+        if track is None:
+            await self.bot.confusion(ctx.message)
+            return
+
+        self.sound_consumer.enqueue(track)
 
     async def _create_track(self, ctx, voice, source, times):
         is_link = await self._is_link(source)
@@ -167,6 +172,9 @@ class SoundPlayer(commands.Cog):
                 source = await self._get_path(source)
         else:
             source = await self._download_link(source)
+
+        if source is None:
+            return None
 
         return Track(ctx, voice, source, is_link, times)
 

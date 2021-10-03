@@ -87,7 +87,7 @@ class SoundConsumer:
                 while True:
                     self._queue.get_nowait()
                     self._queue.task_done()
-            except Empty:
+            except Exception as _:
                 pass
 
     def _finished(self, error):
