@@ -23,13 +23,9 @@ class Autocorrect:
             self._symspell.delete_dictionary_entry(word)
 
     def correct(self, bad_word):
-        if bad_word is None:
-            return ''
         return self._symspell.lookup(bad_word, Verbosity.TOP,
                                      max_edit_distance=self._max_edit_distance, include_unknown=True)[0].term
 
     def predictions(self, bad_word):
-        if bad_word is None:
-            return []
         return self._symspell.lookup(bad_word, Verbosity.CLOSEST,
                                      max_edit_distance=self._max_edit_distance, include_unknown=True)

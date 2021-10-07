@@ -15,40 +15,46 @@ from dougbot.common.database import Database
 from dougbot.core.extloader import ExtensionLoader
 from dougbot.core.util.channelhandler import ChannelHandler
 
+# https://discordpy.readthedocs.io/
+
 
 class DougBot(commands.Bot):
     ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     RESOURCES_DIR = os.path.join(ROOT_DIR, 'resources')
 
+    START_MESSAGE = "\nI'm starting..."
+    ENDING_MESSAGE = "\nI'm dying..."
+    END_MESSAGE = "\nI've perished."
+
     def __init__(self, token_file, bot_config, server_config):
+        self._config = Config(token_file, bot_config, server_config)
+        self._dougdb = Database(os.path.join(self.RESOURCES_DIR, 'core', 'db', 'dougbot.db'))  # For core bot settings
+
         # For notifying text channels the bot is online. Used to prevent spamming in case of shaky
         # internet, as on_ready can be called multiple times in such a case.
         self._on_ready_called = False
         self._log_channel = None
         self._appinfo = None
-        self._config = Config(token_file, bot_config, server_config)
-        self._dougdb = Database(os.path.join(self.RESOURCES_DIR, 'core', 'db', 'dougbot.db'))  # For core bot settings
 
         intent = discord.Intents.default()
         intent.members = True
         intent.presences = True
 
         super().__init__(self._config.command_prefix, intents=intent, case_insensitive=True)
-        self._extension_errors = ExtensionLoader.load_extensions(self)
+        self._extension_load_errors = ExtensionLoader.load_extensions(self)
 
     def run(self, *args, **kwargs):
+        print(self.START_MESSAGE)
         try:
-            self._on_ready_called = False
-            print("\nI'm starting...")
             super().run(*(self._config.token, *args), **kwargs)
         except Exception as e:
             print(f'\nFATAL EXCEPTION: Uncaught exception while running bot: {e}', file=sys.stderr)
             traceback.print_exc()
         finally:
-            print("\nI'm dying...")
+            print(self.ENDING_MESSAGE)
             if self.loop is not None and not self.loop.is_closed():
                 asyncio.run_coroutine_threadsafe(self.logout(), self.loop)
-            print("\nI've perished.")
+            print(self.END_MESSAGE)
 
     async def on_ready(self):
         if not self._on_ready_called:
@@ -65,9 +71,8 @@ class DougBot(commands.Bot):
             self._on_ready_called = True
             self._appinfo = await self.application_info()
 
-            if len(self._extension_errors) > 0:
-                for exception in self._extension_errors:
-                    logging.getLogger(__file__).log(logging.ERROR, exception)
+            for exception in self._extension_load_errors:
+                logging.getLogger(__file__).log(logging.ERROR, f'{exception}\n{traceback.format_tb(exception.original.__traceback__)}')
 
     async def on_command_error(self, ctx, error):
         error_texts = {
@@ -84,9 +89,9 @@ class DougBot(commands.Bot):
                 await self.confusion(ctx.message, error_msg)
                 return
 
-        if isinstance(error, commands.CommandInvokeError):  # Catches rest of exceptions
-            logging.getLogger(__file__).log(logging.ERROR, f'{error}\n{traceback.format_tb(error.original.__traceback__)}')
-            await self.check_log(ctx.message)
+        # Catches rest of exceptions
+        logging.getLogger(__file__).log(logging.ERROR, f'{error}\n{traceback.format_tb(error.original.__traceback__)}')
+        await self.check_log(ctx.message)
 
     @staticmethod
     async def check_log(message, error_msg=None):
@@ -116,6 +121,7 @@ class DougBot(commands.Bot):
     def kv_store(self, sibling_module=None):
         caller_stack = inspect.stack()[1]
         calling_module = inspect.getmodule(caller_stack[0]).__name__
+        # dougbot.package...package...module
 
         if sibling_module is not None:
             sibling_module = sibling_module.replace(os.sep, '.')
@@ -123,17 +129,26 @@ class DougBot(commands.Bot):
             if not sibling_module.startswith(extension_package):
                 sibling_module = f'{extension_package}.{sibling_module}'
 
-            if self._is_admin_package(calling_module) or self._same_extension_package(calling_module, sibling_module):
-                table_name = sibling_module.replace('.', '_')
-            else:
-                raise ValueError(f"Cannot get sibling module: {sibling_module}")
-        else:
-            table_name = calling_module.replace('.', '_')
+            if not self._is_admin_package(calling_module) and not self._same_extension_package(calling_module, sibling_module):
+                raise ValueError(f"Cannot get sibling module '{sibling_module}' from '{calling_module}'")
 
-        return KVStore(self._dougdb, table_name)
+        return KVStore(self._dougdb, calling_module.replace('.', '_'))
 
-    async def kv_store_async(self, sibling_module=None):
-        return self.kv_store(sibling_module)
+    def package_resource_path(self):
+        caller_stack = inspect.stack()[1]
+        calling_module = inspect.getmodule(caller_stack[0]).__name__
+
+        if not calling_module.startswith('dougbot.'):
+            return self.RESOURCES_DIR
+
+        components = calling_module.split('.')
+
+        if components[1] == 'core':
+            return os.path.join(self.RESOURCES_DIR, 'core')
+        elif components[1] == 'extensions':
+            return os.path.join(self.RESOURCES_DIR, os.sep.join(components[1: -1]))
+
+        return self.RESOURCES_DIR
 
     async def join_voice_channel(self, channel):
         if channel is not None:
@@ -147,9 +162,7 @@ class DougBot(commands.Bot):
             await voice.disconnect()
 
     async def in_voice_channel(self, channel):
-        if channel is not None:
-            return find(lambda vc: vc.channel.id == channel.id, self.voice_clients) is not None
-        return False
+        return await self.get_voice(channel) is not None
 
     async def get_voice(self, channel):
         if channel is not None:
