@@ -59,7 +59,7 @@ class PathBuilder:
             return
 
         if file == os.pardir:
-            next_path = self._current[:-len(os.path.basename(self._current)) + 1]
+            next_path = self._current[:-len(os.path.basename(self._current)) - 1]
         else:
             next_path = os.path.join(self._current, file)
 
