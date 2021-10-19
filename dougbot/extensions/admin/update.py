@@ -3,7 +3,6 @@ import subprocess
 import sys
 
 from discord.ext import commands
-from discord import Activity, ActivityType
 
 from dougbot.core.bot import DougBot
 from dougbot.extensions.common.annotations.admincheck import admin_command
@@ -14,9 +13,6 @@ class Update(commands.Cog):
     def __init__(self, bot: DougBot):
         self._bot = bot
         self._kv = self._bot.kv_store()
-        #self._previous_presence = self._kv['previous_presence'] if 'previous_presence' in self._kv else None
-        #self._bot.loop.create_task(self._bot.change_presence(activity=Activity(type=ActivityType.custom, name='Testing'), status=None, afk=False))
-        #print(self._bot.activity)
 
     @commands.command()
     @admin_command()
@@ -68,8 +64,6 @@ class Update(commands.Cog):
 
     async def _restart_bot(self, ctx):
         await ctx.message.delete()
-        # TODO SAVE OLD PRESENCE
-        await self._bot.change_presence(activity='Restarting...')
         os.execl(sys.executable, sys.executable, *sys.argv)
         await ctx.send('Failed to restart')
 
