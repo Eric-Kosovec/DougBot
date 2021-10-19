@@ -40,7 +40,7 @@ class DougBot(commands.Bot):
         intent.members = True
         intent.presences = True
 
-        super().__init__(self._config.command_prefix, intents=intent, case_insensitive=True)
+        super().__init__(self._config.command_prefix, intents=intent, case_insensitive=True, strip_after_prefix=True)
         self._extension_load_errors = ExtensionLoader.load_extensions(self)
 
     def run(self, *args, **kwargs):
@@ -72,7 +72,7 @@ class DougBot(commands.Bot):
             self._appinfo = await self.application_info()
 
             for exception in self._extension_load_errors:
-                logging.getLogger(__file__).log(logging.ERROR, f'{exception}\n{traceback.format_tb(exception.original.__traceback__)}')
+                logging.getLogger(__file__).log(logging.ERROR, f'{exception}\n{traceback.format_tb(exception.__traceback__)}')
 
     async def on_command_error(self, ctx, error):
         error_texts = {

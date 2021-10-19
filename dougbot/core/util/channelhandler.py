@@ -3,7 +3,7 @@ import logging
 import os
 from logging import Handler
 
-from dougbot.extensions.common.long_message import long_message
+from dougbot.common.long_message import long_message
 
 
 class ChannelHandler(Handler):
