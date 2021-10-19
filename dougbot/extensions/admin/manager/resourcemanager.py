@@ -46,7 +46,7 @@ class ResourceManager(commands.Cog):
 
     @commands.command()
     @admin_command()
-    async def remove(self, ctx, filename: str, *, recursive: bool = False):
+    async def rm(self, ctx, filename: str):
         target = fileutils.PathBuilder(self._path, self._root)\
             .join(filename)\
             .build()
@@ -54,10 +54,24 @@ class ResourceManager(commands.Cog):
         if os.path.isfile(target):
             os.remove(target)
         elif os.path.isdir(target):
-            if recursive:
-                shutil.rmtree(target)
-            else:
-                os.rmdir(target)
+            os.removedirs(target)
+        else:
+            await self._bot.confusion(ctx.message, f'File {target} is not a regular file or directory')
+            return
+
+        await self._bot.confirmation(ctx.message)
+
+    @commands.command()
+    @admin_command()
+    async def rmall(self, ctx, dirname: str):
+        target = fileutils.PathBuilder(self._path, self._root) \
+            .join(dirname) \
+            .build()
+
+        if os.path.isfile(target):
+            os.remove(target)
+        elif os.path.isdir(target):
+            shutil.rmtree(target)
         else:
             await self._bot.confusion(ctx.message, f'File {target} is not a regular file or directory')
             return
@@ -77,7 +91,7 @@ class ResourceManager(commands.Cog):
 
     @commands.command()
     @admin_command()
-    async def move(self, ctx, source: str, dest: str):
+    async def mv(self, ctx, source: str, dest: str):
         source_path = fileutils.PathBuilder(self._path, self._root)\
             .join(source)\
             .build()
@@ -92,7 +106,7 @@ class ResourceManager(commands.Cog):
     @commands.command()
     @admin_command()
     async def rename(self, ctx, source: str, dest: str):
-        await self.move(ctx, source, dest)
+        await self.mv(ctx, source, dest)
 
     @commands.command()
     @admin_command()

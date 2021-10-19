@@ -78,9 +78,6 @@ class PathBuilder:
         if self._combine_func is not None:
             self._combine_func(*(self._current, *self._args), **self._kwargs)
 
-    def _normalize_path(self, path):
-        path.replace()
-
     @staticmethod
     def _under_root(path, root):
         # TODO
