@@ -32,7 +32,6 @@ class Update(commands.Cog):
     @commands.command()
     @admin_command()
     async def update_libs(self, ctx):
-        os.environ.get()
         python_names = ['python', 'python3']
         first_exception = None
         error_count = 0
