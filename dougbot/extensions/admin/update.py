@@ -12,7 +12,6 @@ class Update(commands.Cog):
 
     def __init__(self, bot: DougBot):
         self._bot = bot
-        self._kv = self._bot.kv_store()
 
     @commands.command()
     @admin_command()
