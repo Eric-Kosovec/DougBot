@@ -1,6 +1,7 @@
 from discord.ext import commands
 
 from dougbot.core.bot import DougBot
+from discord import User
 
 from dougbot.extensions.tamagotchi.petHandlerLib import *
 from dougbot.extensions.tamagotchi.petEventHandlerLib import *
@@ -50,6 +51,7 @@ class PetCommands(commands.Cog):
 
     @commands.command()
     async def feedpet(self, ctx):
+        user = ctx.message.author
         ableto = True
         pet = PetHandler.getcurrentpet()
         currentdate = datetime.datetime.now()
@@ -61,12 +63,14 @@ class PetCommands(commands.Cog):
         else:
             ableto = False
         pet = PetHandler.checkpet(pet)
+        pet = PetHandler.favorability(pet, user.id, 1)
         PetHandler.savedata(pet)
         embed = PetCommands.buildembed(pet, ableto, 'feed')
         await ctx.send(embed=embed)
 
     @commands.command()
     async def waterpet(self, ctx):
+        user = ctx.message.author
         ableto = True
         pet = PetHandler.getcurrentpet()
         currentdate = datetime.datetime.now()
@@ -78,12 +82,14 @@ class PetCommands(commands.Cog):
         else:
             ableto = False
         pet = PetHandler.checkpet(pet)
+        pet = PetHandler.favorability(pet, user.id, 1)
         PetHandler.savedata(pet)
         embed = PetCommands.buildembed(pet, ableto, 'water')
         await ctx.send(embed=embed)
 
     @commands.command()
     async def cleanpet(self, ctx):
+        user = ctx.message.author
         ableto = True
         pet = PetHandler.getcurrentpet()
         currentdate = datetime.datetime.now()
@@ -95,12 +101,14 @@ class PetCommands(commands.Cog):
         else:
             ableto = False
         pet = PetHandler.checkpet(pet)
+        pet = PetHandler.favorability(pet, user.id, 1)
         PetHandler.savedata(pet)
         embed = PetCommands.buildembed(pet, ableto, 'clean')
         await ctx.send(embed=embed)
 
     @commands.command()
     async def petpet(self, ctx):
+        user = ctx.message.author
         ableto = True
         pet = PetHandler.getcurrentpet()
         currentdate = datetime.datetime.now()
@@ -112,12 +120,14 @@ class PetCommands(commands.Cog):
         else:
             ableto = False
         pet = PetHandler.checkpet(pet)
+        pet = PetHandler.favorability(pet, user.id, 1)
         PetHandler.savedata(pet)
         embed = PetCommands.buildembed(pet, ableto, 'pet')
         await ctx.send(embed=embed)
 
     @commands.command()
     async def careforpet(self, ctx):
+        user = ctx.message.author
         ableto = True
         type = []
         typestr = ''
@@ -165,6 +175,7 @@ class PetCommands(commands.Cog):
             else:
                 typestr = typestr + type[idx] + ', '
         pet = PetHandler.checkpet(pet)
+        pet = PetHandler.favorability(pet, user.id, 1)
         PetHandler.savedata(pet)
         embed = PetCommands.buildembed(pet, ableto, typestr)
         await ctx.send(embed=embed)
@@ -210,6 +221,118 @@ class PetCommands(commands.Cog):
         embed.add_field(name='Last Pet', value=str(pet['lastpet']), inline=True)
         await ctx.send(embed=embed)
 
+    @commands.command()
+    async def checkfav(self, ctx):
+        try:
+            pet = PetHandler.getcurrentpet()
+            user = ctx.message.author
+            calfav = PetHandler.getfavorability(pet, user.id)
+            quote = PetHandler.getfavorablilityquote(calfav)
+            await ctx.send(str(user.mention) + ', favorability is ' + str(calfav) + ' ' + str(pet['name']) + ' ' + quote)
+        except KeyError as e:
+            await ctx.send(str(user.mention) + ', has never interacted with' + str(pet['name']) + '.')
+
+    @commands.command()
+    async def fav(self, ctx, user: User):
+        try:
+            pet = PetHandler.getcurrentpet()
+            user = user
+            calfav = PetHandler.getfavorability(pet, user.id)
+            quote = PetHandler.getfavorablilityquote(calfav)
+            await ctx.send(str(user.mention) + ', favorability is ' + str(calfav) + ' ' + str(pet['name']) + ' ' + quote)
+        except KeyError as e:
+            await ctx.send(str(user.mention) + ', has never interacted with ' + str(pet['name']) + '.')
+
+    @commands.command()
+    async def mostfav(self, ctx):
+        try:
+            pet = PetHandler.getcurrentpet()
+            fav = PetHandler.mostfavoriate(pet)
+            user = await PetCommands.getdiscorduserinfo(ctx, fav[0])
+            await ctx.send(str(user.mention) + ' is ' + str(pet['name']) + '\'s favorite person and has a favorability of ' + str(fav[1]) + '!')
+        except TypeError as e:
+            await ctx.send('No one has ever interacted with' + str(pet['name']) + '. Sad really...')
+
+    @commands.command()
+    async def leastfav(self, ctx):
+        try:
+            pet = PetHandler.getcurrentpet()
+            fav = PetHandler.leastfavorite(pet)
+            user = await PetCommands.getdiscorduserinfo(ctx, fav[0])
+            await ctx.send(str(user.mention) + ' is ' + str(pet['name']) + '\'s least favorite person and has a favorability of ' + str(fav[1]) + '...')
+        except TypeError as e:
+            await ctx.send('No one has ever interacted with' + str(pet['name']) + '. Sad really...')
+
+    @commands.command()
+    async def checkinteractions(self, ctx):
+        try:
+            pet = PetHandler.getcurrentpet()
+            user = ctx.message.author
+            intercount = PetHandler.getinteractioncount(pet, user.id)
+            await ctx.send(str(user.mention) + ', interacted with ' + str(pet['name']) + ' ' + str(intercount) + ' times.')
+        except KeyError as e:
+            await ctx.send(str(user.mention) + ', has never interacted with' + str(pet['name']) + '.')
+
+    @commands.command()
+    async def interactions(self, ctx, user: User):
+        try:
+            pet = PetHandler.getcurrentpet()
+            user = user
+            intercount = PetHandler.getinteractioncount(pet, user.id)
+            await ctx.send(str(user.mention) + ', interacted with ' + str(pet['name']) +' ' + str(intercount) + ' times.')
+        except KeyError as e:
+            await ctx.send(str(user.mention) + ', has never interacted with ' + str(pet['name']) + '.')
+
+    @commands.command()
+    async def mostinteractions(self, ctx):
+        try:
+            pet = PetHandler.getcurrentpet()
+            intercount = PetHandler.mostinteractions(pet)
+            user = await PetCommands.getdiscorduserinfo(ctx, intercount[0])
+            await ctx.send(str(user.mention) + ' has interacted with ' + str(pet['name']) + 'the most with ' + str(intercount[1]) + ' interactions!')
+        except TypeError as e:
+            await ctx.send('No one has ever interacted with' + str(pet['name']) + '. Sad really...')
+
+    @commands.command()
+    async def leastinteractions(self, ctx):
+        try:
+            pet = PetHandler.getcurrentpet()
+            intercount = PetHandler.leastinteractions(pet)
+            user = await PetCommands.getdiscorduserinfo(ctx, intercount[0])
+            await ctx.send(str(user.mention) + ' has interacted with ' + str(pet['name']) + 'the least with' + str(intercount[1]) + ' interactions...')
+        except TypeError as e:
+            await ctx.send('No one has ever interacted with' + str(pet['name']) + '. Sad really...')
+
+    @commands.command()
+    async def detailedstats(self, ctx):
+        pet = PetHandler.getcurrentpet()
+        embed = Embed(title='<:clownS:819397835636080640> Name: ' + str(pet['name'] + ' <:clownS:819397835636080640>'), color=0x228B22)
+        embed.add_field(name='Health', value=str(pet['currenthealth']) + '/' + str(pet['maxhealth']), inline=True)
+        embed.add_field(name='Food', value=str(pet['food']) + '/100', inline=True)
+        embed.add_field(name='Water', value=str(pet['water']) + '/100', inline=True)
+        embed.add_field(name='Cleanliness', value=str(pet['cleanliness']) + '/100', inline=True)
+        embed.add_field(name='Happiness', value=str(pet['happiness']) + '/100', inline=True)
+
+        embed.add_field(name='Birthday', value=str(pet['birthdate']), inline=True)
+        embed.add_field(name='Last Checked', value=str(pet['lastchecked']), inline=True)
+        embed.add_field(name='Last Fed', value=str(pet['lastfeed']), inline=True)
+        embed.add_field(name='Last Watered', value=str(pet['lastwatered']), inline=True)
+        embed.add_field(name='Last Cleaned', value=str(pet['lastcleaned']), inline=True)
+        embed.add_field(name='Last Pet', value=str(pet['lastpet']), inline=True)
+
+        embed.add_field(name='Type:', value=str(pet['type']), inline=True)
+        embed.add_field(name='Level', value=str(pet['level']), inline=True)
+        embed.add_field(name='Attack', value=str(pet['attack']), inline=True)
+        embed.add_field(name='Defence', value=str(pet['defence']), inline=True)
+        await ctx.send(embed=embed)
+
+    @commands.command()
+    async def test(self, ctx):
+        user = ctx.message.author
+        pet = PetHandler.getcurrentpet()
+        pet = PetHandler.favorability(pet, user.id, 1)
+        PetHandler.savedata(pet)
+
     @staticmethod
     def buildembed(json_object, ableto, type):
         embed = Embed(title='<:sipsScared:819393684549533716> Name: ' + str(json_object['name']), color=0x228B22)
@@ -219,9 +342,26 @@ class PetCommands(commands.Cog):
         embed.add_field(name='Cleanliness', value=str(json_object['cleanliness']) + '/100', inline=True)
         embed.add_field(name='Happiness', value=str(json_object['happiness']) + '/100', inline=True)
         if not ableto:
-            ##maybe add time to this foooter
             embed.set_footer(text='Unable to ' + type + ' right now.')
         return embed
+
+    @staticmethod
+    async def getdiscorduserinfo(ctx, userid: int):
+        if userid != -1:
+            user = await ctx.guild.fetch_member(userid)
+        else:
+            raise TypeError
+        return user
+
+    @commands.command()
+    async def getdiscorduser(self, ctx, userid: int):
+        user = await ctx.guild.fetch_member(userid)
+        await ctx.send("This person is " + user.display_name + ' and joined ' + user.guild.name + ' at ' + str(user.joined_at))
+
+    @commands.command()
+    async def di(self, ctx):
+        user = ctx.message.author
+        await ctx.send("Your user id is " + str(user.id) + '. Your name is ' + str(user.mention) + '.')
 
 
 def setup(bot):

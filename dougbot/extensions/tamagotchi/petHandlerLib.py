@@ -2,6 +2,7 @@ import json
 import math
 import os
 import datetime
+import random
 
 
 class PetHandler:
@@ -14,7 +15,7 @@ class PetHandler:
         json_objects['tama'].append(json_object)
 
         with open(thefile, 'w') as outfile:
-            json.dump(json_objects, outfile)
+            json.dump(json_objects, outfile, indent=2)
             outfile.close()
 
     @staticmethod
@@ -171,6 +172,94 @@ class PetHandler:
         return json_object
 
     @staticmethod
+    def favorability(json_object, userid, amount):
+        totalinteractions = json_object['totalinteractions']
+        interactedlist = json_object['interactedlist']
+        userid = str(userid)
+        if userid in interactedlist:
+            if json_object['interactedlist'][userid]['favorability'] + amount > 100:
+                json_object['interactedlist'][userid]['favorability'] = 100
+            else:
+                json_object['interactedlist'][userid]['favorability'] = json_object['interactedlist'][userid]['favorability'] + amount
+            json_object['interactedlist'][userid]['interactions'] = json_object['interactedlist'][userid]['interactions'] + 1
+        else:
+            json_object['interactedlist'].update({userid: {"favorability": amount, "interactions": 1}})
+        json_object['totalinteractions'] = totalinteractions + amount
+
+        return json_object
+
+    @staticmethod
+    def mostfavoriate(json_object):
+        bestuser = [-1, 0]
+        for user in json_object['interactedlist']:
+            if json_object['interactedlist'][user]['favorability'] > bestuser[1]:
+                bestuser = [int(user), json_object['interactedlist'][user]['favorability']]
+
+        return bestuser
+
+    @staticmethod
+    def leastfavorite(json_object):
+        worstuser = [-1, 10000000000000]
+        for user in json_object['interactedlist']:
+            if json_object['interactedlist'][user]['favorability'] < worstuser[1]:
+                worstuser = [int(user), json_object['interactedlist'][user]['favorability']]
+
+        return worstuser
+
+    @staticmethod
+    def mostinteractions(json_object):
+        bestuser = [-1, 0]
+        for user in json_object['interactedlist']:
+            if json_object['interactedlist'][user]['interactions'] > bestuser[1]:
+                bestuser = [int(user), json_object['interactedlist'][user]['interactions']]
+
+        return bestuser
+
+    @staticmethod
+    def leastinteractions(json_object):
+        worstuser = [-1, 10000000000000]
+        for user in json_object['interactedlist']:
+            if json_object['interactedlist'][user]['interactions'] < worstuser[1]:
+                worstuser = [int(user), json_object['interactedlist'][user]['interactions']]
+
+        return worstuser
+
+    @staticmethod
+    def getinteractioncount(json_object, userid):
+        return json_object['interactedlist'][str(userid)]['interactions']
+
+    @staticmethod
+    def getfavorability(json_object, userid):
+        return json_object['interactedlist'][str(userid)]['favorability']
+
+
+    @staticmethod
+    def getfavorablilityquote(favvalue):
+        package_dir = os.path.dirname(os.path.abspath(__file__))
+        thefile = os.path.join(package_dir, 'favquotes.txt')
+        with open(thefile) as json_file:
+            json_object = json.load(json_file)
+            json_file.close()
+        if favvalue >= 95:
+            mtype = 'excellent'
+        if favvalue >= 65 and favvalue < 95:
+            mtype = 'good'
+        if favvalue >= 30 and favvalue < 65:
+            mtype = 'neutral'
+        if favvalue >= 0 and favvalue < 30:
+            mtype = 'bad'
+        if favvalue >= -20 and favvalue < 0:
+            mtype = 'hurtful'
+        if favvalue < -20:
+            mtype = 'fearful'
+
+        typename = mtype
+        rand = random.randint(0, len(json_object[typename]) - 1)
+        msg = json_object[typename][rand]['message']
+
+        return msg
+
+    @staticmethod
     def newpet(name):
 
         json_object = {
@@ -192,7 +281,10 @@ class PetHandler:
             'water': 50,
             'lastwatered': datetime.datetime.now().strftime('%m/%d/%y %H:%M:%S'),
             'cleanliness': 50,
-            'lastcleaned': datetime.datetime.now().strftime('%m/%d/%y %H:%M:%S')
+            'lastcleaned': datetime.datetime.now().strftime('%m/%d/%y %H:%M:%S'),
+            'interactedlist': {},
+            'totalinteractions': 0
+
         }
 
         PetHandler.savedata(json_object)

@@ -2,11 +2,11 @@
    "goodevents":[
       {
          "message":"found a beautiful little hill, there is a very beautiful old oak tree in the middle of the hill. After taking a nap you and +name+  head home",
-         "health":10,
+         "health":20,
          "food":-10,
          "water":-10,
-         "cleanliness":-5,
-         "happiness":10
+         "cleanliness":-10,
+         "happiness":20
       },
       {
          "message":"find a small amount of silver on the ground. Nice.",
@@ -23,7 +23,7 @@
          "health":-5,
          "food":-10,
          "water":-10,
-         "cleanliness":0,
+         "cleanliness":-5,
          "happiness":-25
       },
       {
@@ -31,8 +31,8 @@
          "health":-10,
          "food":-10,
          "water":-10,
-         "cleanliness":-25,
-         "happiness":-25
+         "cleanliness":-30,
+         "happiness":-30
       },
       {
          "message":"and found a piece...I\\'m like, wait, hey! Now get out and grab some coffee, that\\'s it! [sounds of coffee.] I think you\\'re ready to go...? I'm going to kick your ass. Scared by the sounds you and +name+ head home",
@@ -47,17 +47,17 @@
       {
          "message":"found a picture of me with a girl who looks a lot like me at lunch. Confused you head back home.",
          "health":0,
-         "food":0,
-         "water":0,
-         "cleanliness":0,
+         "food":-10,
+         "water":-10,
+         "cleanliness":-5,
          "happiness":0
       },
       {
          "message":"found a lot of things, things that are not easy to find... You head home wondering why would these things would need to be found.",
          "health":0,
-         "food":0,
-         "water":0,
-         "cleanliness":0,
+         "food":-10,
+         "water":-10,
+         "cleanliness":-5,
          "happiness":0
       },
       {

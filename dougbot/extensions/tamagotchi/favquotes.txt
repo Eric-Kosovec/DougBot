@@ -1,0 +1,32 @@
+{
+   "excellent":[
+      {
+         "message":"thinks you are the best person on the planet."
+      }
+   ],
+   "good":[
+      {
+         "message":"is really excited that you are here to see them."
+      }
+   ],
+   "neutral":[
+      {
+         "message":"is not sad or happy that you're here."
+      }
+   ],
+   "bad":[
+      {
+         "message":"walks away as it sees you approaching."
+      }
+   ],
+   "hurtful":[
+      {
+         "message":"notices you and sprints away."
+      }
+   ],
+   "fearful":[
+      {
+         "message":"runs away in fear at your meer presence."
+      }
+   ]
+}

@@ -18,8 +18,9 @@ class PetEventHandler:
         if eventtype == 2:
             etype = 'neutral'
 
-        rand = random.randint(0, len(walkevents['goodevents']) - 1)
         typename = etype + 'events'
+        rand = random.randint(0, len(walkevents[typename]) - 1)
+
         eventtext = walkevents[typename][rand]['message']
         healthamount = walkevents[typename][rand]['health']
         foodamount = walkevents[typename][rand]['food']
