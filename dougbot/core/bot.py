@@ -146,7 +146,9 @@ class DougBot(commands.Bot):
         if components[1] == 'core':
             return os.path.join(self.RESOURCES_DIR, 'core')
         elif components[1] == 'extensions':
-            return os.path.join(self.RESOURCES_DIR, os.sep.join(components[1: -1]))
+            extension_path = os.path.join(self.RESOURCES_DIR, os.sep.join(components[1: -1]))
+            os.makedirs(extension_path, exist_ok=True)
+            return extension_path
 
         return self.RESOURCES_DIR
 
