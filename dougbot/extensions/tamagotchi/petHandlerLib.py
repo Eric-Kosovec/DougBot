@@ -16,7 +16,6 @@ class PetHandler:
 
         with open(thefile, 'w') as outfile:
             json.dump(json_objects, outfile, indent=2)
-            outfile.close()
 
     @staticmethod
     def getcurrentpet():
@@ -24,7 +23,6 @@ class PetHandler:
         thefile = os.path.join(package_dir, 'currentPetData.txt')
         with open(thefile) as json_file:
             json_object = json.load(json_file)
-            json_file.close()
 
         pet = json_object['tama'][0]
         return pet
@@ -232,14 +230,12 @@ class PetHandler:
     def getfavorability(json_object, userid):
         return json_object['interactedlist'][str(userid)]['favorability']
 
-
     @staticmethod
     def getfavorablilityquote(favvalue):
         package_dir = os.path.dirname(os.path.abspath(__file__))
         thefile = os.path.join(package_dir, 'favquotes.txt')
         with open(thefile) as json_file:
             json_object = json.load(json_file)
-            json_file.close()
         if favvalue >= 95:
             mtype = 'excellent'
         if favvalue >= 65 and favvalue < 95:
@@ -297,13 +293,11 @@ class PetHandler:
         thefile = os.path.join(package_dir, 'graveyard.txt')
         with open(thefile) as json_file:
             graveyard = json.load(json_file)
-            json_file.close()
 
         graveyard['graveyard'].append(json_object)
 
         with open(thefile, 'w') as outfile:
             json.dump(graveyard, outfile)
-            outfile.close()
 
     @staticmethod
     def graveyardcheck():
@@ -311,5 +305,4 @@ class PetHandler:
         thefile = os.path.join(package_dir, 'graveyard.txt')
         with open(thefile) as json_file:
             graveyard = json.load(json_file)
-            json_file.close()
         return graveyard

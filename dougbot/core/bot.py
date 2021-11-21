@@ -134,23 +134,9 @@ class DougBot(commands.Bot):
 
         return KVStore(self._dougdb, calling_module.replace('.', '_'))
 
-    def package_resource_path(self):
-        caller_stack = inspect.stack()[1]
-        calling_module = inspect.getmodule(caller_stack[0]).__name__
-
-        if not calling_module.startswith('dougbot.'):
-            return self.RESOURCES_DIR
-
-        components = calling_module.split('.')
-
-        if components[1] == 'core':
-            return os.path.join(self.RESOURCES_DIR, 'core')
-        elif components[1] == 'extensions':
-            extension_path = os.path.join(self.RESOURCES_DIR, os.sep.join(components[1: -1]))
-            os.makedirs(extension_path, exist_ok=True)
-            return extension_path
-
-        return self.RESOURCES_DIR
+    @staticmethod
+    def extensions_resource_path():
+        return os.path.join(DougBot.RESOURCES_DIR, 'extensions')
 
     async def join_voice_channel(self, channel):
         if channel is not None:

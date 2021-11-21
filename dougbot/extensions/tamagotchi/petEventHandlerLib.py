@@ -42,6 +42,5 @@ class PetEventHandler:
         thefile = os.path.join(package_dir, 'walkEvents.txt')
         with open(thefile) as json_file:
             json_object = json.load(json_file)
-            json_file.close()
 
         return json_object

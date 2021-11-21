@@ -31,7 +31,7 @@ class PetCommands(commands.Cog):
         'lastcleaned': '9/19/21 01:00:00'
     }
 
-    def __init__(self, bot: DougBot):  # Doing the 'bot: DougBot' allows the IDE to see the methods within the bot and be able to list them, for ease of use.
+    def __init__(self, bot: DougBot):
         self.bot = bot
 
     @commands.command()
@@ -40,7 +40,7 @@ class PetCommands(commands.Cog):
         if not PetHandler.isdead(pet):
             pet = PetHandler.checkpet(pet)
             if PetHandler.isdead(pet):
-                pet = PetHandler.death(pet, 'Somebody didn\'t take good care of this one. Ask Papa Doug nicely and he might get you a new one.')
+                pet = PetHandler.death(pet, "Somebody didn't take good care of this one. Ask Papa Doug nicely and he might get you a new one.")
                 PetHandler.puttorest(pet)
                 await ctx.send('rip ' + pet['name'] + '. ' + pet['deathreason'])
             PetHandler.savedata(pet)
