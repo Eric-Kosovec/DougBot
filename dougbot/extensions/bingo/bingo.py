@@ -1,15 +1,14 @@
-import os
 import mimetypes
-
+import os
 from functools import partial
 from http.server import CGIHTTPRequestHandler
 
 from discord.ext import commands
 
-from dougbot.core.bot import DougBot
 from dougbot.common.webserver import WebServer
-from dougbot.extensions.common.sanitize import sanitize_url
+from dougbot.core.bot import DougBot
 from dougbot.extensions.common.annotations.admincheck import admin_command
+from dougbot.extensions.common.sanitize import sanitize_url
 
 
 # Instantiated per request

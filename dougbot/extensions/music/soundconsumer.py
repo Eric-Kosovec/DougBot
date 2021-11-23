@@ -1,6 +1,5 @@
 import inspect
 import logging
-
 from queue import Queue
 from threading import Lock, Semaphore
 

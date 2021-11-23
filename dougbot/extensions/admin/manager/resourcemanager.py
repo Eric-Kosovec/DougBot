@@ -2,13 +2,13 @@ import os
 import shutil
 
 import discord
-
 from discord.ext import commands
 
-from dougbot.core.bot import DougBot
+from dougbot.common import reactions
 from dougbot.common.long_message import long_message
-from dougbot.extensions.common import webutil
+from dougbot.core.bot import DougBot
 from dougbot.extensions.common import fileutils
+from dougbot.extensions.common import webutil
 from dougbot.extensions.common.annotations.admincheck import admin_command
 
 
@@ -39,7 +39,7 @@ class ResourceManager(commands.Cog):
             .build()
 
         if next_path is None:
-            await self._bot.confusion(ctx.message)
+            await reactions.confusion(ctx.message)
         else:
             self._path = next_path
             await ctx.send(self._path)
@@ -56,10 +56,10 @@ class ResourceManager(commands.Cog):
         elif os.path.isdir(target):
             os.removedirs(target)
         else:
-            await self._bot.confusion(ctx.message, f'File {target} is not a regular file or directory')
+            await reactions.confusion(ctx.message, f'File {target} is not a regular file or directory')
             return
 
-        await self._bot.confirmation(ctx.message)
+        await reactions.confirmation(ctx.message)
 
     @commands.command()
     @admin_command()
@@ -73,10 +73,10 @@ class ResourceManager(commands.Cog):
         elif os.path.isdir(target):
             shutil.rmtree(target)
         else:
-            await self._bot.confusion(ctx.message, f'File {target} is not a regular file or directory')
+            await reactions.confusion(ctx.message, f'File {target} is not a regular file or directory')
             return
 
-        await self._bot.confirmation(ctx.message)
+        await reactions.confirmation(ctx.message)
 
     @commands.command()
     @admin_command()
@@ -87,7 +87,7 @@ class ResourceManager(commands.Cog):
         if os.path.isfile(target):
             await ctx.send(file=discord.File(target))
         else:
-            await self._bot.confusion(ctx.message, f'{target} is not a file')
+            await reactions.confusion(ctx.message, f'{target} is not a file')
 
     @commands.command()
     @admin_command()
@@ -101,7 +101,7 @@ class ResourceManager(commands.Cog):
         if not os.path.exists(dest_path):
             os.makedirs(dest_path, exist_ok=True)
         os.rename(source_path, dest_path)
-        await self._bot.confirmation(ctx.message)
+        await reactions.confirmation(ctx.message)
 
     @commands.command()
     @admin_command()
@@ -112,7 +112,7 @@ class ResourceManager(commands.Cog):
     @admin_command()
     async def mkdir(self, ctx, name: str):
         os.mkdir(fileutils.PathBuilder(self._path, self._root).join(name))
-        await self._bot.confirmation(ctx.message)
+        await reactions.confirmation(ctx.message)
 
     @commands.command()
     @admin_command()
@@ -120,7 +120,7 @@ class ResourceManager(commands.Cog):
         target = fileutils.PathBuilder(self._path, self._root).join(file_path)
 
         if len(ctx.message.attachments) <= 0:
-            await self._bot.confusion(ctx.message)
+            await reactions.confusion(ctx.message)
             return
 
         url = ctx.message.attachments[0].url
@@ -128,7 +128,7 @@ class ResourceManager(commands.Cog):
         with open(target, 'wb') as fd:
             shutil.copyfileobj(file.raw, fd)
 
-        await self._bot.confirmation(ctx.message)
+        await reactions.confirmation(ctx.message)
 
     @commands.command()
     @admin_command()

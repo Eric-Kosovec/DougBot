@@ -1,4 +1,3 @@
-import asyncio
 import inspect
 import logging
 import os
@@ -9,11 +8,13 @@ import discord
 from discord.ext import commands
 from discord.utils import find
 
+from dougbot.common import reactions
+from dougbot.common.database import Database
 from dougbot.common.kvstore import KVStore
 from dougbot.core.config import Config
-from dougbot.common.database import Database
 from dougbot.core.extloader import ExtensionLoader
-from dougbot.core.util.channelhandler import ChannelHandler
+from dougbot.core.logger.channelhandler import ChannelHandler
+
 
 # https://discordpy.readthedocs.io/
 
@@ -22,61 +23,59 @@ class DougBot(commands.Bot):
     ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     RESOURCES_DIR = os.path.join(ROOT_DIR, 'resources')
 
-    START_MESSAGE = "\nI'm starting..."
-    ENDING_MESSAGE = "\nI'm dying..."
-    END_MESSAGE = "\nI've perished."
+    ACTIVE_STATUS = "depression"
 
     def __init__(self, token_file, bot_config, server_config):
         self._config = Config(token_file, bot_config, server_config)
-        self._dougdb = Database(os.path.join(self.RESOURCES_DIR, 'core', 'db', 'dougbot.db'))  # For core bot settings
+        self._db = Database(os.path.join(self.RESOURCES_DIR, 'core', 'db', 'dougbot.db'))  # For core bot settings
 
         # For notifying text channels the bot is online. Used to prevent spamming in case of shaky
         # internet, as on_ready can be called multiple times in such a case.
-        self._on_ready_called = False
+        self._ready_finished = False
         self._log_channel = None
-        self._appinfo = None
 
-        intent = discord.Intents.default()
-        intent.members = True
-        intent.presences = True
+        bot_kwargs = {
+            "intents": discord.Intents(members=True, presences=True),
+            "case_insensitive": True,
+            "strip_after_prefix": True
+        }
 
-        super().__init__(self._config.command_prefix, intents=intent, case_insensitive=True, strip_after_prefix=True)
+        super().__init__(self._config.command_prefix, **bot_kwargs)
         self._extension_load_errors = ExtensionLoader.load_extensions(self)
 
     def run(self, *args, **kwargs):
-        print(self.START_MESSAGE)
         try:
             super().run(*(self._config.token, *args), **kwargs)
         except Exception as e:
             print(f'\nFATAL EXCEPTION: Uncaught exception while running bot: {e}', file=sys.stderr)
             traceback.print_exc()
-        finally:
-            print(self.ENDING_MESSAGE)
-            if self.loop is not None and not self.loop.is_closed():
-                asyncio.run_coroutine_threadsafe(self.logout(), self.loop)
-            print(self.END_MESSAGE)
+            sys.exit(1)
 
     async def on_ready(self):
-        if not self._on_ready_called:
-            print('\nDoug Online')
-            print(f'Name: {self.user.name}')
-            print(f'ID: {self.user.id}')
-            print('-' * (len(str(self.user.id)) + 4))
+        if self._ready_finished:
+            return
 
-            self._log_channel = self.get_channel(self._config.logging_channel_id)
-            if self._log_channel is not None:
-                self._init_logging(self._log_channel)
-                await self._log_channel.send('I am sad.')
+        print('\nDoug Online')
+        print('-----------')
 
-            self._on_ready_called = True
-            self._appinfo = await self.application_info()
+        self._log_channel = self.get_channel(self._config.logging_channel_id)
+        if self._log_channel is not None:
+            logging.getLogger('').addHandler(ChannelHandler(self.ROOT_DIR, self._log_channel, self.loop))
 
-            for exception in self._extension_load_errors:
-                logging.getLogger(__file__).log(logging.ERROR, f'{exception}\n{traceback.format_tb(exception.__traceback__)}')
+        for error in self._extension_load_errors:
+            logging.getLogger(__file__).log(logging.ERROR, f'{error}\n{"".join(traceback.format_tb(error.__traceback__))}')
+
+        await self.change_presence(activity=discord.Game(self.ACTIVE_STATUS))
+
+        self._ready_finished = True
+
+    async def close(self):
+        await self.change_presence(status=discord.Status.offline)
+        await super().close()
 
     async def on_command_error(self, ctx, error):
         error_texts = {
-            commands.errors.MissingRequiredArgument: f'Missing argument(s), type {self._config.command_prefix}help <command_name>',
+            commands.errors.MissingRequiredArgument: f'Missing argument(s), type {ctx.prefix}help <command_name>',
             commands.errors.CheckFailure: f'{ctx.author.mention} You do not have permissions for this command.',
             commands.errors.NoPrivateMessage: 'Command cannot be used in private messages.',
             commands.errors.DisabledCommand: 'Command disabled and cannot be used.',
@@ -86,42 +85,17 @@ class DougBot(commands.Bot):
 
         for error_class, error_msg in error_texts.items():
             if isinstance(error, error_class):
-                await self.confusion(ctx.message, error_msg)
+                await reactions.confusion(ctx.message, error_msg)
                 return
 
         # Catches rest of exceptions
-        logging.getLogger(__file__).log(logging.ERROR, f'{error}\n{traceback.format_tb(error.original.__traceback__)}')
-        await self.check_log(ctx.message)
-
-    @staticmethod
-    async def check_log(message, error_msg=None):
-        if message is not None:
-            page_emoji = '\U0001F4C4'
-            await message.add_reaction(page_emoji)
-            if error_msg is not None:
-                await message.channel.send(error_msg)
-
-    @staticmethod
-    async def confusion(message, error_msg=None):
-        if message is not None:
-            question_emoji = '\U00002753'
-            await message.add_reaction(question_emoji)
-            if error_msg is not None:
-                await message.channel.send(error_msg)
-
-    @staticmethod
-    async def confirmation(message, confirm_msg=None):
-        if message is not None:
-            ok_hand_emoji = '\U0001F44C'
-            await message.add_reaction(ok_hand_emoji)
-            if confirm_msg is not None:
-                await message.channel.send(confirm_msg)
+        logging.getLogger(__file__).log(logging.ERROR, f'{error}\n{" ".join(traceback.format_tb(error.original.__traceback__))}')
+        await reactions.check_log(ctx.message)
 
     # Sibling module is a python file within the same package as the caller, unless caller is a core or admin module.
     def kv_store(self, sibling_module=None):
         caller_stack = inspect.stack()[1]
         calling_module = inspect.getmodule(caller_stack[0]).__name__
-        # dougbot.package...package...module
 
         if sibling_module is not None:
             sibling_module = sibling_module.replace(os.sep, '.')
@@ -132,7 +106,7 @@ class DougBot(commands.Bot):
             if not self._is_admin_package(calling_module) and not self._same_extension_package(calling_module, sibling_module):
                 raise ValueError(f"Cannot get sibling module '{sibling_module}' from '{calling_module}'")
 
-        return KVStore(self._dougdb, calling_module.replace('.', '_'))
+        return KVStore(self._db, calling_module.replace('.', '_'))
 
     @staticmethod
     def extensions_resource_path():
@@ -160,17 +134,7 @@ class DougBot(commands.Bot):
     async def log_channel(self):
         return self._log_channel
 
-    def get_config(self):
-        return self._config
-
-    def owner_id(self):
-        return self._appinfo.owner.id
-
     ''' PRIVATE METHODS '''
-
-    def _init_logging(self, channel):
-        # Add the custom handler to the root logger, so it applies to every time logging is called.
-        logging.getLogger('').addHandler(ChannelHandler(self.ROOT_DIR, channel, self.loop))
 
     @staticmethod
     def _same_extension_package(main_module: str, sibling_module: str):

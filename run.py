@@ -2,7 +2,6 @@ import sys
 
 from dougbot.core.bot import DougBot
 
-
 try:
     assert sys.version_info >= (3, 7)
 except AssertionError:

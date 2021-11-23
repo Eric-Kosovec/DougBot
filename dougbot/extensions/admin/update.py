@@ -4,6 +4,7 @@ import sys
 
 from discord.ext import commands
 
+from dougbot.common import reactions
 from dougbot.core.bot import DougBot
 from dougbot.extensions.common.annotations.admincheck import admin_command
 
@@ -45,7 +46,7 @@ class Update(commands.Cog):
                 error_count += 1
 
         if error_count >= len(python_names):
-            await self._bot.confusion(ctx.message)
+            await reactions.confusion(ctx.message)
             raise first_exception
 
         await self._restart_bot(ctx)
@@ -60,7 +61,8 @@ class Update(commands.Cog):
         finally:
             os.chdir(cwd)
 
-    async def _restart_bot(self, ctx):
+    @staticmethod
+    async def _restart_bot(ctx):
         await ctx.message.delete()
         os.execl(sys.executable, sys.executable, *sys.argv)
         await ctx.send('Failed to restart')

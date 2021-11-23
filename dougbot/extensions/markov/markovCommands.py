@@ -1,22 +1,13 @@
-import re
-import string
-import copy
-import requests
-import array
-import sys
 import os
-import random
-import json
 from datetime import datetime
+
+from discord import Embed
+from discord import TextChannel
+from discord import User
+from discord.ext import commands
 
 from dougbot.extensions.markov.markovLib import *
 
-from discord import User
-from discord import TextChannel
-from discord import Embed
-from discord.ext import commands
-
-from json.decoder import JSONDecodeError
 
 #Module attached to Markov.py to allow interactions through discord
 class MarkovCommands(commands.Cog):

@@ -3,17 +3,17 @@ import functools
 import hashlib
 import os
 import threading
-
 from concurrent.futures import ThreadPoolExecutor
 
 import youtube_dl
-from youtube_search import YoutubeSearch
 from discord.ext import commands
+from youtube_search import YoutubeSearch
 
+from dougbot.common import reactions
 from dougbot.common.cache import LRUCache
 from dougbot.core.bot import DougBot
-from dougbot.extensions.common.autocorrect import Autocorrect
 from dougbot.extensions.common.annotations.miccheck import voice_command
+from dougbot.extensions.common.autocorrect import Autocorrect
 from dougbot.extensions.music.soundconsumer import SoundConsumer
 from dougbot.extensions.music.track import Track
 
@@ -31,7 +31,7 @@ class SoundPlayer(commands.Cog):
         self._order_lock = asyncio.Lock()  # Keeps order tracks are played in.
         self._volume = 1.0 if 'volume' not in self._kv else self._kv['volume']
 
-        self._resource_path = self.bot.package_resource_path()
+        self._resource_path = os.path.join(self.bot.extensions_resource_path(), 'soundplayer')
         self._clips_dir = os.path.join(self._resource_path, 'audio')
         self._cache_dir = os.path.join(self._resource_path, 'cache')
         self._autocorrect = Autocorrect(self._clip_names())  # Hack
@@ -46,12 +46,12 @@ class SoundPlayer(commands.Cog):
     async def play(self, ctx, source: str, *, times: str = '1'):
         source, times = await self._custom_play_parse(source, times)
         if times <= 0:
-            await self.bot.confusion(ctx.message)
+            await reactions.confusion(ctx.message)
             return
 
         voice = await self.bot.join_voice_channel(ctx.message.author.voice.channel)
         if voice is None:
-            await self.bot.confusion(ctx.message)
+            await reactions.confusion(ctx.message)
             return
 
         # TODO EXPLORE CREATING TRACK WHILE WAITING
@@ -160,7 +160,7 @@ class SoundPlayer(commands.Cog):
     async def _enqueue_audio(self, ctx, voice, source, times):
         track = await self._create_track(ctx, voice, source, times)
         if track is None:
-            await self.bot.confusion(ctx.message)
+            await reactions.confusion(ctx.message)
             return
 
         self._sound_consumer.enqueue(track)

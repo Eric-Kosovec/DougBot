@@ -5,6 +5,7 @@ import discord
 import requests
 from discord.ext import commands
 
+from dougbot.common import reactions
 from dougbot.extensions.common.annotations.admincheck import admin_command
 from dougbot.extensions.common.rootdirectory import RootDirectory
 
@@ -23,7 +24,7 @@ class SoundManager(commands.Cog):
     async def renameclip(self, ctx, from_clip: str, *, to_clip: str):
         from_path = self._clip_root.find_file(from_clip)
         if from_path is None:
-            await self.bot.confusion(ctx.message)
+            await reactions.confusion(ctx.message)
             return
 
         # TODO SPLITEXT
@@ -33,9 +34,9 @@ class SoundManager(commands.Cog):
         to_path = os.path.join(os.path.dirname(from_path), f'{to_clip}{from_path[from_path.rfind(os.curdir):]}')
         try:
             self._clip_root.rename_file(from_path, to_path)
-            await self.bot.confirmation(ctx.message)
+            await reactions.confirmation(ctx.message)
         except OSError as e:
-            await self.bot.confusion(ctx.message)
+            await reactions.confusion(ctx.message)
             raise e
 
     @commands.command()
@@ -43,15 +44,15 @@ class SoundManager(commands.Cog):
     async def moveclip(self, ctx, clip: str, *, dest: str):
         clip_path = self._clip_root.find_file(clip)
         if clip_path is None:
-            await self.bot.confusion(ctx.message)
+            await reactions.confusion(ctx.message)
             return
 
         dest_path = os.path.join(dest, os.path.basename(clip_path))
         try:
             self._clip_root.move_file(clip_path, dest_path)
-            await self.bot.confirmation(ctx.message)
+            await reactions.confirmation(ctx.message)
         except OSError as e:
-            await self.bot.confusion(ctx.message)
+            await reactions.confusion(ctx.message)
             raise e
 
     @commands.command(aliases=['deleteclip'])
@@ -60,9 +61,9 @@ class SoundManager(commands.Cog):
         # TODO DETERMINE IF A DIRECTORY IS GIVEN IN CLIP AND SPLIT OUT
         try:
             self._clip_root.delete_file(clip)
-            await self.bot.confirmation(ctx.message)
+            await reactions.confirmation(ctx.message)
         except Exception as e:
-            await self.bot.confusion(ctx.message)
+            await reactions.confusion(ctx.message)
             raise e
 
     @commands.command(aliases=['removecategory'])
@@ -70,41 +71,41 @@ class SoundManager(commands.Cog):
     async def removecat(self, ctx, *, category: str):
         try:
             self._clip_root.delete_dir(category)
-            await self.bot.confirmation(ctx.message)
+            await reactions.confirmation(ctx.message)
         except Exception as e:
-            await self.bot.confusion(ctx.message)
+            await reactions.confusion(ctx.message)
             raise e
 
     @commands.command()
     async def getclip(self, ctx, *, clip: str):
         path = await self.clip_path(clip)
         if path is None:
-            await self.bot.confusion(ctx.message)
+            await reactions.confusion(ctx.message)
             return
         await ctx.send(file=discord.File(path))
 
     @commands.command()
     async def addclip(self, ctx, folder: str, clip_name: str, *, url: str = None):
         if not await self._safe_path(folder):
-            await self.bot.confusion(ctx.message)
+            await reactions.confusion(ctx.message)
             return
 
         if not os.path.exists(os.path.join(self._clips_dir, folder)):
             try:
                 os.makedirs(os.path.join(self._clips_dir, folder), exist_ok=True)
             except OSError as e:
-                await self.bot.confusion(ctx.message)
+                await reactions.confusion(ctx.message)
                 raise e
 
         if url is None or len(url) <= 0:
             # If no url was provided, then there has to be an audio attachment.
             if len(ctx.message.attachments) <= 0:
-                await self.bot.confusion(ctx.message)
+                await reactions.confusion(ctx.message)
                 return
             url = ctx.message.attachments[0].url
 
         if not await self._check_url(url):
-            await self.bot.confusion(ctx.message)
+            await reactions.confusion(ctx.message)
             return
 
         if '.' not in clip_name:
@@ -112,7 +113,7 @@ class SoundManager(commands.Cog):
 
         file = await self._download_file(url)
         if file is None:
-            await self.bot.confusion(ctx.message)
+            await reactions.confusion(ctx.message)
             return
 
         path = os.path.join(self._clips_dir, f'{folder}', clip_name.lower())
@@ -120,10 +121,10 @@ class SoundManager(commands.Cog):
             with open(path, 'wb') as out_file:
                 shutil.copyfileobj(file.raw, out_file)
         except Exception as e:
-            await self.bot.confusion(ctx.message)
+            await reactions.confusion(ctx.message)
             raise e
 
-        await self.bot.confirmation(ctx.message)
+        await reactions.confirmation(ctx.message)
 
     @commands.command(aliases=['list'])
     async def clips(self, ctx, *, category: str = None):
@@ -132,7 +133,7 @@ class SoundManager(commands.Cog):
         else:
             categories = [os.path.join(self._clips_dir, category)]
             if not os.path.isdir(categories[0]):
-                await self.bot.confusion(ctx.message)
+                await reactions.confusion(ctx.message)
                 return
 
         embed = discord.Embed(color=discord.Color(0xff0000))

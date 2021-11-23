@@ -13,7 +13,6 @@ class ExtensionLoader:
             exceptions.append(Exception(f"Path to extensions, '{ExtensionLoader.EXTENSIONS_BASE},' does not exist."))
             return
 
-        # Add extension package to where the system looks for files.
         if ExtensionLoader.EXTENSIONS_BASE not in sys.path:
             sys.path.append(ExtensionLoader.EXTENSIONS_BASE)
 
@@ -24,7 +23,7 @@ class ExtensionLoader:
             for filename in files:
                 if ExtensionLoader._is_extension_module(root, filename):
                     try:
-                        module_path = (root[len(bot.ROOT_DIR) + 1:] + os.sep + filename[:-3]).replace(os.sep, '.')
+                        module_path = os.path.join(root[len(bot.ROOT_DIR) + 1:], filename[:-3]).replace(os.sep, '.')
                         bot.load_extension(module_path)
                     except Exception as e:
                         if "no 'setup' function" in str(e):

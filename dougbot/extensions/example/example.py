@@ -7,7 +7,8 @@ from dougbot.extensions.common.annotations.miccheck import voice_command
 
 class Example(commands.Cog):
 
-    def __init__(self, bot: DougBot):  # Doing the 'bot: DougBot' allows the IDE to see the methods within the bot and be able to list them, for ease of use.
+    # Doing the 'bot: DougBot' allows the IDE to see the methods within the bot and be able to list them, for ease of use.
+    def __init__(self, bot: DougBot):
         self.bot = bot
 
     # Some examples of method decorators that can be used.
@@ -21,3 +22,8 @@ class Example(commands.Cog):
 
 def setup(bot):
     bot.add_cog(Example(bot))
+
+
+# Cleanup after extension is unloaded
+def teardown(bot):
+    _ = bot

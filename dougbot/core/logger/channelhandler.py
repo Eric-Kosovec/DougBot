@@ -21,6 +21,7 @@ class ChannelHandler(Handler):
         if os.path.splitdrive(record.pathname)[0] != os.path.splitdrive(self._root_dir)[0] or \
                 os.path.commonpath([record.pathname, self._root_dir]) != self._root_dir:
             return
-        record_text = self.format(record)
-        for message in long_message(record_text):
-            asyncio.run_coroutine_threadsafe(self._channel.send(message), self._loop)
+
+        for message in long_message(self.format(record)):
+            if not self._loop.is_closed():
+                asyncio.run_coroutine_threadsafe(self._channel.send(message), self._loop)

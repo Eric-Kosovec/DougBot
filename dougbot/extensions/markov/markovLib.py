@@ -1,14 +1,15 @@
-import re
 import string
-import copy
-import array
-import sys
-import os
 import random
 import json
 import pickle
 
 from json.decoder import JSONDecodeError
+import json
+import pickle
+import random
+import string
+from json.decoder import JSONDecodeError
+
 
 #Generates Markov chains from discord chat
 ##Dictionary Template: defaultdict(lambda:[0, defaultdict(int)])   #{'the': (7, {'wood': 5})}

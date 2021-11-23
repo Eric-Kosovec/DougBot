@@ -1,11 +1,10 @@
+from discord import Embed
+from discord import User
 from discord.ext import commands
 
 from dougbot.core.bot import DougBot
-from discord import User
-
-from dougbot.extensions.tamagotchi.petHandlerLib import *
 from dougbot.extensions.tamagotchi.petEventHandlerLib import *
-from discord import Embed
+from dougbot.extensions.tamagotchi.petHandlerLib import *
 
 
 class PetCommands(commands.Cog):
