@@ -14,7 +14,6 @@ from dougbot.common.database import Database
 from dougbot.common.kvstore import KVStore
 from dougbot.core.config import Config
 from dougbot.core.extloader import ExtensionLoader
-from dougbot.core.helpcommand import CustomHelpCommand
 from dougbot.core.logger.channelhandler import ChannelHandler
 
 
