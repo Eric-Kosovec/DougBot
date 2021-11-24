@@ -7,12 +7,14 @@ import traceback
 import discord
 from discord.ext import commands
 from discord.utils import find
+from discord.ext.commands.help import HelpCommand
 
 from dougbot.common import reactions
 from dougbot.common.database import Database
 from dougbot.common.kvstore import KVStore
 from dougbot.core.config import Config
 from dougbot.core.extloader import ExtensionLoader
+from dougbot.core.helpcommand import CustomHelpCommand
 from dougbot.core.logger.channelhandler import ChannelHandler
 
 
@@ -35,7 +37,7 @@ class DougBot(commands.Bot):
         self._log_channel = None
 
         bot_kwargs = {
-            "intents": discord.Intents(members=True, presences=True),
+            "intents": discord.Intents.all(),
             "case_insensitive": True,
             "strip_after_prefix": True
         }
@@ -133,6 +135,9 @@ class DougBot(commands.Bot):
 
     async def log_channel(self):
         return self._log_channel
+
+    def admin_role_id(self):
+        return self._config.admin_role_id
 
     ''' PRIVATE METHODS '''
 
