@@ -31,7 +31,7 @@ class SoundPlayer(commands.Cog):
         self._order_lock = asyncio.Lock()  # Keeps order tracks are played in.
         self._volume = 1.0 if 'volume' not in self._kv else self._kv['volume']
 
-        self._resource_path = os.path.join(self.bot.extensions_resource_path(), 'soundplayer')
+        self._resource_path = os.path.join(self.bot.extensions_resource_path(), 'music')
         self._clips_dir = os.path.join(self._resource_path, 'audio')
         self._cache_dir = os.path.join(self._resource_path, 'cache')
         self._autocorrect = Autocorrect(self._clip_names())  # Hack
@@ -59,7 +59,7 @@ class SoundPlayer(commands.Cog):
         async with self._order_lock:
             await self._enqueue_audio(ctx, voice, source, times)
         
-        await ctx.message.delete()
+        #await ctx.message.delete()
 
     # Searches for a youtube video based on the search terms given and sends the url to the play function
     @commands.command()
