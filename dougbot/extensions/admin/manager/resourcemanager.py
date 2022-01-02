@@ -8,7 +8,7 @@ from dougbot.common import reactions
 from dougbot.common.long_message import long_message
 from dougbot.core.bot import DougBot
 from dougbot.extensions.common import fileutils
-from dougbot.extensions.common import webutil
+from dougbot.extensions.common import webutils
 from dougbot.extensions.common.annotations.admincheck import admin_command
 
 
@@ -124,7 +124,7 @@ class ResourceManager(commands.Cog):
             return
 
         url = ctx.message.attachments[0].url
-        file = await webutil.download_file(url)
+        file = await webutils.download_file(url)
         with open(target, 'wb') as fd:
             shutil.copyfileobj(file.raw, fd)
 

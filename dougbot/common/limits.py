@@ -1,5 +1,3 @@
-
-
 # Limits imposed by Discord.
 class Limits:
 
@@ -9,7 +7,7 @@ class Limits:
 
     EMBED_TITLE_LIMIT = 256
 
-    EMBED_DESCRIPTION_LIMIT = 2048
+    EMBED_DESCRIPTION_LIMIT = 4096
 
     EMBED_FIELD_LIMIT = 25
 

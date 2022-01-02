@@ -1,27 +1,32 @@
 import asyncio
-import functools
 import hashlib
+import logging
 import os
 import threading
 from concurrent.futures import ThreadPoolExecutor
 
 import youtube_dl
+from discord.embeds import Embed
 from discord.ext import commands
 from youtube_search import YoutubeSearch
 
 from dougbot.common import reactions
 from dougbot.common.cache import LRUCache
 from dougbot.core.bot import DougBot
+from dougbot.extensions.common import fileutils
+from dougbot.extensions.common import webutils
 from dougbot.extensions.common.annotations.miccheck import voice_command
-from dougbot.extensions.common.autocorrect import Autocorrect
 from dougbot.extensions.music.soundconsumer import SoundConsumer
 from dougbot.extensions.music.track import Track
 
 
 class SoundPlayer(commands.Cog):
 
+    _logger = logging.getLogger(__file__)
+
     def __init__(self, bot: DougBot):
         self.bot = bot
+        self.loop = self.bot.loop
         self.bot.event(self.on_voice_state_update)
 
         self._path_cache = LRUCache(20)
@@ -34,7 +39,11 @@ class SoundPlayer(commands.Cog):
         self._resource_path = os.path.join(self.bot.extensions_resource_path(), 'music')
         self._clips_dir = os.path.join(self._resource_path, 'audio')
         self._cache_dir = os.path.join(self._resource_path, 'cache')
-        self._autocorrect = Autocorrect(self._clip_names())  # Hack
+        self._last_embed_message = None
+        self._url = ''
+        self._title = ''
+        self._thumbnail = ''
+        self._duration_seconds = 0
 
         self._sound_consumer = SoundConsumer.get_soundconsumer(self.bot, self._volume)
         self._sound_consumer_thread = threading.Thread(target=self._sound_consumer.run, name='Sound_Consumer', daemon=True)
@@ -58,8 +67,8 @@ class SoundPlayer(commands.Cog):
         # Keep ordering of clips
         async with self._order_lock:
             await self._enqueue_audio(ctx, voice, source, times)
-        
-        #await ctx.message.delete()
+
+        # await ctx.message.delete()
 
     # Searches for a youtube video based on the search terms given and sends the url to the play function
     @commands.command()
@@ -67,7 +76,7 @@ class SoundPlayer(commands.Cog):
     @voice_command()
     async def ytplay(self, ctx, *, search_terms: str):
         yt_url = ''
-        if await self._is_link(search_terms):
+        if await webutils.is_link(search_terms):
             yt_url = search_terms
         else:
             results = YoutubeSearch(search_terms, max_results=20).to_dict()
@@ -126,80 +135,53 @@ class SoundPlayer(commands.Cog):
         if voice is not None:
             await self._quit_playing(voice)
 
-    async def on_voice_state_update(self, member, before, after):
-        if member is None or before is None or after is None or before.channel is None:
-            return
-        if (after.channel is not None and before.channel.id == after.channel.id) \
-                or not await self.bot.in_voice_channel(before.channel):
-            return
-        # Make sure there are no humans in the voice channel.
-        if next(filter(lambda m: not m.bot, before.channel.members), None) is None:
+    async def on_voice_state_update(self, _, before, after):
+        if before.channel is not None and (after.channel is None or before.channel.id != after.channel.id):
             voice = await self.bot.get_voice(before.channel)
-            await self._quit_playing(voice)
+            # Make sure there are no humans in the voice channel.
+            if voice is not None and next(filter(lambda m: not m.bot, before.channel.members), None) is None:
+                await self._quit_playing(voice)
 
     async def _quit_playing(self, voice):
-        await self.bot.loop.run_in_executor(self._thread_pool, self._sound_consumer.stop_playing)
+        await self.loop.run_in_executor(self._thread_pool, self._sound_consumer.stop_playing)
         if voice is not None:
             await voice.disconnect()
-        await self._clear_cache()
-
-    async def _clear_cache(self):
         async with self._order_lock:
-            task = functools.partial(self._remove_files, self._cache_dir)
-            await self.bot.loop.run_in_executor(self._thread_pool, task)
-
-    @staticmethod
-    def _remove_files(directory):
-        for path, _, files in os.walk(directory):
-            for file in files:
-                try:
-                    os.remove(os.path.join(path, file))
-                except Exception as e:
-                    raise e
+            await self.loop.run_in_executor(self._thread_pool, fileutils.delete_directories, self._cache_dir)
 
     async def _enqueue_audio(self, ctx, voice, source, times):
         track = await self._create_track(ctx, voice, source, times)
         if track is None:
             await reactions.confusion(ctx.message)
             return
-
         self._sound_consumer.enqueue(track)
 
     async def _create_track(self, ctx, voice, source, times):
-        is_link = await self._is_link(source)
+        is_link = webutils.is_link(source)
 
         if not is_link:
             track_source = await self._get_path(source)
-            if track_source is None:  # Could be a typo, try again
-                source = self._autocorrect.correct(source)
-                track_source = await self._get_path(source)
         else:
-            track_source = await self._download_link(source)
+            track_source = await self._download_link(ctx, source)
 
         if track_source is None:
             return None
 
         return Track(ctx, voice, track_source, is_link, times)
 
-    @staticmethod
-    async def _is_link(candidate):
-        return candidate.startswith('https://') or candidate.startswith('http://') or candidate.startswith('www.')
-
     async def _get_path(self, audio):
         audio_path = await self._path_cache.get(audio)
         if audio_path is not None:
             return audio_path
 
-        for path, _, files in os.walk(self._clips_dir):
-            for filename in files:
-                if audio.lower() == os.path.splitext(filename)[0].lower():
-                    audio_path = os.path.join(path, filename)
-                    await self._path_cache.insert(audio, audio_path)
-                    return audio_path
+        audio_path = await fileutils.find_file_async(self._clips_dir, audio)
+        if audio_path is not None:
+            await self._path_cache.insert(audio, audio_path)
+            return audio_path
 
         return None
 
-    async def _download_link(self, link):
+    async def _download_link(self, ctx, link):
         dl_path = os.path.join(self._cache_dir, await self._link_hash(link))
         if os.path.exists(dl_path):
             return dl_path
@@ -209,7 +191,7 @@ class SoundPlayer(commands.Cog):
             'extractaudio': True,
             'audioformat': 'opus',
             'restrictfilenames': True,
-            'noplaylist': False,
+            'noplaylist': True,
             'nocheckcertificate': True,
             'ignoreerrors': True,
             'logtostderr': False,
@@ -217,14 +199,42 @@ class SoundPlayer(commands.Cog):
             'no_warnings': True,
             'default_search': 'auto',
             'source_address': '0.0.0.0',
-            'outtmpl': dl_path
+            'outtmpl': dl_path,
+            'logger': self._logger,
+            'progress_hooks': [self._progress_hook]
         }
         ytdl = youtube_dl.YoutubeDL(ytdl_params)
 
-        task = functools.partial(ytdl.extract_info, link)
-        await self.bot.loop.run_in_executor(self._thread_pool, task)
+        ie_result = await self.bot.loop.run_in_executor(self._thread_pool, ytdl.extract_info, link, False)
+        self._uploader = ie_result['uploader']
+        self._title = ie_result['title']
+        self._thumbnail = ie_result['thumbnails'][-1]['url']
+        self._duration_seconds = ie_result['duration']
+
+        self._url = link
+        self._last_embed_message = await ctx.send(embed=self._link_download_embed(self._title, self._uploader, self._thumbnail, self._url, 0))
+        await self.bot.loop.run_in_executor(self._thread_pool, ytdl.extract_info, link)
 
         return dl_path
+
+    def _progress_hook(self, data):
+        if self._last_embed_message is None:
+            return
+        import pprint
+        pprint.pprint(data)
+        progress = data['downloaded_bytes'] / data['total_bytes'] * 100
+        asyncio.run_coroutine_threadsafe(self._last_embed_message.edit(embed=self._link_download_embed(self._title, self._uploader, self._thumbnail, self._url, int(progress))), self.bot.loop)
+
+    @staticmethod
+    def _link_download_embed(title, uploader, thumbnail, url, percentage):
+        description_markdown = \
+            f'''{uploader}
+        
+            [{title}]({url})
+            '''
+        return Embed(title='Downloading', description=description_markdown, color=0xFF0000) \
+            .set_image(url=thumbnail) \
+            .add_field(name='Progress:', value=f'{percentage}%' if percentage < 100 else 'Playing...')
 
     @staticmethod
     async def _link_hash(link):
@@ -238,19 +248,18 @@ class SoundPlayer(commands.Cog):
         try:
             times_split = times.split()
             times = int(times_split[-1])
-            source = f'{source} {" ".join(times_split[:-1])}'.strip()
+            source = f'{source} {" ".join(times_split[:-1])}'
         except ValueError:
-            source = f'{source} {times}'.strip()
+            source = f'{source} {times}'
             times = 1
 
         return source, times
 
-    def _clip_names(self):
-        clips = []
-        for _, _, filenames in os.walk(self._clips_dir):
-            clips.extend([f[:f.rfind('.')] for f in filenames])
-        return clips
-
 
 def setup(bot):
     bot.add_cog(SoundPlayer(bot))
+
+
+def teardown(bot):
+    cache_path = os.path.join(bot.extensions_resource_path(), 'music', 'cache')
+    fileutils.delete_directories(cache_path, True)

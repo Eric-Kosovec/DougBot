@@ -2,10 +2,15 @@ import requests
 
 
 async def is_file_url(url):
-    return url is not None and await is_link(url) and '.' in url
+    # TODO MAKE BETTER
+    return await is_link(url) and len(url[url.rfind('.'):]) in range(1, 6)
 
 
-async def is_link(url):
+async def async_is_link(url):
+    return url.startswith('https://') or url.startswith('http://') or url.startswith('www.')
+
+
+def is_link(url):
     return url.startswith('https://') or url.startswith('http://') or url.startswith('www.')
 
 

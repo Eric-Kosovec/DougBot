@@ -1,6 +1,0 @@
-Override message sending in bot and split messages and embeds into multiple, if need be
-Rewrite sound player as producer/consumer threads
-Create webhook
-Create game engine - text and image based
-Spell check
-Restructure

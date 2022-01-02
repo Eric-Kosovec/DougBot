@@ -7,7 +7,6 @@ from dougbot.extensions.common.annotations.miccheck import voice_command
 
 class Example(commands.Cog):
 
-    # Doing the 'bot: DougBot' allows the IDE to see the methods within the bot and be able to list them, for ease of use.
     def __init__(self, bot: DougBot):
         self.bot = bot
 

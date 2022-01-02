@@ -1,5 +1,22 @@
 import os
 import re
+import shutil
+
+
+async def find_file_async(start_path, filename):
+    return find_file(start_path, filename)
+
+
+def find_file(start_path, filename):
+    wanted_name, wanted_extension = os.path.splitext(filename)
+
+    for path, _, files in os.walk(start_path):
+        for file in files:
+            name, extension = os.path.splitext(file)
+            if wanted_name.lower() == name.lower() and (len(wanted_extension) == 0 or wanted_extension.lower() == extension.lower()):
+                return os.path.join(path, file)
+
+    return None
 
 
 async def strip_traversals(path):
@@ -8,11 +25,15 @@ async def strip_traversals(path):
     return path.replace(os.pardir, '')
 
 
+def delete_directories(directory, ignore_errors=False, onerror=None):
+    shutil.rmtree(directory, ignore_errors, onerror)
+
+
 class PathBuilder:
 
-    def __init__(self, current=os.getcwd(), root=os.path.splitdrive(os.getcwd())[0]):
+    def __init__(self, current=os.getcwd(), root=None):
         self._current = current
-        self._root = root
+        self._root = root if root is not None else current
 
         if not self._under_root(self._current, self._root):
             self._current = self._root
@@ -31,7 +52,7 @@ class PathBuilder:
         for path in to_apply:
             for file in re.split(r"[/\\]", path):
                 if len(file) > 0:
-                    self._apply_path(file)
+                    self._done = self._apply_path(file)
                     if self._done:
                         return self
 
@@ -50,35 +71,34 @@ class PathBuilder:
     def build(self):
         return self._current
 
-    def _apply_path(self, file):
-        if file == os.curdir:
-            return
+    def _apply_path(self, path):
+        if path == os.curdir:
+            return False
 
-        if file == os.pardir and self._current == self._root:
-            self._done = True
-            return
+        is_parent_dir = path == os.pardir
+        if is_parent_dir and self._current == self._root:
+            return True
 
-        if file == os.pardir:
+        if is_parent_dir:
             next_path = self._current[:-len(os.path.basename(self._current)) - 1]
         else:
-            next_path = os.path.join(self._current, file)
+            next_path = os.path.join(self._current, path)
 
-        if not os.path.exists(next_path):
-            self._done = True
-            self._current = None
-            return
-
-        if os.path.isfile(next_path) and self._directory_only:
-            self._done = True
-            return
+        if os.path.exists(next_path) and os.path.isfile(next_path) and self._directory_only:
+            return True
 
         self._current = next_path
-        self._done = os.path.isfile(self._current)
 
         if self._combine_func is not None:
             self._combine_func(*(self._current, *self._args), **self._kwargs)
 
+        return os.path.exists(self._current) and os.path.isfile(self._current)
+
     @staticmethod
     def _under_root(path, root):
-        # TODO
-        return True
+        if '..' in path or os.path.islink(path):
+            return False
+        try:
+            return os.path.commonpath([path, root]) == root
+        except ValueError as _:
+            return False

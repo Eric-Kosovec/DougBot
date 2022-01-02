@@ -8,7 +8,7 @@ class KVStore:
     _TABLE_SCHEMA = f'{_KEY_COLUMN} TEXT PRIMARY KEY, {_VALUE_COLUMN} BLOB'
 
     ''' Not to be created directly. Get from bot class. '''
-    def __init__(self, db, table_name: str):
+    def __init__(self, db, table_name):
         if db is None or table_name is None:
             raise ValueError('KVStore init given None value')
         if table_name.startswith('_'):
@@ -98,7 +98,7 @@ class KVStore:
             return item[0], self._deserialize_value(item[1])
         except StopIteration or TypeError:
             self._iterator = None
-            raise StopIteration
+            raise
 
     @staticmethod
     def _serialize_value(value):

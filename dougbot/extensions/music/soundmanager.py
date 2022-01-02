@@ -35,9 +35,9 @@ class SoundManager(commands.Cog):
         try:
             self._clip_root.rename_file(from_path, to_path)
             await reactions.confirmation(ctx.message)
-        except OSError as e:
+        except OSError:
             await reactions.confusion(ctx.message)
-            raise e
+            raise
 
     @commands.command()
     @admin_command()
@@ -51,9 +51,9 @@ class SoundManager(commands.Cog):
         try:
             self._clip_root.move_file(clip_path, dest_path)
             await reactions.confirmation(ctx.message)
-        except OSError as e:
+        except OSError:
             await reactions.confusion(ctx.message)
-            raise e
+            raise
 
     @commands.command(aliases=['deleteclip'])
     @admin_command()
@@ -62,9 +62,9 @@ class SoundManager(commands.Cog):
         try:
             self._clip_root.delete_file(clip)
             await reactions.confirmation(ctx.message)
-        except Exception as e:
+        except Exception:
             await reactions.confusion(ctx.message)
-            raise e
+            raise
 
     @commands.command(aliases=['removecategory'])
     @admin_command()
@@ -72,9 +72,9 @@ class SoundManager(commands.Cog):
         try:
             self._clip_root.delete_dir(category)
             await reactions.confirmation(ctx.message)
-        except Exception as e:
+        except Exception:
             await reactions.confusion(ctx.message)
-            raise e
+            raise
 
     @commands.command()
     async def getclip(self, ctx, *, clip: str):
@@ -93,9 +93,9 @@ class SoundManager(commands.Cog):
         if not os.path.exists(os.path.join(self._clips_dir, folder)):
             try:
                 os.makedirs(os.path.join(self._clips_dir, folder), exist_ok=True)
-            except OSError as e:
+            except OSError:
                 await reactions.confusion(ctx.message)
-                raise e
+                raise
 
         if url is None or len(url) <= 0:
             # If no url was provided, then there has to be an audio attachment.
@@ -120,9 +120,9 @@ class SoundManager(commands.Cog):
         try:
             with open(path, 'wb') as out_file:
                 shutil.copyfileobj(file.raw, out_file)
-        except Exception as e:
+        except Exception:
             await reactions.confusion(ctx.message)
-            raise e
+            raise
 
         await reactions.confirmation(ctx.message)
 

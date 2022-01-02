@@ -1,7 +1,10 @@
+import asyncio
+
 from discord.ext import commands
 
 from dougbot.core.bot import DougBot
 from dougbot.extensions.common.annotations.admincheck import admin_command
+from dougbot.extensions.common import channelutils
 
 
 class Debug(commands.Cog):
@@ -13,9 +16,21 @@ class Debug(commands.Cog):
     @admin_command()
     async def clearlog(self, ctx):
         log_channel = await self.bot.log_channel()
-        if log_channel is not None:
-            await log_channel.purge(check=lambda m: m.author.id == ctx.me.id, bulk=False)
-            await ctx.message.delete()
+        await self._clear_channel(ctx, log_channel)
+
+    @commands.command()
+    @admin_command()
+    async def cleardebug(self, ctx):
+        debug_channel = await channelutils.channel_containing_name(ctx.message.guild, 'doug-debug')
+        await self._clear_channel(ctx, debug_channel)
+
+    @staticmethod
+    async def _clear_channel(ctx, channel):
+        if channel is not None:
+            await channel.purge(limit=10000, check=lambda m: not m.pinned, bulk=True)
+            if ctx.message.channel.id != channel.id:
+                await asyncio.sleep(3)
+                await ctx.message.delete()
 
 
 def setup(bot):

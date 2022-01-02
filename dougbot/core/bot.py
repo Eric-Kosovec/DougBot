@@ -7,7 +7,6 @@ import traceback
 import discord
 from discord.ext import commands
 from discord.utils import find
-from discord.ext.commands.help import HelpCommand
 
 from dougbot.common import reactions
 from dougbot.common.database import Database
@@ -17,23 +16,17 @@ from dougbot.core.extloader import ExtensionLoader
 from dougbot.core.logger.channelhandler import ChannelHandler
 
 
-# https://discordpy.readthedocs.io/
-
-
 class DougBot(commands.Bot):
     ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     RESOURCES_DIR = os.path.join(ROOT_DIR, 'resources')
 
-    ACTIVE_STATUS = "depression"
-
     def __init__(self, token_file, bot_config, server_config):
         self._config = Config(token_file, bot_config, server_config)
         self._db = Database(os.path.join(self.RESOURCES_DIR, 'core', 'db', 'dougbot.db'))  # For core bot settings
-
-        # For notifying text channels the bot is online. Used to prevent spamming in case of shaky
-        # internet, as on_ready can be called multiple times in such a case.
-        self._ready_finished = False
         self._log_channel = None
+
+        # Prevent on_ready running multiple times from poor internet
+        self._ready_finished = False
 
         bot_kwargs = {
             "intents": discord.Intents.all(),
@@ -46,6 +39,7 @@ class DougBot(commands.Bot):
 
     def run(self, *args, **kwargs):
         try:
+            print("I'm starting...")
             super().run(*(self._config.token, *args), **kwargs)
         except Exception as e:
             print(f'\nFATAL EXCEPTION: Uncaught exception while running bot: {e}', file=sys.stderr)
@@ -61,12 +55,10 @@ class DougBot(commands.Bot):
 
         self._log_channel = self.get_channel(self._config.logging_channel_id)
         if self._log_channel is not None:
-            logging.getLogger('').addHandler(ChannelHandler(self.ROOT_DIR, self._log_channel, self.loop))
+            logging.getLogger('').addHandler(ChannelHandler(self._log_channel, self.loop))
 
         for error in self._extension_load_errors:
             logging.getLogger(__file__).log(logging.ERROR, f'{error}\n{"".join(traceback.format_tb(error.__traceback__))}')
-
-        await self.change_presence(activity=discord.Game(self.ACTIVE_STATUS))
 
         self._ready_finished = True
 
@@ -114,10 +106,8 @@ class DougBot(commands.Bot):
         return os.path.join(DougBot.RESOURCES_DIR, 'extensions')
 
     async def join_voice_channel(self, channel):
-        if channel is not None:
-            vc = await self.get_voice(channel)
-            return vc if vc is not None else await channel.connect()
-        return None
+        vc = await self.get_voice(channel)
+        return vc if vc is not None else await channel.connect()
 
     @staticmethod
     async def leave_voice_channel(voice):
@@ -128,9 +118,7 @@ class DougBot(commands.Bot):
         return await self.get_voice(channel) is not None
 
     async def get_voice(self, channel):
-        if channel is not None:
-            return find(lambda vc: vc.channel.id == channel.id, self.voice_clients)
-        return None
+        return find(lambda vc: vc.channel.id == channel.id, self.voice_clients)
 
     async def log_channel(self):
         return self._log_channel
@@ -141,15 +129,10 @@ class DougBot(commands.Bot):
     ''' PRIVATE METHODS '''
 
     @staticmethod
-    def _same_extension_package(main_module: str, sibling_module: str):
+    def _same_extension_package(main_module, sibling_module):
         extension_package = 'dougbot.extension'
-        i = 0
-        if main_module.startswith(extension_package):
-            i = len(extension_package) + 1
-
-        j = 0
-        if sibling_module.startswith(extension_package):
-            j = len(extension_package) + 1
+        i = 0 if not main_module.startswith(extension_package) else len(extension_package) + 1
+        j = 0 if not sibling_module.startswith(extension_package) else len(extension_package) + 1
 
         while i < len(main_module) and j < len(sibling_module):
             if main_module[i] != sibling_module[j]:

@@ -4,8 +4,6 @@ from dougbot.common.limits import Limits
 
 
 def is_long_message(message, limit=Limits.MESSAGE_CHARACTER_LIMIT):
-    if message is None or type(message) != str:
-        return False
     return len(message) > limit
 
 
