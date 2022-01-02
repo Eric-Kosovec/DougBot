@@ -10,6 +10,9 @@ async def find_file_async(start_path, filename):
 def find_file(start_path, filename):
     wanted_name, wanted_extension = os.path.splitext(filename)
 
+    wanted_name = wanted_name.strip()
+    wanted_extension = wanted_extension.strip()
+
     for path, _, files in os.walk(start_path):
         for file in files:
             name, extension = os.path.splitext(file)

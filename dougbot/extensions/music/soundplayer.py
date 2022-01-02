@@ -220,8 +220,6 @@ class SoundPlayer(commands.Cog):
     def _progress_hook(self, data):
         if self._last_embed_message is None:
             return
-        import pprint
-        pprint.pprint(data)
         progress = data['downloaded_bytes'] / data['total_bytes'] * 100
         asyncio.run_coroutine_threadsafe(self._last_embed_message.edit(embed=self._link_download_embed(self._title, self._uploader, self._thumbnail, self._url, int(progress))), self.bot.loop)
 
