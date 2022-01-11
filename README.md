@@ -3,7 +3,7 @@ Discord bot for the SadDoug guild.
 
 ## Running/Development
 #### Windows
-* Install Python version 3.7 or higher. While installing, check the button add Python to PATH variable.
+* Install Python version 3.7-3.8 or higher. While installing, check the button add Python to PATH variable.
 * Put the folder `DougBot/bin` into your PATH variable and restart your machine.
 * Run `setup.py` from the console through the command `python setup.py`.
 * Under the `config` directory, create your own token file called `token` containing solely the token given to you from Discord for your registered bot, then change the `config.ini` file to suit your needs, and `dougbot/core/config.py`, if need be.
