@@ -1,10 +1,10 @@
 import asyncio
 
-from discord.ext import commands
+from nextcord.ext import commands
 
 from dougbot.core.bot import DougBot
-from dougbot.extensions.common.annotations.admincheck import admin_command
 from dougbot.extensions.common import channelutils
+from dougbot.extensions.common.annotations.admincheck import admin_command
 
 
 class Debug(commands.Cog):

@@ -7,9 +7,8 @@ from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 
 import youtube_dl
-from discord.embeds import Embed
-from discord.ext import commands
-from youtube_search import YoutubeSearch
+from nextcord.embeds import Embed
+from nextcord.ext import commands
 
 from dougbot.common import reactions
 from dougbot.common.cache import LRUCache
@@ -17,8 +16,8 @@ from dougbot.core.bot import DougBot
 from dougbot.extensions.common import fileutils
 from dougbot.extensions.common import webutils
 from dougbot.extensions.common.annotations.miccheck import voice_command
-from dougbot.extensions.music2.track import Track
 from dougbot.extensions.music2.soundconsumer import SoundConsumer
+from dougbot.extensions.music2.track import Track
 
 
 class SoundPlayer2(commands.Cog):

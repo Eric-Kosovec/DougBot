@@ -1,6 +1,6 @@
-from discord import Embed
-
 from pprint import pprint
+
+from nextcord import Embed
 
 from dougbot.common.limits import Limits
 

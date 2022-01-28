@@ -1,6 +1,6 @@
 aiohttp
-discord.py
-discord.py[voice]
+nextcord[speed]
+nextcord[voice]
 PyNaCl
 requests
 symspellpy

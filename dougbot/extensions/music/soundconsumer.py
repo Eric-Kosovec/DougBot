@@ -3,11 +3,10 @@ import logging
 from queue import Queue
 from threading import Lock, Semaphore
 
-import discord
+import nextcord
 
 
 class SoundConsumer:
-
     __sound_consumer_lock = Lock()
     __sound_consumer = None
 
@@ -82,12 +81,12 @@ class SoundConsumer:
         self._stop = False
 
     def _clear_queue(self):
-            try:
-                while True:
-                    self._queue.get_nowait()
-                    self._queue.task_done()
-            except Exception as _:
-                pass
+        try:
+            while True:
+                self._queue.get_nowait()
+                self._queue.task_done()
+        except Exception as _:
+            pass
 
     def _finished(self, error):
         if error is not None:
@@ -96,6 +95,6 @@ class SoundConsumer:
 
     @staticmethod
     def _create_audio_source(track, volume):
-        audio_source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(track.src, options='-loglevel quiet'))
+        audio_source = nextcord.PCMVolumeTransformer(nextcord.FFmpegPCMAudio(track.src, options='-loglevel quiet'))
         audio_source.volume = volume
         return audio_source

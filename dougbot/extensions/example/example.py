@@ -1,4 +1,4 @@
-from discord.ext import commands
+from nextcord.ext import commands
 
 from dougbot.core.bot import DougBot
 from dougbot.extensions.common.annotations.admincheck import admin_command

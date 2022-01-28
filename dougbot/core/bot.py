@@ -4,9 +4,10 @@ import os
 import sys
 import traceback
 
-import discord
-from discord.ext import commands
-from discord.utils import find
+from nextcord import Intents
+from nextcord import Status
+from nextcord.ext import commands
+from nextcord.utils import find
 
 from dougbot.common import reactions
 from dougbot.common.database import Database
@@ -31,7 +32,7 @@ class DougBot(commands.Bot):
         self._ready_finished = False
 
         bot_kwargs = {
-            "intents": discord.Intents.all(),
+            "intents": Intents.all(),
             "case_insensitive": True,
             "strip_after_prefix": True
         }
@@ -65,7 +66,7 @@ class DougBot(commands.Bot):
         self._ready_finished = True
 
     async def close(self):
-        await self.change_presence(status=discord.Status.offline)
+        await self.change_presence(status=Status.offline)
         await super().close()
 
     async def on_command_error(self, ctx, error):

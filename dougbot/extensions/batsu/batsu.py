@@ -3,8 +3,8 @@ import re
 from collections import defaultdict
 
 import requests
-from discord import Embed
-from discord.ext import commands
+from nextcord import Embed
+from nextcord.ext import commands
 
 from dougbot.common.limits import Limits
 from dougbot.extensions.common import embedutils

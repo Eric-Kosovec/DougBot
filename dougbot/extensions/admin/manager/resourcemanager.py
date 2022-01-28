@@ -1,8 +1,8 @@
 import os
 import shutil
 
-import discord
-from discord.ext import commands
+import nextcord
+from nextcord.ext import commands
 
 from dougbot.common import reactions
 from dougbot.common.long_message import long_message
@@ -85,7 +85,7 @@ class ResourceManager(commands.Cog):
             .join(path)\
             .build()
         if os.path.isfile(target):
-            await ctx.send(file=discord.File(target))
+            await ctx.send(file=nextcord.File(target))
         else:
             await reactions.confusion(ctx.message, f'{target} is not a file')
 

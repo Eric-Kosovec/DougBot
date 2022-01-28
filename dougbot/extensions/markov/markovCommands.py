@@ -1,10 +1,10 @@
 import os
 from datetime import datetime
 
-from discord import Embed
-from discord import TextChannel
-from discord import User
-from discord.ext import commands
+from nextcord import Embed
+from nextcord import TextChannel
+from nextcord import User
+from nextcord.ext import commands
 
 from dougbot.extensions.markov.markovLib import *
 
@@ -126,6 +126,7 @@ class MarkovCommands(commands.Cog):
             await ctx.send("Cleared Markov data for <@" + str(user.id) + ">")
         except FileNotFoundError:
             await ctx.send("No chains exist for " + str(user) + ".")
+
 
 def setup(bot):
     bot.add_cog(MarkovCommands(bot))

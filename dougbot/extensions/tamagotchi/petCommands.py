@@ -1,6 +1,6 @@
-from discord import Embed
-from discord import User
-from discord.ext import commands
+from nextcord import Embed
+from nextcord import User
+from nextcord.ext import commands
 
 from dougbot.core.bot import DougBot
 from dougbot.extensions.tamagotchi.petEventHandlerLib import *

@@ -2,7 +2,7 @@ import os
 import subprocess
 import sys
 
-from discord.ext import commands
+from nextcord.ext import commands
 
 from dougbot.common import reactions
 from dougbot.core.bot import DougBot

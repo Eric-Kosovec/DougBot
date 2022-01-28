@@ -1,9 +1,5 @@
-import inspect
-import logging
 from queue import Queue
-from threading import Lock, Semaphore
-
-import discord
+from threading import Semaphore
 
 
 class SoundConsumer:
