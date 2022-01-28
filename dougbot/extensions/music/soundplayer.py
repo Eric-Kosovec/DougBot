@@ -76,7 +76,7 @@ class SoundPlayer(commands.Cog):
     @voice_command()
     async def ytplay(self, ctx, *, search_terms: str):
         yt_url = ''
-        if await webutils.is_link(search_terms):
+        if await webutils.async_is_link(search_terms):
             yt_url = search_terms
         else:
             results = YoutubeSearch(search_terms, max_results=20).to_dict()
@@ -206,6 +206,9 @@ class SoundPlayer(commands.Cog):
         ytdl = youtube_dl.YoutubeDL(ytdl_params)
 
         ie_result = await self.bot.loop.run_in_executor(self._thread_pool, ytdl.extract_info, link, False)
+        if ie_result is None:
+            return None
+
         self._uploader = ie_result['uploader']
         self._title = ie_result['title']
         self._thumbnail = ie_result['thumbnails'][-1]['url']

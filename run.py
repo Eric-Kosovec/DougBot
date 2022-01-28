@@ -10,7 +10,7 @@ except AssertionError:
 
 
 def main():
-    bot = DougBot('config/token', 'config/bot_config.ini', 'config/server_config.ini')
+    bot = DougBot('resources/config/config.ini', 'resources/config/test_config.ini')
     bot.run()
 
 

@@ -1,19 +1,21 @@
 # DougBot
-Discord bot for the SadDoug guild.
+Python-based Discord bot for the SadDoug server.
 
 ## Running/Development
 
 #### OS Independent
-* Install Python latest Python. While installing, check the button add Python to PATH variable.
+* Install the latest Python; while installing, check the button add Python to PATH variable.
+* Setup environment variable called `DOUGBOT_TOKEN` with the bot's token and restart (if on Windows, see section below before restarting).
 * Run `setup.py` from the console through the command `python3 setup.py`.
-* Under the `config` directory, create your own token file called `token` containing solely the token given to you from Discord for your registered bot, then change the `config.ini` file to suit your needs, and `dougbot/core/config.py`, if need be.
+* Change the `resources/config/config.ini` file to suit your needs, and `dougbot/core/configure/config.py`, if need be.
+* For a testing bot environment, create or modify `resources/config/test_config.ini`. Any settings in this file will override the main config file.
 * To start the bot, execute `run.bat` or from the console through the command `python3 run.py`.
 
 #### Windows
-* Install Python version 3.8 (higher is not supported). While installing, check the button add Python to PATH variable.
-* Put the folder `DougBot/bin` into your PATH variable and restart your machine.
+* Put the folder `DougBot/resources/bin` into your PATH variable and restart your machine.
 
 #### Linux
+* Directions coming soon
 
 ## Installing/Updating Required Libraries
 Run `setup.py` from the console through the command `python3 setup.py`.
@@ -24,4 +26,4 @@ Skeleton extension, `skeleton.py`, in `dougbot/extensions/example` can be used a
 Note: The setup function is required for a file containing extensions and is meant to register the extension classes to the bot. All extension classes must subclass `commands.Cog`.
 
 ### Resources
-The `resources` folder should mirror the source code structure. Therefore, resources for an extension should go within a folder with the same name as its package; e.g. music extension 
+The `resources/dougbot` folder should mirror the source code structure. Therefore, resources for an extension should go within a folder with the same name as its package; e.g. music extension: `resources/dougbot/extensions/music`.

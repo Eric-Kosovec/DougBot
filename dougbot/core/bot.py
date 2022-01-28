@@ -11,17 +11,19 @@ from discord.utils import find
 from dougbot.common import reactions
 from dougbot.common.database import Database
 from dougbot.common.kvstore import KVStore
-from dougbot.core.config import Config
-from dougbot.core.extloader import ExtensionLoader
-from dougbot.core.logger.channelhandler import ChannelHandler
+from dougbot.core.configure.config import Config
+from dougbot.core.extension.extloader import ExtensionLoader
+from dougbot.core.logging.channelhandler import ChannelHandler
 
 
 class DougBot(commands.Bot):
-    ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    RESOURCES_DIR = os.path.join(ROOT_DIR, 'resources')
 
-    def __init__(self, token_file, bot_config, server_config):
-        self._config = Config(token_file, bot_config, server_config)
+    ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    EXTENSIONS_DIR = os.path.join(ROOT_DIR, 'dougbot', 'extensions')
+    RESOURCES_DIR = os.path.join(ROOT_DIR, 'resources', 'dougbot')
+
+    def __init__(self, bot_config, server_config):
+        self._config = Config(bot_config, server_config)
         self._db = Database(os.path.join(self.RESOURCES_DIR, 'core', 'db', 'dougbot.db'))  # For core bot settings
         self._log_channel = None
 
@@ -150,5 +152,5 @@ class DougBot(commands.Bot):
 
 
 if __name__ == '__main__':
-    dougbot = DougBot('../../config/token', '../../config/bot_config.ini', '../../config/server_config.ini')
+    dougbot = DougBot('../../resources/config/config.ini', '../../resources/config/test_config.ini')
     dougbot.run()

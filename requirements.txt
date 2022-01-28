@@ -1,7 +1,6 @@
 aiohttp
 discord.py
 discord.py[voice]
-pip
 PyNaCl
 requests
 symspellpy

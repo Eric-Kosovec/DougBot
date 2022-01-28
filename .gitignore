@@ -3,7 +3,7 @@ __pycache__
 *.py[cod]
 *$py.class
 
-/config/bot_config.ini
-/config/token
-/resources/core/db/*
-/resources/extensions/*
+*.db
+
+/resources/dougbot
+/resources/config/test_config.ini
