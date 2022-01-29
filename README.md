@@ -21,9 +21,10 @@ Python-based Discord bot for the SadDoug server.
 Run `setup.py` from the console through the command `python3 setup.py`.
 
 ## Extension Development
-Skeleton extension, `skeleton.py`, in `dougbot/extensions/example` can be used as the basis for any new extension, changing the class name accordingly.
+Skeleton extension, `example.py`, in `dougbot/extensions/example` can be used as the basis for any new extension, changing the class name accordingly.
 
-Note: The setup function is required for a file containing extensions and is meant to register the extension classes to the bot. All extension classes must subclass `commands.Cog`.
+Note: The setup function is required for a file containing extensions and is meant to register the extension classes to the bot. The teardown function is not required, but is for cleanup and is called after a bot calls remove_cog.
+All extension classes must subclass `commands.Cog`.
 
 ### Resources
 The `resources/dougbot` folder should mirror the source code structure. Therefore, resources for an extension should go within a folder with the same name as its package; e.g. music extension: `resources/dougbot/extensions/music`.
