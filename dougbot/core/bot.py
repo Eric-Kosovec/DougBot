@@ -72,11 +72,11 @@ class DougBot(commands.Bot):
     async def on_command_error(self, ctx, error):
         error_texts = {
             commands.errors.MissingRequiredArgument: f'Missing argument(s), type {ctx.prefix}help <command_name>',
-            commands.errors.CheckFailure: f'{ctx.author.mention} You do not have permissions for this command.',
-            commands.errors.NoPrivateMessage: 'Command cannot be used in private messages.',
-            commands.errors.DisabledCommand: 'Command disabled and cannot be used.',
-            commands.errors.CommandNotFound: 'Command not found.',
-            commands.errors.CommandOnCooldown: 'Command on cooldown.'
+            commands.errors.CheckFailure: f'{ctx.author.mention} You do not have permissions for this command',
+            commands.errors.NoPrivateMessage: 'Command cannot be used in private messages',
+            commands.errors.DisabledCommand: 'Command disabled and cannot be used',
+            commands.errors.CommandNotFound: 'Command not found',
+            commands.errors.CommandOnCooldown: 'Command on cooldown'
         }
 
         for error_class, error_msg in error_texts.items():
@@ -88,7 +88,7 @@ class DougBot(commands.Bot):
         logging.getLogger(__file__).log(logging.ERROR, f'{error}\n{" ".join(traceback.format_tb(error.original.__traceback__))}')
         await reactions.check_log(ctx.message)
 
-    # Sibling module is a python file within the same package as the caller, unless caller is a core or admin module.
+    # Sibling module is a Python file within the same package as the caller, unless caller is a core or admin module.
     def kv_store(self, sibling_module=None):
         caller_stack = inspect.stack()[1]
         calling_module = inspect.getmodule(caller_stack[0]).__name__
@@ -128,6 +128,9 @@ class DougBot(commands.Bot):
 
     def admin_role_id(self):
         return self._config.admin_role_id
+
+    async def register_bulk_application_commands(self) -> None:
+        pass
 
     ''' PRIVATE METHODS '''
 

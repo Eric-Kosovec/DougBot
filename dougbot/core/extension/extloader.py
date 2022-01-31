@@ -4,35 +4,42 @@ import sys
 
 class ExtensionLoader:
 
-    @staticmethod
-    def load_extensions(bot):
+    @classmethod
+    def load_extensions(cls, bot):
         exceptions = []
-        extensions_dir = bot.EXTENSIONS_DIR
-
-        if not os.path.exists(extensions_dir):
-            exceptions.append(Exception(f"Path to extensions, '{extensions_dir},' does not exist."))
+        if not os.path.exists(bot.EXTENSIONS_DIR):
+            exceptions.append(Exception(f"Path to extensions, '{bot.EXTENSIONS_DIR},' does not exist."))
             return
 
-        if extensions_dir not in sys.path:
-            sys.path.append(extensions_dir)
+        if bot.EXTENSIONS_DIR not in sys.path:
+            sys.path.append(bot.EXTENSIONS_DIR)
 
-        for root, _, files in os.walk(extensions_dir):
-            if not ExtensionLoader._is_extension_package(root):
-                continue
-
-            for filename in files:
-                if ExtensionLoader._is_extension_module(root, filename):
-                    try:
-                        module_path = os.path.join(root[len(bot.ROOT_DIR) + 1:], filename[:-3]).replace(os.sep, '.')
-                        bot.load_extension(module_path)
-                    except Exception as e:
-                        if "no 'setup' function" in str(e):
-                            # Ignore when there is no setup function. Can't know if it is an intentional issue or not.
-                            # If an extension SHOULD exist, but doesn't, this is likely the issue.
-                            continue
-                        exceptions.append(e)
+        for root, _, files in os.walk(bot.EXTENSIONS_DIR):
+            cls._load_from_package(bot, root, files, exceptions)
 
         return exceptions
+
+    @classmethod
+    def _load_from_package(cls, bot, root, files, exceptions):
+        if not cls._is_extension_package(root):
+            return
+
+        for filename in files:
+            cls._load_from_module(bot, root, filename, exceptions)
+
+    @classmethod
+    def _load_from_module(cls, bot, root, filename, exceptions):
+        if not cls._is_extension_module(root, filename):
+            return
+
+        try:
+            module_path = f'{root[len(bot.ROOT_DIR) + 1:]}.{filename[:-3]}'.replace(os.sep, '.')
+            bot.load_extension(module_path)
+        except Exception as e:
+            # Ignore when there is no setup function. Can't know if it is an intentional issue or not.
+            # If an extension SHOULD exist, but doesn't, this is likely the issue.
+            if "no 'setup' function" not in str(e):
+                exceptions.append(e)
 
     @staticmethod
     def _is_extension_module(path, filename):
@@ -41,6 +48,4 @@ class ExtensionLoader:
 
     @staticmethod
     def _is_extension_package(path):
-        # TODO CHECK FOR COMMON, UTIL, EXAMPLE BEING IN PATH
-        return not (os.path.basename(path).startswith('__') or os.path.basename(path).startswith('example') or
-                    os.path.basename(path).startswith('util') or os.path.basename(path).startswith('common'))
+        return not (os.path.basename(path).startswith('__') or 'example' in path or 'util' in path or 'common' in path)

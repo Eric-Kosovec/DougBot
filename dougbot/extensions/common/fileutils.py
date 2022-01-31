@@ -29,7 +29,8 @@ async def strip_traversals(path):
 
 
 def delete_directories(directory, ignore_errors=False, onerror=None):
-    shutil.rmtree(directory, ignore_errors, onerror)
+    if os.path.exists(directory):
+        shutil.rmtree(directory, ignore_errors, onerror)
 
 
 class PathBuilder:

@@ -63,12 +63,12 @@ class SoundPlayer(commands.Cog):
             await reactions.confusion(ctx.message)
             return
 
-        # TODO EXPLORE CREATING TRACK WHILE WAITING
         # Keep ordering of clips
         async with self._order_lock:
             await self._enqueue_audio(ctx, voice, source, times)
 
-        # await ctx.message.delete()
+        await asyncio.sleep(3)
+        await ctx.message.delete()
 
     # Searches for a youtube video based on the search terms given and sends the url to the play function
     @commands.command()
