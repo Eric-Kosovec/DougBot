@@ -6,7 +6,7 @@ class Config:
 
     def __init__(self, config, test_config):
         config_parser = ConfigParser()
-        config_parser.read([config, test_config] if os.path.exists(test_config) else [config])
+        config_parser.read([config, test_config])
 
         self.command_prefix = config_parser.get('Commands', 'prefix')
         self.admin_role_id = int(config_parser.get('Permissions', 'admin_role_id'))
