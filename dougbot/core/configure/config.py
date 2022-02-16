@@ -16,5 +16,5 @@ class Config:
         if token is None and os.path.exists(test_config):
             test_config_parser = ConfigParser()
             test_config_parser.read(test_config)
-            token = config_parser.get('Environment', 'token', fallback=None)
+            token = test_config_parser.get('Environment', 'token', fallback=None)
         self.token = token
