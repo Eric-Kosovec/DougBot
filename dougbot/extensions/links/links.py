@@ -11,10 +11,6 @@ class Links(commands.Cog):
         await ctx.send('https://cytu.be/r/SadDoug')
 
     @commands.command()
-    async def git(self, ctx):
-        await ctx.send('https://github.com/Eric-Kosovec/DougBot')
-
-    @commands.command()
     async def bingo(self, ctx):
         await ctx.send('http://saddoug.rf.gd/')
 

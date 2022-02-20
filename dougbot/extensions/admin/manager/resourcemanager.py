@@ -4,8 +4,8 @@ import shutil
 import nextcord
 from nextcord.ext import commands
 
-from dougbot.common import reactions
-from dougbot.common.long_message import long_message
+from dougbot.common.messaging import reactions
+from dougbot.common.messaging.message_utils import split_message
 from dougbot.core.bot import DougBot
 from dougbot.extensions.common import fileutils
 from dougbot.extensions.common import webutils
@@ -27,7 +27,7 @@ class ResourceManager(commands.Cog):
         files = os.listdir(self._path)
         files.sort()
         output = '\n'.join(files)
-        for message in long_message(output):
+        for message in split_message(output):
             await ctx.send(message)
 
     @commands.command()

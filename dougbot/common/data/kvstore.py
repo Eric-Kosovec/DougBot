@@ -9,8 +9,6 @@ class KVStore:
 
     ''' Not to be created directly. Get from bot class. '''
     def __init__(self, db, table_name):
-        if db is None or table_name is None:
-            raise ValueError('KVStore init given None value')
         if table_name.startswith('_'):
             raise ValueError(f"KVStore table name '{table_name}' cannot start with an underscore")
         if not table_name.isidentifier():
@@ -23,8 +21,6 @@ class KVStore:
         self._db.execute(f'CREATE TABLE IF NOT EXISTS {self._table_name}({self._TABLE_SCHEMA})')
 
     def insert(self, key, value):
-        if key is None:
-            raise ValueError('KVStore insert given None key')
         if type(key) != str:
             raise ValueError('KVStore insert key must be a string')
 
@@ -34,8 +30,6 @@ class KVStore:
         self.insert(key, value)
 
     def remove(self, key):
-        if key is None:
-            raise ValueError('KVStore remove given None key')
         if type(key) != str:
             raise ValueError('KVStore remove key must be a string')
 
@@ -45,8 +39,6 @@ class KVStore:
         self.remove(key)
 
     def contains(self, key, value=None):
-        if key is None:
-            raise ValueError('KVStore contains given None key')
         if type(key) != str:
             raise ValueError('KVStore contains key must be a string')
 
@@ -55,6 +47,7 @@ class KVStore:
         else:
             serialized_value = self._serialize_value(value)
             result = self._db.execute(f'SELECT {self._KEY_COLUMN} FROM {self._table_name} WHERE {self._KEY_COLUMN} = ? and {self._VALUE_COLUMN} = ?', (key, serialized_value,))
+
         try:
             return result is not None and next(result) is not None
         except StopIteration:
@@ -64,8 +57,6 @@ class KVStore:
         return self.contains(key, value)
 
     def get(self, key):
-        if key is None:
-            raise ValueError('KVStore get given None key')
         if type(key) != str:
             raise ValueError('KVStore get key must be a string')
 
@@ -102,8 +93,8 @@ class KVStore:
 
     @staticmethod
     def _serialize_value(value):
-        return pickle.dumps(value) if value is not None else b'\0'
+        return b'\0' if value is None else pickle.dumps(value)
 
     @staticmethod
     def _deserialize_value(serial):
-        return pickle.loads(serial) if serial is not None else None
+        return None if serial is None else pickle.loads(serial)

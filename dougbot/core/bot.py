@@ -4,35 +4,35 @@ import os
 import sys
 import traceback
 
+import nextcord.utils
 from nextcord import Intents
 from nextcord import Status
 from nextcord.ext import commands
-from nextcord.utils import find
 
-from dougbot.common import reactions
-from dougbot.common.database import Database
-from dougbot.common.kvstore import KVStore
+from dougbot.common.data.database import Database
+from dougbot.common.data.kvstore import KVStore
+from dougbot.common.messaging import reactions
 from dougbot.core.configure.config import Config
 from dougbot.core.extension.extloader import ExtensionLoader
-from dougbot.core.logging.channelhandler import ChannelHandler
+from dougbot.core.logger.channelhandler import ChannelHandler
 
 
 class DougBot(commands.Bot):
 
     ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     EXTENSIONS_DIR = os.path.join(ROOT_DIR, 'dougbot', 'extensions')
-    RESOURCES_DIR = os.path.join(ROOT_DIR, 'resources', 'dougbot')
+    RESOURCES_DIR = os.path.join(ROOT_DIR, 'resources', 'dougbot', 'extension')
 
-    def __init__(self, bot_config, server_config):
-        self._config = Config(bot_config, server_config)
-        self._db = Database(os.path.join(self.RESOURCES_DIR, 'core', 'db', 'dougbot.db'))  # For core bot settings
+    def __init__(self):
+        self._config = Config(os.path.join(self.ROOT_DIR, 'resources', 'config'))
+        self._database = Database(os.path.join(self.ROOT_DIR, 'resources', 'core', 'db', 'dougbot.db'))  # For core bot settings
         self._log_channel = None
 
-        # Prevent on_ready running multiple times from poor internet
+        # Prevent on_ready from initializing data multiple times
         self._ready_finished = False
 
         bot_kwargs = {
-            "intents": Intents.all(),
+            "intents": Intents.all(),  # TODO More specific intents
             "case_insensitive": True,
             "strip_after_prefix": True
         }
@@ -102,15 +102,11 @@ class DougBot(commands.Bot):
             if not self._is_admin_package(calling_module) and not self._same_extension_package(calling_module, sibling_module):
                 raise ValueError(f"Cannot get sibling module '{sibling_module}' from '{calling_module}'")
 
-        return KVStore(self._db, calling_module.replace('.', '_'))
-
-    @staticmethod
-    def extensions_resource_path():
-        return os.path.join(DougBot.RESOURCES_DIR, 'extensions')
+        return KVStore(self._database, calling_module.replace('.', '_'))
 
     async def join_voice_channel(self, channel):
-        vc = await self.get_voice(channel)
-        return vc if vc is not None else await channel.connect()
+        voice_client = await self.get_voice(channel)
+        return await channel.connect() if voice_client is None else voice_client
 
     @staticmethod
     async def leave_voice_channel(voice):
@@ -121,7 +117,7 @@ class DougBot(commands.Bot):
         return await self.get_voice(channel) is not None
 
     async def get_voice(self, channel):
-        return find(lambda vc: vc.channel.id == channel.id, self.voice_clients)
+        return nextcord.utils.find(lambda vc: vc.channel.id == channel.id, self.voice_clients)
 
     async def log_channel(self):
         return self._log_channel
@@ -129,16 +125,13 @@ class DougBot(commands.Bot):
     def admin_role_id(self):
         return self._config.admin_role_id
 
-    async def register_bulk_application_commands(self) -> None:
-        pass
-
     ''' PRIVATE METHODS '''
 
     @staticmethod
     def _same_extension_package(main_module, sibling_module):
         extension_package = 'dougbot.extension'
-        i = 0 if not main_module.startswith(extension_package) else len(extension_package) + 1
-        j = 0 if not sibling_module.startswith(extension_package) else len(extension_package) + 1
+        i = len(extension_package) + 1 if main_module.startswith(extension_package) else 0
+        j = len(extension_package) + 1 if sibling_module.startswith(extension_package) else 0
 
         while i < len(main_module) and j < len(sibling_module):
             if main_module[i] != sibling_module[j]:
@@ -156,5 +149,4 @@ class DougBot(commands.Bot):
 
 
 if __name__ == '__main__':
-    dougbot = DougBot('../../resources/config/config.ini', '../../resources/config/test_config.ini')
-    dougbot.run()
+    DougBot().run()

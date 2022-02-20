@@ -6,8 +6,8 @@ import requests
 from nextcord import Embed
 from nextcord.ext import commands
 
+from dougbot.common.embed import embed_utils
 from dougbot.common.limits import Limits
-from dougbot.extensions.common import embedutils
 
 
 class Batsu(commands.Cog):
@@ -59,7 +59,7 @@ class Batsu(commands.Cog):
         height = math.ceil(len(status_report) / float(Limits.EMBED_INLINE_FIELD_LIMIT))
 
         for _ in range(height * Limits.EMBED_INLINE_FIELD_LIMIT):
-            embed.add_field(name=embedutils.BLANK_DATA, value=embedutils.BLANK_DATA)
+            embed.add_field(name=embed_utils.BLANK_DATA, value=embed_utils.BLANK_DATA)
 
         r = 0
         c = 0
@@ -71,7 +71,7 @@ class Batsu(commands.Cog):
                 for time, status in status_report[i + 1]:
                     status_display += f'{time} | {status}\n'
                 if len(status_display) == 0:
-                    status_display = embedutils.BLANK_DATA
+                    status_display = embed_utils.BLANK_DATA
 
             embed.set_field_at(r * Limits.EMBED_INLINE_FIELD_LIMIT + c, name=f'Part {i + 1}', value=status_display)
 

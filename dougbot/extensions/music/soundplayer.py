@@ -10,8 +10,8 @@ from nextcord.embeds import Embed
 from nextcord.ext import commands
 from youtube_search import YoutubeSearch
 
-from dougbot.common import reactions
-from dougbot.common.cache import LRUCache
+from dougbot.common.data.cache import LRUCache
+from dougbot.common.messaging import reactions
 from dougbot.core.bot import DougBot
 from dougbot.extensions.common import fileutils
 from dougbot.extensions.common import webutils
@@ -36,7 +36,7 @@ class SoundPlayer(commands.Cog):
         self._order_lock = asyncio.Lock()  # Keeps order tracks are played in.
         self._volume = 1.0 if 'volume' not in self._kv else self._kv['volume']
 
-        self._resource_path = os.path.join(self.bot.extensions_resource_path(), 'music')
+        self._resource_path = os.path.join(self.bot.RESOURCES_DIR, 'music')
         self._clips_dir = os.path.join(self._resource_path, 'audio')
         self._cache_dir = os.path.join(self._resource_path, 'cache')
         self._last_embed_message = None
@@ -261,6 +261,6 @@ def setup(bot):
     bot.add_cog(SoundPlayer(bot))
 
 
-def teardown(bot):
-    cache_path = os.path.join(bot.extensions_resource_path(), 'music', 'cache')
+def teardown(bot: DougBot):
+    cache_path = os.path.join(bot.RESOURCES_DIR, 'music', 'cache')
     fileutils.delete_directories(cache_path, True)

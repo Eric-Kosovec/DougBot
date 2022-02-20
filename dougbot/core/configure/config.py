@@ -4,7 +4,13 @@ from configparser import ConfigParser
 
 class Config:
 
-    def __init__(self, config, test_config):
+    _CONFIG_FILENAME = 'config.ini'
+    _TEST_CONFIG_FILENAME = 'test_config.ini'
+
+    def __init__(self, config_path):
+        config = os.path.join(config_path, self._CONFIG_FILENAME)
+        test_config = os.path.join(config_path, self._TEST_CONFIG_FILENAME)
+
         config_parser = ConfigParser()
         config_parser.read([config, test_config])
 

@@ -5,5 +5,5 @@ __pycache__
 
 *.db
 
-/resources/dougbot
+/resources/dougbot/extensions/music
 /resources/config/test_config.ini

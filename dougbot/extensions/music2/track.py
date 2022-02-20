@@ -12,11 +12,7 @@ class Track:
         self.title = ''
         self.thumbnail = ''
         self.duration = 0
-        self._valid = True
         self._ready_lock = Semaphore(0)
-
-    def invalidate(self):
-        self._valid = False
 
     def wait_for_ready(self):
         self._ready_lock.acquire()

@@ -5,7 +5,7 @@ import nextcord
 import requests
 from nextcord.ext import commands
 
-from dougbot.common import reactions
+from dougbot.common.messaging import reactions
 from dougbot.extensions.common.annotations.admincheck import admin_command
 from dougbot.extensions.common.rootdirectory import RootDirectory
 

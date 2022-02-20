@@ -7,7 +7,7 @@ def is_long_message(message, limit=Limits.MESSAGE_CHARACTER_LIMIT):
     return len(message) > limit
 
 
-def long_message(message, limit=Limits.MESSAGE_CHARACTER_LIMIT):
+def split_message(message, limit=Limits.MESSAGE_CHARACTER_LIMIT):
     if not is_long_message(message, limit):
         return [message]
 
