@@ -25,7 +25,7 @@ class DougBot(commands.Bot):
 
     def __init__(self):
         self._config = Config(os.path.join(self.ROOT_DIR, 'resources', 'config'))
-        self._database = Database(os.path.join(self.ROOT_DIR, 'resources', 'core', 'db', 'dougbot.db'))  # For core bot settings
+        self._database = Database(os.path.join(self.ROOT_DIR, 'resources', 'dougbot', 'core', 'db', 'dougbot.db'))  # For core bot settings
         self._log_channel = None
 
         # Prevent on_ready from initializing data multiple times
