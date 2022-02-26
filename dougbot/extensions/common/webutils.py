@@ -2,7 +2,6 @@ import requests
 
 
 async def is_file_url(url):
-    # TODO MAKE BETTER
     return await is_link(url) and len(url[url.rfind('.'):]) in range(1, 6)
 
 

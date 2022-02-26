@@ -35,9 +35,9 @@ def delete_directories(directory, ignore_errors=False, onerror=None):
 
 class PathBuilder:
 
-    def __init__(self, current=os.getcwd(), root=None):
+    def __init__(self, current, root=None):
         self._current = current
-        self._root = root if root is not None else current
+        self._root = current if root is None else root
 
         if not self._under_root(self._current, self._root):
             self._current = self._root

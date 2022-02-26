@@ -6,23 +6,23 @@ import requests
 from nextcord.ext import commands
 
 from dougbot.common.messaging import reactions
+from dougbot.core.bot import DougBot
 from dougbot.extensions.common.annotations.admincheck import admin_command
-from dougbot.extensions.common.rootdirectory import RootDirectory
+from dougbot.extensions.common import fileutils
 
 
 class SoundManager(commands.Cog):
 
-    def __init__(self, bot):
+    def __init__(self, bot: DougBot):
         self.bot = bot
-        self._clip_root = RootDirectory(os.path.join(self.bot.ROOT_DIR, 'resources', 'extensions', 'music', 'audio'))
-        self._clips_dir = os.path.join(self.bot.ROOT_DIR, 'resources', 'extensions', 'music', 'audio')
+        self._clips_dir = os.path.join(self.bot.RESOURCES_DIR, 'music', 'audio')
 
     # TODO ALLOW CLIPS TO HAVE DIRECTORIES SPECIFIED IN THEM
 
     @commands.command()
     @admin_command()
     async def renameclip(self, ctx, from_clip: str, *, to_clip: str):
-        from_path = self._clip_root.find_file(from_clip)
+        from_path = await fileutils.find_file_async(self._clips_dir, from_clip)
         if from_path is None:
             await reactions.confusion(ctx.message)
             return
@@ -33,7 +33,8 @@ class SoundManager(commands.Cog):
 
         to_path = os.path.join(os.path.dirname(from_path), f'{to_clip}{from_path[from_path.rfind(os.curdir):]}')
         try:
-            self._clip_root.rename_file(from_path, to_path)
+            os.makedirs(to_path, exist_ok=True)
+            os.rename(from_path, to_path)
             await reactions.confirmation(ctx.message)
         except OSError:
             await reactions.confusion(ctx.message)
@@ -42,14 +43,15 @@ class SoundManager(commands.Cog):
     @commands.command()
     @admin_command()
     async def moveclip(self, ctx, clip: str, *, dest: str):
-        clip_path = self._clip_root.find_file(clip)
+        clip_path = await fileutils.find_file_async(self._clips_dir, clip)
         if clip_path is None:
             await reactions.confusion(ctx.message)
             return
 
         dest_path = os.path.join(dest, os.path.basename(clip_path))
         try:
-            self._clip_root.move_file(clip_path, dest_path)
+            os.makedirs(dest_path, exist_ok=True)
+            os.rename(clip_path, dest_path)
             await reactions.confirmation(ctx.message)
         except OSError:
             await reactions.confusion(ctx.message)
@@ -60,7 +62,8 @@ class SoundManager(commands.Cog):
     async def removeclip(self, ctx, *, clip: str):
         # TODO DETERMINE IF A DIRECTORY IS GIVEN IN CLIP AND SPLIT OUT
         try:
-            self._clip_root.delete_file(clip)
+            target = await fileutils.find_file_async(self._clips_dir, clip)
+            os.remove(target)
             await reactions.confirmation(ctx.message)
         except Exception:
             await reactions.confusion(ctx.message)
@@ -70,7 +73,8 @@ class SoundManager(commands.Cog):
     @admin_command()
     async def removecat(self, ctx, *, category: str):
         try:
-            self._clip_root.delete_dir(category)
+            target = os.path.join(self._clips_dir, category)
+            fileutils.delete_directories(target)
             await reactions.confirmation(ctx.message)
         except Exception:
             await reactions.confusion(ctx.message)

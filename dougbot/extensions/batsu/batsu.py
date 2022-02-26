@@ -8,6 +8,7 @@ from nextcord.ext import commands
 
 from dougbot.common.embed import embed_utils
 from dougbot.common.limits import Limits
+from dougbot.core.bot import DougBot
 
 
 class Batsu(commands.Cog):
@@ -16,7 +17,7 @@ class Batsu(commands.Cog):
     _SUB_STATUS_AJAX = 'https://www.teamgaki.com/status/ajax.php'
     _STATUS_LEGEND = 'Not Started > Typesetting > Translating > Quality Check > Prep For Release > Complete!'
 
-    def __init__(self, bot):
+    def __init__(self, bot: DougBot):
         self.bot = bot
 
     @commands.command(aliases=['batsu'])
