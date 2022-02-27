@@ -1,9 +1,11 @@
 from nextcord.ext import commands
 
+from dougbot.core.bot import DougBot
+
 
 class Links(commands.Cog):
 
-    def __init__(self, bot):
+    def __init__(self, bot: DougBot):
         self.bot = bot
 
     @commands.command()

@@ -26,6 +26,7 @@ class DougBot(commands.Bot):
     def __init__(self):
         self._config = Config(os.path.join(self.ROOT_DIR, 'resources', 'config'))
         self._database = Database(os.path.join(self.ROOT_DIR, 'resources', 'dougbot', 'core', 'db', 'dougbot.db'))  # For core bot settings
+        self._database.open()
         self._log_channel = None
 
         # Prevent on_ready from initializing data multiple times
@@ -66,6 +67,7 @@ class DougBot(commands.Bot):
         self._ready_finished = True
 
     async def close(self):
+        self._database.close()
         await self.change_presence(status=Status.offline)
         await super().close()
 

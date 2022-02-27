@@ -12,7 +12,7 @@ from dougbot.extensions.common.annotations.admincheck import admin_command
 class Update(commands.Cog):
 
     def __init__(self, bot: DougBot):
-        self._bot = bot
+        self.bot = bot
 
     @commands.command()
     @admin_command()
@@ -38,7 +38,7 @@ class Update(commands.Cog):
 
         for python_name in python_names:
             try:
-                await self._update(ctx, [python_name, os.path.join(self._bot.ROOT_DIR, 'setup.py')])
+                await self._update(ctx, [python_name, os.path.join(self.bot.ROOT_DIR, 'setup.py')])
                 break
             except Exception as e:
                 if first_exception is None:
@@ -53,9 +53,8 @@ class Update(commands.Cog):
 
     async def _update(self, ctx, *cmds):
         cwd = os.getcwd()
-        os.chdir(self._bot.ROOT_DIR)
+        os.chdir(self.bot.ROOT_DIR)
         try:
-            await self._process_commands(['git', 'fetch', '--all'])
             await self._process_commands(*cmds)
             await self._restart_bot(ctx)
         finally:

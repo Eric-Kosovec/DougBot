@@ -18,14 +18,12 @@ from dougbot.common.messaging import reactions
 from dougbot.core.bot import DougBot
 from dougbot.extensions.common import fileutils
 from dougbot.extensions.common import webutils
-from dougbot.extensions.common.annotations.channel import channel_sandbox
 from dougbot.extensions.common.annotations.miccheck import voice_command
 from dougbot.extensions.common.ui.dougbutton import DougButton
 from dougbot.extensions.music2.soundconsumer import SoundConsumer
 from dougbot.extensions.music2.track import Track
 
 
-@channel_sandbox()
 class SoundPlayer2(commands.Cog):
     _MAXIMUM_PLAYS = 50
 
@@ -91,7 +89,7 @@ class SoundPlayer2(commands.Cog):
             self._paused = False
         await ctx.message.delete(delay=3)
 
-    @commands.command(aliases=['next'])
+    @commands.command(aliases=['next2'])
     @commands.guild_only()
     @voice_command()
     async def skip2(self, ctx):
@@ -99,7 +97,7 @@ class SoundPlayer2(commands.Cog):
             self._sound_consumer.skip()
         await ctx.message.delete(delay=3)
 
-    @commands.command(aliases=['stop'])
+    @commands.command(aliases=['stop2'])
     @commands.guild_only()
     @voice_command()
     async def leave2(self, ctx):
@@ -111,7 +109,7 @@ class SoundPlayer2(commands.Cog):
             fileutils.delete_directories(self._cache_dir, True)
         await ctx.message.delete(delay=3)
 
-    @commands.command(aliases=['volume'])
+    @commands.command(aliases=['volume2'])
     @commands.guild_only()
     @voice_command()
     async def vol2(self, ctx, volume: float):
