@@ -7,7 +7,7 @@ from nextcord.ext import commands
 
 from dougbot.common.messaging import reactions
 from dougbot.core.bot import DougBot
-from dougbot.extensions.common.annotations.admincheck import admin_command
+from dougbot.extensions.common.annotation.admincheck import admin_command
 from dougbot.extensions.common import fileutils
 
 

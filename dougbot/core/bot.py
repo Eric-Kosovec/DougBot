@@ -21,7 +21,7 @@ class DougBot(commands.Bot):
 
     ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     EXTENSIONS_DIR = os.path.join(ROOT_DIR, 'dougbot', 'extensions')
-    RESOURCES_DIR = os.path.join(ROOT_DIR, 'resources', 'dougbot', 'extension')
+    RESOURCES_DIR = os.path.join(ROOT_DIR, 'resources', 'dougbot', 'extensions')
 
     def __init__(self):
         self._config = Config(os.path.join(self.ROOT_DIR, 'resources', 'config'))
@@ -68,8 +68,9 @@ class DougBot(commands.Bot):
 
     async def close(self):
         self._database.close()
-        await self.change_presence(status=Status.offline)
-        await super().close()
+        if self.loop is not None and self.loop.is_running():
+            await self.change_presence(status=Status.offline)
+            await super().close()
 
     async def on_command_error(self, ctx, error):
         error_texts = {

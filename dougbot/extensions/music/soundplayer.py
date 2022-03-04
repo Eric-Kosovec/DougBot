@@ -15,7 +15,7 @@ from dougbot.common.messaging import reactions
 from dougbot.core.bot import DougBot
 from dougbot.extensions.common import fileutils
 from dougbot.extensions.common import webutils
-from dougbot.extensions.common.annotations.miccheck import voice_command
+from dougbot.extensions.common.annotation.miccheck import voice_command
 from dougbot.extensions.music.soundconsumer import SoundConsumer
 from dougbot.extensions.music.track import Track
 
@@ -45,7 +45,7 @@ class SoundPlayer(commands.Cog):
         self._thumbnail = ''
         self._duration_seconds = 0
 
-        self._sound_consumer = SoundConsumer.get_soundconsumer(self.bot, self._volume)
+        self._sound_consumer = self.bot.get_cog('SoundConsumer')
         self._sound_consumer_thread = threading.Thread(target=self._sound_consumer.run, name='Sound_Consumer', daemon=True)
         self._sound_consumer_thread.start()
 

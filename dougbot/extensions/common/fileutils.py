@@ -106,3 +106,7 @@ class PathBuilder:
             return os.path.commonpath([path, root]) == root
         except ValueError as _:
             return False
+
+
+if __name__ == '__main__':
+    pass

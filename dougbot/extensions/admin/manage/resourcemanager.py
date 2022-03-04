@@ -1,132 +1,89 @@
 import os
-import shutil
 
-import nextcord
 from nextcord.ext import commands
 
 from dougbot.common.messaging import reactions
 from dougbot.common.messaging.message_utils import split_message
 from dougbot.core.bot import DougBot
-from dougbot.extensions.common import fileutils
 from dougbot.extensions.common import webutils
-from dougbot.extensions.common.annotations.admincheck import admin_command
+from dougbot.extensions.common.annotation.admincheck import admin_command
+from dougbot.extensions.common.filemanager import FileManager
 
 
-class ResourceManager(commands.Cog):
+class ResourceManager(commands.Cog, FileManager):
 
-    # TODO MORE GENERAL MANAGER
+    _RESOURCES_PATH = os.path.join(DougBot.ROOT_DIR, 'resources', 'dougbot')
 
     def __init__(self, bot: DougBot):
+        super().__init__(self._RESOURCES_PATH)
         self.bot = bot
-        self._root = os.path.join(self.bot.ROOT_DIR, 'resources', 'dougbot')
 
-    @commands.command()
+    @commands.group(invoke_without_command=True)
     @admin_command()
-    async def ls(self, ctx, path: str = '.'):
-        files = await self.ls_noadmin(path)
+    async def resource(self, ctx):
+        # TODO SEND MESSAGE
+        await ctx.message.delete()
+
+    @resource.command(name='get')
+    @admin_command()
+    async def get_file(self, ctx, path: str):
+        file = await super().get_file(path)
+
+        if file is None:
+            await reactions.confusion(ctx.message, f'{path} is not a file')
+        else:
+            await ctx.send(file=file)
+
+        await ctx.message.delete(delay=3)
+
+    @resource.command(name='list')
+    @admin_command()
+    async def list(self, ctx, path: str = None):
+        files = await super().list(path)
+
         for message in split_message('\n'.join(files)):
             await ctx.send(message)
 
-    async def ls_noadmin(self, path: str = '.'):
-        target = fileutils.PathBuilder(self._root) \
-            .join(path) \
-            .build()
+        await ctx.message.delete(delay=3)
 
-        files = os.listdir(target)
-        files.sort()
-        return files
-
-    @commands.command()
+    @resource.command(name='make_directory')
     @admin_command()
-    async def rm(self, ctx, path: str):
-        await self.rm_noadmin(path)
+    async def make_directory(self, ctx, directory):
+        await super().make_directory(directory)
         await reactions.confirmation(ctx.message)
+        await ctx.message.delete(delay=3)
 
-    async def rm_noadmin(self, path: str):
-        target = fileutils.PathBuilder(self._root) \
-            .join(path) \
-            .build()
-
-        if os.path.isfile(target):
-            os.remove(target)
-        else:
-            os.removedirs(target)
-
-    @commands.command()
+    @resource.command(name='remove')
     @admin_command()
-    async def rmall(self, ctx, directory: str):
-        await self.rmall_noadmin(directory)
+    async def remove(self, ctx, path: str, force: bool = False):
+        await super().remove(path, force)
         await reactions.confirmation(ctx.message)
+        await ctx.message.delete(delay=3)
 
-    async def rmall_noadmin(self, directory: str):
-        target = fileutils.PathBuilder(self._root) \
-            .join(directory) \
-            .build()
-
-        if os.path.isdir(target):
-            shutil.rmtree(target)
-
-    @commands.command()
+    @resource.command(name='rename')
     @admin_command()
-    async def get(self, ctx, path: str):
-        target = fileutils.PathBuilder(self._root) \
-            .join(path) \
-            .build()
-
-        if os.path.isfile(target):
-            await ctx.send(file=nextcord.File(target))
-        else:
-            await reactions.confusion(ctx.message, f'{target} is not a file')
-
-    @commands.command()
-    @admin_command()
-    async def mv(self, ctx, source: str, dest: str):
-        source_path = fileutils.PathBuilder(self._root) \
-            .join(source) \
-            .build()
-
-        dest_path = fileutils.PathBuilder(self._root) \
-            .join(dest) \
-            .build()
-
-        os.makedirs(dest_path, exist_ok=True)
-        os.rename(source_path, dest_path)
-
+    async def rename(self, ctx, from_path: str, to_path: str):
+        await super().rename(from_path, to_path)
         await reactions.confirmation(ctx.message)
+        await ctx.message.delete(delay=3)
 
-    @commands.command()
+    @resource.command(name='create')
     @admin_command()
-    async def rename(self, ctx, source: str, dest: str):
-        await self.mv(ctx, source, dest)
-
-    @commands.command()
-    @admin_command()
-    async def mkdir(self, ctx, directory: str):
-        target = fileutils.PathBuilder(self._root) \
-            .join(directory) \
-            .build()
-
-        os.mkdir(target)
-
-        await reactions.confirmation(ctx.message)
-
-    @commands.command()
-    @admin_command()
-    async def mkfile(self, ctx, path: str):
-        if len(ctx.message.attachments) == 0:
+    async def make_file(self, ctx, path: str, url: str = None):
+        if url is None and len(ctx.message.attachments) == 0:
             await reactions.confusion(ctx.message, 'No attachments given')
             return
 
-        target = fileutils.PathBuilder(self._root) \
-            .join(path) \
-            .build()
+        if not webutils.is_file_url(url):
+            await reactions.confusion(ctx.message, 'Not a file url')
+            return
 
-        url = ctx.message.attachments[0].url
+        url = ctx.message.attachments[0].url if url is None else url
         file = await webutils.download_file(url)
-        with open(target, 'wb') as fd:
-            shutil.copyfileobj(file.raw, fd)
+        await super().make_file(path, file.raw)
 
         await reactions.confirmation(ctx.message)
+        await ctx.message.delete(delay=3)
 
 
 def setup(bot):

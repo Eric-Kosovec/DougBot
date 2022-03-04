@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess
 import sys
 
@@ -6,7 +7,7 @@ from nextcord.ext import commands
 
 from dougbot.common.messaging import reactions
 from dougbot.core.bot import DougBot
-from dougbot.extensions.common.annotations.admincheck import admin_command
+from dougbot.extensions.common.annotation.admincheck import admin_command
 
 
 class Update(commands.Cog):
@@ -62,7 +63,7 @@ class Update(commands.Cog):
 
     @staticmethod
     async def _restart_bot(ctx):
-        await ctx.message.delete()
+        await ctx.message.delete(delay=3)
         os.execl(sys.executable, sys.executable, *sys.argv)
         await ctx.send('Failed to restart')
 
@@ -70,6 +71,23 @@ class Update(commands.Cog):
     async def _process_commands(*cmds):
         for command in cmds:
             subprocess.call(command)
+
+    async def _spawn_secondary(self):
+        python_path = await self._which_python()
+        if python_path is None:
+            return
+
+        subprocess.Popen([python_path, os.path.join(self.bot.ROOT_DIR, 'run.py')])
+
+    @staticmethod
+    async def _which_python():
+        pythons = ['python3', 'python', 'py']
+        for python in pythons:
+            python_path = shutil.which(python)
+            if python_path is not None and 'WindowsApps' not in python_path:
+                return python_path
+
+        return None
 
 
 def setup(bot):
