@@ -1,17 +1,23 @@
 import inspect
 import logging
 from queue import Queue
-from threading import Semaphore
+from threading import Lock, Semaphore
 
 import nextcord
-from nextcord.ext import commands
-
-from dougbot.core.bot import DougBot
 
 
-class SoundConsumer(commands.Cog):
+class SoundConsumer:
+    __sound_consumer_lock = Lock()
+    __sound_consumer = None
 
-    def __init__(self, bot: DougBot, volume, callback=None, notify_lock=None):
+    @classmethod
+    def get_soundconsumer(cls, bot, volume, callback=None, notify_lock=None):
+        with cls.__sound_consumer_lock:
+            if cls.__sound_consumer is None:
+                cls.__sound_consumer = SoundConsumer(bot, volume, callback, notify_lock)
+            return cls.__sound_consumer
+
+    def __init__(self, bot, volume, callback=None, notify_lock=None):
         self._bot = bot
         self._callback = callback
         self._notify_lock = notify_lock
@@ -92,7 +98,3 @@ class SoundConsumer(commands.Cog):
         audio_source = nextcord.PCMVolumeTransformer(nextcord.FFmpegPCMAudio(track.src, options='-loglevel quiet'))
         audio_source.volume = volume
         return audio_source
-
-
-def setup(bot):
-    bot.add_cog(SoundConsumer(bot, 1.0))
