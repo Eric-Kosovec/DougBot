@@ -6,15 +6,18 @@ import threading
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 
+import cachetools
+import nextcord
 import youtube_dl
+from cachetools import LRUCache
 from nextcord import Interaction
+from nextcord import Member
 from nextcord.embeds import Embed
 from nextcord.ext import commands
 from nextcord.ui.button import ButtonStyle
 from nextcord.ui.view import View
 
-from dougbot.common.data.cache import LRUCache
-from dougbot.common.messaging import reactions
+from dougbot.config import EXTENSION_RESOURCES_DIR
 from dougbot.core.bot import DougBot
 from dougbot.extensions.common import fileutils
 from dougbot.extensions.common import webutils
@@ -25,31 +28,25 @@ from dougbot.extensions.music2.track import Track
 
 
 class SoundPlayer2(commands.Cog):
+    _CLIP_DIR = os.path.join(EXTENSION_RESOURCES_DIR, 'music', 'audio')
+    _CACHE_DIR = os.path.join(EXTENSION_RESOURCES_DIR, 'music', 'cache')
     _MAXIMUM_PLAYS = 50
-
     _logger = logging.getLogger(__file__)
 
     def __init__(self, bot: DougBot):
         self.bot = bot
         self.loop = self.bot.loop
 
-        self._kv = self.bot.kv_store()
-        self._volume = 1.0 if 'volume' not in self._kv else self._kv['volume']
-        self._path_cache = LRUCache(20)
-        self._order_lock = asyncio.Lock()  # Keeps order tracks are played in.
+        self._voice = None
+        self._volume = 1.0
+        self._order_lock = asyncio.Lock()
         self._thread_pool = ThreadPoolExecutor()
         self._file_to_tracks = defaultdict(lambda: [])
         self._file_to_message = {}
-        self._voice = None
-        self._paused = False
         self._playing_message = None
         self._playing_track = None
 
-        self._resource_path = os.path.join(self.bot.RESOURCES_DIR, 'music')
-        self._clips_dir = os.path.join(self._resource_path, 'audio')
-        self._cache_dir = os.path.join(self._resource_path, 'cache')
-
-        self._sound_consumer = SoundConsumer.instance(bot, self._playing_callback)
+        self._sound_consumer = SoundConsumer.instance(bot)
         self._sound_consumer_thread = threading.Thread(target=self._sound_consumer.run, name='Sound Consumer', args=[self._volume], daemon=True)
         self._sound_consumer_thread.start()
 
@@ -57,16 +54,14 @@ class SoundPlayer2(commands.Cog):
     @commands.guild_only()
     @voice_command()
     async def play2(self, ctx, source: str, *, times: str = '1'):
-        source, times = await self._custom_play_parse(source, times)
-        if times not in range(self._MAXIMUM_PLAYS + 1):
-            await reactions.confusion(ctx.message)
-            return
+        source, times = await self._custom_parse(source, times)
+        times = max(1, min(times, self._MAXIMUM_PLAYS))
 
         if self._voice is None:
             async with self._order_lock:
                 self._voice = await self.bot.join_voice_channel(ctx.message.author.voice.channel)
 
-        track = Track(ctx, self._voice, source, times)
+        track = Track(ctx, source, times)
         self._sound_consumer.enqueue(track)
         asyncio.create_task(self._prepare_track(track))
         await ctx.message.delete(delay=3)
@@ -75,25 +70,23 @@ class SoundPlayer2(commands.Cog):
     @commands.guild_only()
     @voice_command()
     async def pause2(self, ctx):
-        if self._voice is not None and self._voice.is_playing():
+        if self._voice and self._voice.is_playing():
             self._voice.pause()
-            self._paused = True
         await ctx.message.delete(delay=3)
 
     @commands.command()
     @commands.guild_only()
     @voice_command()
     async def resume2(self, ctx):
-        if self._voice is not None and self._voice.is_paused():
+        if self._voice and self._voice.is_paused():
             self._voice.resume()
-            self._paused = False
         await ctx.message.delete(delay=3)
 
     @commands.command(aliases=['next2'])
     @commands.guild_only()
     @voice_command()
     async def skip2(self, ctx):
-        if self._voice is not None and self._voice.is_playing():
+        if self._voice and self._voice.is_playing():
             self._sound_consumer.skip()
         await ctx.message.delete(delay=3)
 
@@ -101,38 +94,50 @@ class SoundPlayer2(commands.Cog):
     @commands.guild_only()
     @voice_command()
     async def leave2(self, ctx):
-        if self._voice is not None:
-            self._sound_consumer.stop()
-            await self._voice.disconnect()
-            self._voice = None
-            self._paused = False
-            fileutils.delete_directories(self._cache_dir, True)
+        await self._stop_playing()
         await ctx.message.delete(delay=3)
 
     @commands.command(aliases=['volume2'])
     @commands.guild_only()
     @voice_command()
     async def vol2(self, ctx, volume: float):
-        # Volume is not important to playing, so this is a non-synchronized attempt at changing volume.
-        # Thread might finish with voice source before or as volume is changed.
-
-        if self._voice is None:
-            await ctx.message.delete(delay=3)
-            return
-
         self._volume = max(0.0, min(100.0, volume)) / 100.0
 
-        if self._voice.is_playing():
+        if self._voice and self._voice.is_playing():
             try:
+                # Volume is not important to playing, so this is a non-synchronized attempt at changing volume.
+                # Thread might finish with voice source before or as volume is changed.
                 self._voice.source.volume = self._volume
-            except AttributeError as _:
+            except AttributeError:
                 pass
-        self._kv['volume'] = self._volume
+
         await ctx.message.delete(delay=3)
+
+    async def on_voice_state_update(self, member: Member, before, after):
+        # Bot removed
+        if member.id == self.bot.user.id and after.channel is None:
+            await self._stop_playing()
+            return
+
+        # User left
+        if before.channel and (after.channel is None or before.channel.id != after.channel.id):
+            voice = await self.bot.voice_in(before.channel)
+            # Make sure there are no humans in the voice channel.
+            if voice and nextcord.utils.find(lambda m: not m.bot, before.channel.members) is None:
+                await self._stop_playing()
 
     def cog_unload(self):
         self._sound_consumer.kill()
-        fileutils.delete_directories(self._cache_dir, True)
+        fileutils.delete_directories(self._CACHE_DIR, True)
+
+    async def _stop_playing(self):
+        if self._voice is None:
+            return
+
+        self._sound_consumer.stop()
+        await self._voice.disconnect()
+        self._voice = None
+        fileutils.delete_directories(self._CACHE_DIR, True)
 
     async def _playing_callback(self, track):
         controls = await self._create_controls_view()
@@ -149,19 +154,12 @@ class SoundPlayer2(commands.Cog):
             track.source = await self._find_path(track.source)
             track.signal_ready()
 
+    @cachetools.cached(cache=LRUCache(20))
     async def _find_path(self, audio):
-        audio_path = await self._path_cache.get(audio)
-        if audio_path is not None:
-            return audio_path
-
-        audio_path = await fileutils.find_file_async(self._clips_dir, audio)
-        if audio_path is not None:
-            await self._path_cache.insert(audio, audio_path)
-
-        return audio_path
+        return await fileutils.find_file_async(self._CLIP_DIR, audio)
 
     async def _download_link(self, track):
-        dl_path = os.path.join(self._cache_dir, await self._link_hash(track.source))
+        dl_path = os.path.join(self._CACHE_DIR, await self._link_hash(track.source))
         if os.path.exists(dl_path):
             self._file_to_tracks[dl_path].append(track)
             return dl_path
@@ -187,7 +185,7 @@ class SoundPlayer2(commands.Cog):
             'default_search': 'auto',
             'source_address': '0.0.0.0',
             'outtmpl': dl_path,
-            'logger': self._logger,
+            'log': self._logger,
             'progress_hooks': [self._progress_hook]
         })
 
@@ -232,7 +230,8 @@ class SoundPlayer2(commands.Cog):
                 .add_field(name='Progress:', value=f'{percentage}')
 
     async def _create_controls_view(self):
-        play_pause = DougButton(callback=self._play_pause_button, style=ButtonStyle.primary, label='Pause' if self._paused else 'Play')
+        is_paused = self._voice and self._voice.is_paused()
+        play_pause = DougButton(callback=self._play_pause_button, style=ButtonStyle.primary, label='Pause' if is_paused else 'Play')
         skip = DougButton(callback=self._skip_button, style=ButtonStyle.primary, label='Next')
         stop = DougButton(callback=self._stop_button, style=ButtonStyle.danger, label='Stop')
         view = View(timeout=None)
@@ -242,7 +241,7 @@ class SoundPlayer2(commands.Cog):
         return view
 
     async def _play_pause_button(self, interaction: Interaction):
-        if self._paused:
+        if self._voice and self._voice.is_paused():
             await self.resume2(interaction)
         else:
             await self.pause2(interaction)
@@ -261,7 +260,7 @@ class SoundPlayer2(commands.Cog):
         return md5hash.hexdigest()
 
     @staticmethod
-    async def _custom_play_parse(source, times):
+    async def _custom_parse(source, times):
         try:
             times_split = times.split()
             times = int(times_split[-1])
@@ -275,3 +274,8 @@ class SoundPlayer2(commands.Cog):
 
 def setup(bot):
     bot.add_cog(SoundPlayer2(bot))
+
+
+def teardown(_):
+    cache_path = os.path.join(EXTENSION_RESOURCES_DIR, 'music', 'cache')
+    fileutils.delete_directories(cache_path, True)

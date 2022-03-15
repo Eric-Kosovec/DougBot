@@ -1,6 +1,4 @@
-
 class ArgParser:
-
     _FALSE_BOOL_VALUES = [0, 0.0, 'F', 'f', 'False', 'false']
 
     _TRUE_BOOL_VALUES = [1, 1.0, 'T', 't', 'True', 'true']

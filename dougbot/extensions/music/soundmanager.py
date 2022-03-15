@@ -6,16 +6,17 @@ import requests
 from nextcord.ext import commands
 
 from dougbot.common.messaging import reactions
+from dougbot.config import EXTENSION_RESOURCES_DIR
 from dougbot.core.bot import DougBot
-from dougbot.extensions.common.annotation.admincheck import admin_command
 from dougbot.extensions.common import fileutils
+from dougbot.extensions.common.annotation.admincheck import admin_command
 
 
 class SoundManager(commands.Cog):
 
     def __init__(self, bot: DougBot):
         self.bot = bot
-        self._clips_dir = os.path.join(self.bot.RESOURCES_DIR, 'music', 'audio')
+        self._clips_dir = os.path.join(EXTENSION_RESOURCES_DIR, 'music', 'audio')
 
     # TODO ALLOW CLIPS TO HAVE DIRECTORIES SPECIFIED IN THEM
 

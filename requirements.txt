@@ -1,8 +1,11 @@
+pip
+
 aiohttp
+cachetools
+mysql-connector-python
 nextcord[speed]
 nextcord[voice]
 PyNaCl
 requests
-symspellpy
 youtube_dl
 youtube_search

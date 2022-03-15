@@ -1,13 +1,13 @@
 import string
 
-from dougbot.common.limits import Limits
+from dougbot.common import limits
 
 
-def is_long_message(message, limit=Limits.MESSAGE_CHARACTER_LIMIT):
+def is_long_message(message, limit=limits.MESSAGE_CHARACTER_LIMIT):
     return len(message) > limit
 
 
-def split_message(message, limit=Limits.MESSAGE_CHARACTER_LIMIT):
+def split_message(message, limit=limits.MESSAGE_CHARACTER_LIMIT):
     if not is_long_message(message, limit):
         return [message]
 

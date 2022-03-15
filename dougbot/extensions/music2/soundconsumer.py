@@ -1,5 +1,4 @@
 import asyncio
-import logging
 from queue import Empty
 from queue import Queue
 from threading import Semaphore
@@ -7,27 +6,31 @@ from threading import Semaphore
 from nextcord import FFmpegPCMAudio
 from nextcord import PCMVolumeTransformer
 
+from dougbot.common.logevent import LogEvent
+from dougbot.core.bot import DougBot
+
 
 class SoundConsumer:
-
     __sound_consumer = None
 
+    # TODO HAVE THE PROBLEM OF WHEN SOUNDPLAYER REQUESTS A STOP, IT WILL STOP ALL TRACKS - EVEN ONES FOR DIFFERENT CHANNEL
+
     @classmethod
-    def instance(cls, bot, notify_callback=None):
+    def instance(cls, bot):
         if cls.__sound_consumer is None:
-            cls.__sound_consumer = SoundConsumer(bot, notify_callback)
+            cls.__sound_consumer = SoundConsumer(bot)
         return cls.__sound_consumer
 
-    def __init__(self, bot, notify_callback):
+    def __init__(self, bot: DougBot):
         self.bot = bot
         self.loop = self.bot.loop
-        self._notify_callback = notify_callback
-        self._volume = 0
 
-        self._track = None
+        self._volume = 0
         self._stop = False
         self._skip = False
         self._run = False
+        self._channel = None
+        self._voice = None
         self._audio_source = None
 
         self._queue = None
@@ -35,24 +38,26 @@ class SoundConsumer:
 
     def run(self, volume):
         self._volume = volume
-        self._done_playing_lock = Semaphore(0)
         self._queue = Queue()
+        self._done_playing_lock = Semaphore(0)
+        self._voice = None
 
         self._stop = False
         self._skip = False
         self._run = True
+
         while self._run:
-            self._track = self._queue.get()
-            self._track.wait_for_ready()
+            track = self._pull_track()
 
-            if self._notify_callback is not None:
-                asyncio.run_coroutine_threadsafe(self._notify_callback(self._track), self.loop)
+            if track.channel != self._channel:  # TODO TRACK DOESNT HAVE CHANNEL ON IT
+                self._channel = track.ctx.message.author.voice.channel
+                self._voice = self._join_voice_channel(self._channel)
 
-            for _ in range(self._track.repeat):
+            for _ in range(track.repeat):
                 if self._stop or self._skip or not self._run:
                     break
-                self._audio_source = self._create_audio_source(self._track, self._volume)
-                self._track.voice.play(self._audio_source, after=self._finished)
+                self._audio_source = self._create_audio_source(track, self._volume)
+                self._voice.play(self._audio_source, after=self._finished)
                 self._done_playing_lock.acquire()
 
             self._skip = False
@@ -83,9 +88,22 @@ class SoundConsumer:
         if track is not None:
             self._queue.put_nowait(track)
 
+    def _pull_track(self):
+        track = self._queue.get()
+        track.wait_for_ready()
+
+        if track.callback:
+            asyncio.run_coroutine_threadsafe(track.callback(track), self.loop)
+
+        return track
+
     def _finished(self, error):
-        if error is not None:
-            logging.getLogger(__file__).log(logging.ERROR, f'SoundPlayer finished error: {error}')
+        if error:
+            LogEvent(__file__) \
+                .message('SoundPlayer finished error') \
+                .exception(error) \
+                .error()
+
         self._volume = self._audio_source.volume
         self._done_playing_lock.release()
 
@@ -94,16 +112,19 @@ class SoundConsumer:
             while True:
                 self._queue.get_nowait()
                 self._queue.task_done()
-        except Empty as _:
+        except Empty | ValueError:
             pass
 
     def _stop_current(self):
         try:
-            if self._track is not None and self._track.voice is not None:
-                self._track.voice.stop()
-                self._track.voice = None
-        except AttributeError as _:
+            if self._voice is not None:
+                self._voice.stop()
+                self._voice = None
+        except AttributeError:
             pass
+
+    def _join_voice_channel(self, channel):
+        return asyncio.run_coroutine_threadsafe(self.bot.join_voice_channel(channel), self.loop).result()
 
     @staticmethod
     def _create_audio_source(track, volume):

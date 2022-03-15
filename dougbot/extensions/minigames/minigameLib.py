@@ -1,12 +1,7 @@
-
-
-
-
 class MinigameLib:
 
-
     @staticmethod
-    def endrace(raceongoing,placelist):
+    def endrace(raceongoing, placelist):
         return
 
     @staticmethod
@@ -28,5 +23,3 @@ class MinigameLib:
     @staticmethod
     def randommovespeed():
         return
-
-

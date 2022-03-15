@@ -6,6 +6,7 @@ import sys
 from nextcord.ext import commands
 
 from dougbot.common.messaging import reactions
+from dougbot.config import ROOT_DIR
 from dougbot.core.bot import DougBot
 from dougbot.extensions.common.annotation.admincheck import admin_command
 
@@ -39,7 +40,7 @@ class Update(commands.Cog):
 
         for python_name in python_names:
             try:
-                await self._update(ctx, [python_name, os.path.join(self.bot.ROOT_DIR, 'setup.py')])
+                await self._update(ctx, [python_name, os.path.join(ROOT_DIR, 'setup.py')])
                 break
             except Exception as e:
                 if first_exception is None:
@@ -54,7 +55,7 @@ class Update(commands.Cog):
 
     async def _update(self, ctx, *cmds):
         cwd = os.getcwd()
-        os.chdir(self.bot.ROOT_DIR)
+        os.chdir(ROOT_DIR)
         try:
             await self._process_commands(*cmds)
             await self._restart_bot(ctx)
@@ -77,7 +78,7 @@ class Update(commands.Cog):
         if python_path is None:
             return
 
-        subprocess.Popen([python_path, os.path.join(self.bot.ROOT_DIR, 'run.py')])
+        subprocess.Popen([python_path, os.path.join(ROOT_DIR, 'run.py')])
 
     @staticmethod
     async def _which_python():

@@ -2,10 +2,11 @@ import subprocess
 
 
 def update():
-    with open('requirements.txt', 'r') as req_file:
-        for req in req_file:
-            subprocess.run(['pip', 'install', '--upgrade', req.strip()])
-            print()
+    with open('requirements.txt', 'r') as fd:
+        for requirement in fd.readlines():
+            if len(requirement.strip()) > 0:
+                subprocess.run(['pip', 'install', '--upgrade', requirement.strip()])
+                print()
 
 
 if __name__ == '__main__':

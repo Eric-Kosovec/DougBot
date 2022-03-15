@@ -12,7 +12,7 @@ from dougbot.core.bot import DougBot
 
 class MinigameCommands(commands.Cog):
 
-    def __init__(self, bot: DougBot):  # Doing the 'bot: DougBot' allows the IDE to see the methods within the bot and be able to list them, for ease of use.
+    def __init__(self, bot: DougBot):
         self.bot = bot
 
     ##########################RACING##############################################################################################################################
@@ -189,9 +189,9 @@ class MinigameCommands(commands.Cog):
 
         with open(thefile) as json_file:
             json_object = json.load(json_file)
-            json_file.close()
 
         selectuniqueemoji = True
+        selectedemojiobject = None
         while selectuniqueemoji:
             selectedemoji = random.randint(0, len(json_object['emojilist']) - 1)
             selectedemojiobject = json_object['emojilist'][selectedemoji]
@@ -238,7 +238,6 @@ class MinigameCommands(commands.Cog):
 
         with open(thefile) as json_file:
             json_object = json.load(json_file)
-            json_file.close()
 
         emojilist = json_object['emojilist']
 
@@ -253,7 +252,6 @@ class MinigameCommands(commands.Cog):
         json_object['emojilist'] = emojilist
         with open(thefile, 'w') as outfile:
             json.dump(json_object, outfile, indent=2)
-            outfile.close()
 
     @commands.command()
     async def racerinfo(self, ctx):
@@ -262,13 +260,13 @@ class MinigameCommands(commands.Cog):
         thefile = os.path.join(package_dir, 'emojiracers.txt')
         with open(thefile) as json_file:
             json_object = json.load(json_file)
-            json_file.close()
 
         emojilist = json_object['emojilist']
 
         for emoji in emojilist:
             embed.add_field(name=emoji['emoji'], value='Won: ' + str(emoji['wins']) + '\nLoss: ' + str((emoji['totalraces'] - emoji['wins'])) + '\nWin%: ' + str(math.ceil((emoji['wins'] / emoji['totalraces']) * 100)), inline=True)
         await ctx.send(embed=embed)
+
     ############################################################################################################################################################
 
     #########################################################SLOTS##############################################################################################
@@ -279,21 +277,27 @@ class MinigameCommands(commands.Cog):
         slotembed = Embed(title='SadDoug Slots', color=0xa2afb8)
         for x in range(9):
             slotboard.append(random.choice(emojilist))
-        slotembed.add_field(name='\u200b', value=':stop_button:' + slotboard[0] + ':eight_pointed_black_star::eight_pointed_black_star::stop_button:\n :arrow_forward:' + slotboard[3] + ':eight_pointed_black_star::eight_pointed_black_star::arrow_backward:\n:stop_button:' + slotboard[6] + ':eight_pointed_black_star::eight_pointed_black_star::stop_button:', inline=False)
+        slotembed.add_field(name='\u200b', value=':stop_button:' + slotboard[0] + ':eight_pointed_black_star::eight_pointed_black_star::stop_button:\n :arrow_forward:' + slotboard[3] + ':eight_pointed_black_star::eight_pointed_black_star::arrow_backward:\n:stop_button:' + slotboard[
+            6] + ':eight_pointed_black_star::eight_pointed_black_star::stop_button:', inline=False)
         message = await ctx.send(embed=slotembed)
         await asyncio.sleep(1)
         slotembed = Embed(title='SadDoug Slots', color=0xa2afb8)
-        slotembed.add_field(name='\u200b', value=':stop_button:' + slotboard[0] + ' ' + slotboard[1] + ':eight_pointed_black_star:' + ':stop_button:\n :arrow_forward:' + slotboard[3] + ' ' + slotboard[4] + ':eight_pointed_black_star:' + ':arrow_backward:\n:stop_button:' + slotboard[6] + ' ' + slotboard[7] + ':eight_pointed_black_star:' + ':stop_button:', inline=False)
+        slotembed.add_field(name='\u200b',
+                            value=':stop_button:' + slotboard[0] + ' ' + slotboard[1] + ':eight_pointed_black_star:' + ':stop_button:\n :arrow_forward:' + slotboard[3] + ' ' + slotboard[4] + ':eight_pointed_black_star:' + ':arrow_backward:\n:stop_button:' + slotboard[6] + ' ' + slotboard[
+                                7] + ':eight_pointed_black_star:' + ':stop_button:', inline=False)
         await message.edit(embed=slotembed)
         await asyncio.sleep(1)
         slotembed = Embed(title='SadDoug Slots', color=0xa2afb8)
-        slotembed.add_field(name='\u200b', value=':stop_button:' + slotboard[0] + ' ' + slotboard[1] + ' ' + slotboard[2] + ':stop_button:\n :arrow_forward:' + slotboard[3] + ' ' + slotboard[4] + ' ' + slotboard[5] + ':arrow_backward:\n:stop_button:' + slotboard[6] + ' ' + slotboard[7] + ' ' + slotboard[8] + ':stop_button:', inline=False)
+        slotembed.add_field(name='\u200b',
+                            value=':stop_button:' + slotboard[0] + ' ' + slotboard[1] + ' ' + slotboard[2] + ':stop_button:\n :arrow_forward:' + slotboard[3] + ' ' + slotboard[4] + ' ' + slotboard[5] + ':arrow_backward:\n:stop_button:' + slotboard[6] + ' ' + slotboard[7] + ' ' + slotboard[
+                                8] + ':stop_button:', inline=False)
         await message.edit(embed=slotembed)
         if slotboard[3] is slotboard[4] is slotboard[5]:
             await message.edit(content='Winner')
         else:
             await message.edit(content='Try again')
     ############################################################################################################################################################
+
 
 def setup(bot):
     bot.add_cog(MinigameCommands(bot))

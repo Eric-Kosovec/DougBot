@@ -1,4 +1,3 @@
-
 class Track:
 
     def __init__(self, ctx, voice, src, is_link, repeat=1):

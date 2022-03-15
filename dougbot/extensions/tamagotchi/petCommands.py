@@ -278,7 +278,7 @@ class PetCommands(commands.Cog):
             pet = PetHandler.getcurrentpet()
             user = user
             intercount = PetHandler.getinteractioncount(pet, user.id)
-            await ctx.send(str(user.mention) + ', interacted with ' + str(pet['name']) +' ' + str(intercount) + ' times.')
+            await ctx.send(str(user.mention) + ', interacted with ' + str(pet['name']) + ' ' + str(intercount) + ' times.')
         except KeyError as e:
             await ctx.send(str(user.mention) + ', has never interacted with ' + str(pet['name']) + '.')
 

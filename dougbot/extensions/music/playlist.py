@@ -19,5 +19,5 @@ class Playlist:
     def remove_track(self, track):
         try:
             self.tracks.remove(track)
-        except ValueError as _:
+        except ValueError:
             pass

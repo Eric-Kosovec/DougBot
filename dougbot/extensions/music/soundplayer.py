@@ -1,17 +1,19 @@
 import asyncio
 import hashlib
-import logging
 import os
 import threading
 from concurrent.futures import ThreadPoolExecutor
 
+import cachetools
 import youtube_dl
+from cachetools import LRUCache
 from nextcord.embeds import Embed
 from nextcord.ext import commands
 from youtube_search import YoutubeSearch
 
-from dougbot.common.data.cache import LRUCache
+from dougbot.common.logevent import LogEvent
 from dougbot.common.messaging import reactions
+from dougbot.config import EXTENSION_RESOURCES_DIR
 from dougbot.core.bot import DougBot
 from dougbot.extensions.common import fileutils
 from dougbot.extensions.common import webutils
@@ -22,21 +24,17 @@ from dougbot.extensions.music.track import Track
 
 class SoundPlayer(commands.Cog):
 
-    _logger = logging.getLogger(__file__)
-
     def __init__(self, bot: DougBot):
         self.bot = bot
         self.loop = self.bot.loop
         self.bot.event(self.on_voice_state_update)
 
-        self._path_cache = LRUCache(20)
         self._thread_pool = ThreadPoolExecutor()
 
-        self._kv = self.bot.kv_store()
         self._order_lock = asyncio.Lock()  # Keeps order tracks are played in.
-        self._volume = 1.0 if 'volume' not in self._kv else self._kv['volume']
+        self._volume = 1.0
 
-        self._resource_path = os.path.join(self.bot.RESOURCES_DIR, 'music')
+        self._resource_path = os.path.join(EXTENSION_RESOURCES_DIR, 'music')
         self._clips_dir = os.path.join(self._resource_path, 'audio')
         self._cache_dir = os.path.join(self._resource_path, 'cache')
         self._last_embed_message = None
@@ -95,19 +93,18 @@ class SoundPlayer(commands.Cog):
     @commands.guild_only()
     @voice_command()
     async def vol(self, ctx, volume: float):
-        voice = await self.bot.get_voice(ctx.message.author.voice.channel)
+        voice = await self.bot.voice_in(ctx.message.author.voice.channel)
         if voice is not None:
             self._volume = max(0.0, min(100.0, volume)) / 100.0
             if voice.is_playing():
                 voice.source.volume = self._volume
-            self._kv['volume'] = self._volume
         self._sound_consumer.set_volume(volume)
 
     @commands.command()
     @commands.guild_only()
     @voice_command()
     async def pause(self, ctx):
-        voice = await self.bot.get_voice(ctx.message.author.voice.channel)
+        voice = await self.bot.voice_in(ctx.message.author.voice.channel)
         if voice is not None and voice.is_playing():
             voice.pause()
 
@@ -115,7 +112,7 @@ class SoundPlayer(commands.Cog):
     @commands.guild_only()
     @voice_command()
     async def resume(self, ctx):
-        voice = await self.bot.get_voice(ctx.message.author.voice.channel)
+        voice = await self.bot.voice_in(ctx.message.author.voice.channel)
         if voice is not None and voice.is_paused():
             voice.resume()
 
@@ -123,7 +120,7 @@ class SoundPlayer(commands.Cog):
     @commands.guild_only()
     @voice_command()
     async def skip(self, ctx):
-        voice = await self.bot.get_voice(ctx.message.author.voice.channel)
+        voice = await self.bot.voice_in(ctx.message.author.voice.channel)
         if voice is not None and voice.is_playing():
             self._sound_consumer.skip_track()
 
@@ -131,13 +128,13 @@ class SoundPlayer(commands.Cog):
     @commands.guild_only()
     @voice_command()
     async def leave(self, ctx):
-        voice = await self.bot.get_voice(ctx.message.author.voice.channel)
+        voice = await self.bot.voice_in(ctx.message.author.voice.channel)
         if voice is not None:
             await self._quit_playing(voice)
 
     async def on_voice_state_update(self, _, before, after):
         if before.channel is not None and (after.channel is None or before.channel.id != after.channel.id):
-            voice = await self.bot.get_voice(before.channel)
+            voice = await self.bot.voice_in(before.channel)
             # Make sure there are no humans in the voice channel.
             if voice is not None and next(filter(lambda m: not m.bot, before.channel.members), None) is None:
                 await self._quit_playing(voice)
@@ -169,17 +166,9 @@ class SoundPlayer(commands.Cog):
 
         return Track(ctx, voice, track_source, is_link, times)
 
+    @cachetools.cached(cache=LRUCache(20))
     async def _get_path(self, audio):
-        audio_path = await self._path_cache.get(audio)
-        if audio_path is not None:
-            return audio_path
-
-        audio_path = await fileutils.find_file_async(self._clips_dir, audio)
-        if audio_path is not None:
-            await self._path_cache.insert(audio, audio_path)
-            return audio_path
-
-        return None
+        return await fileutils.find_file_async(self._clips_dir, audio)
 
     async def _download_link(self, ctx, link):
         dl_path = os.path.join(self._cache_dir, await self._link_hash(link))
@@ -200,7 +189,7 @@ class SoundPlayer(commands.Cog):
             'default_search': 'auto',
             'source_address': '0.0.0.0',
             'outtmpl': dl_path,
-            'logger': self._logger,
+            'log': LogEvent.logger(__file__),
             'progress_hooks': [self._progress_hook]
         }
         ytdl = youtube_dl.YoutubeDL(ytdl_params)
@@ -261,6 +250,6 @@ def setup(bot):
     bot.add_cog(SoundPlayer(bot))
 
 
-def teardown(bot: DougBot):
-    cache_path = os.path.join(bot.RESOURCES_DIR, 'music', 'cache')
+def teardown(_):
+    cache_path = os.path.join(EXTENSION_RESOURCES_DIR, 'music', 'cache')
     fileutils.delete_directories(cache_path, True)

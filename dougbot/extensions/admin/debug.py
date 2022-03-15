@@ -1,15 +1,15 @@
 from nextcord.ext import commands
 
+from dougbot import config
 from dougbot.core.bot import DougBot
 from dougbot.extensions.common import channelutils
 from dougbot.extensions.common.annotation.admincheck import admin_command
 
 
 class Debug(commands.Cog):
-
-    _DELETE_DELAY = 3
-    _DELETE_LIMIT = 10000
     _DEBUG_CHANNEL_NAME = 'doug-debug'
+
+    _DELETE_LIMIT = 1000
 
     def __init__(self, bot: DougBot):
         self.bot = bot
@@ -18,18 +18,21 @@ class Debug(commands.Cog):
     @admin_command()
     async def clear(self, ctx):
         await ctx.send("'clear log' or 'clear debug'")
-        await ctx.message.delete()
+        await ctx.message.delete(delay=3)
 
     @clear.command()
     @admin_command()
     async def log(self, ctx):
-        await channelutils.clear_channel(ctx, await self.bot.log_channel(), limit=self._DELETE_LIMIT, delay=self._DELETE_DELAY)
+        log_channel = await self.bot.fetch_channel(config.get_configuration().logging_channel_id)
+        await channelutils.clear_channel(log_channel, limit=self._DELETE_LIMIT)
+        await ctx.message.delete(delay=3)
 
     @clear.command()
     @admin_command()
     async def debug(self, ctx):
-        debug_channel = await channelutils.channel_containing_name(ctx.message.guild, self._DEBUG_CHANNEL_NAME)
-        await channelutils.clear_channel(ctx, debug_channel, limit=self._DELETE_LIMIT, delay=self._DELETE_DELAY)
+        debug_channel = await channelutils.channel_name_like(ctx.message.guild, self._DEBUG_CHANNEL_NAME)
+        await channelutils.clear_channel(debug_channel, limit=self._DELETE_LIMIT)
+        await ctx.message.delete(delay=3)
 
 
 def setup(bot):

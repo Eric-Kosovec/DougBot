@@ -1,9 +1,11 @@
 import inspect
-import logging
+from queue import Empty
 from queue import Queue
 from threading import Lock, Semaphore
 
 import nextcord
+
+from dougbot.common.logevent import LogEvent
 
 
 class SoundConsumer:
@@ -85,12 +87,15 @@ class SoundConsumer:
             while True:
                 self._queue.get_nowait()
                 self._queue.task_done()
-        except Exception as _:
+        except Empty | ValueError:
             pass
 
     def _finished(self, error):
         if error is not None:
-            logging.getLogger(__file__).log(logging.ERROR, f'SoundPlayer finished error: {error}')
+            LogEvent(__file__) \
+                .message('SoundPlayer finished error') \
+                .exception(error) \
+                .error()
         self._done_playing_lock.release()
 
     @staticmethod

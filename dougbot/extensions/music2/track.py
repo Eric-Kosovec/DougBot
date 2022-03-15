@@ -3,11 +3,11 @@ from threading import Semaphore
 
 class Track:
 
-    def __init__(self, ctx, voice, source, repeat=1):
+    def __init__(self, ctx, source, repeat=1, callback=None):
         self.ctx = ctx
-        self.voice = voice
         self.source = source
         self.repeat = repeat
+        self.callback = callback
         self.uploader = ''
         self.title = ''
         self.thumbnail = ''

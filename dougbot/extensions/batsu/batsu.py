@@ -6,13 +6,12 @@ import requests
 from nextcord import Embed
 from nextcord.ext import commands
 
+from dougbot.common import limits
 from dougbot.common.embed import embed_utils
-from dougbot.common.limits import Limits
 from dougbot.core.bot import DougBot
 
 
 class Batsu(commands.Cog):
-
     _SUB_STATUS_PAGE = 'https://www.teamgaki.com/statuspage/'
     _SUB_STATUS_AJAX = 'https://www.teamgaki.com/status/ajax.php'
     _STATUS_LEGEND = 'Not Started > Typesetting > Translating > Quality Check > Prep For Release > Complete!'
@@ -57,9 +56,9 @@ class Batsu(commands.Cog):
         embed = Embed(title=title, color=0xFF0000, url='' if link is None else link)
         embed.set_footer(text=self._STATUS_LEGEND)
 
-        height = math.ceil(len(status_report) / float(Limits.EMBED_INLINE_FIELD_LIMIT))
+        height = math.ceil(len(status_report) / float(limits.EMBED_INLINE_FIELD_LIMIT))
 
-        for _ in range(height * Limits.EMBED_INLINE_FIELD_LIMIT):
+        for _ in range(height * limits.EMBED_INLINE_FIELD_LIMIT):
             embed.add_field(name=embed_utils.BLANK_DATA, value=embed_utils.BLANK_DATA)
 
         r = 0
@@ -74,7 +73,7 @@ class Batsu(commands.Cog):
                 if len(status_display) == 0:
                     status_display = embed_utils.BLANK_DATA
 
-            embed.set_field_at(r * Limits.EMBED_INLINE_FIELD_LIMIT + c, name=f'Part {i + 1}', value=status_display)
+            embed.set_field_at(r * limits.EMBED_INLINE_FIELD_LIMIT + c, name=f'Part {i + 1}', value=status_display)
 
             r = (r + 1) % height
             if r == 0:

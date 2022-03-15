@@ -2,24 +2,24 @@ from pprint import pprint
 
 from nextcord import Embed
 
-from dougbot.common.limits import Limits
+from dougbot.common import limits
 
 
 def split_embed(embed):
     # Length is combination of: Title (256), description (4096), field names (256)/field values (1024) at max of 25 pairs, footer text (2048)
 
-    #if is_embed_sendable(embed):
+    # if is_embed_sendable(embed):
     #    return [embed]
 
     base_embed_dict = embed.to_dict()
     dynamic_fields = _strip_nonstatic_fields(base_embed_dict)
 
-    base_embed_dict['title'] = _ellipsis(base_embed_dict['title'], Limits.EMBED_TITLE_LIMIT)
-    footer = _ellipsis(dynamic_fields['footer'], Limits.EMBED_FOOTER_TEXT_LIMIT)
+    base_embed_dict['title'] = _ellipsis(base_embed_dict['title'], limits.EMBED_TITLE_LIMIT)
+    footer = _ellipsis(dynamic_fields['footer'], limits.EMBED_FOOTER_TEXT_LIMIT)
 
     # Description split across multiple
     description = dynamic_fields['description']
-    max_length = Limits.EMBED_DESCRIPTION_LIMIT
+    max_length = limits.EMBED_DESCRIPTION_LIMIT
     descriptions = [description[i:i + max_length] for i in range(0, len(description), max_length)]
 
     for description in descriptions:
@@ -77,7 +77,7 @@ def _embed_length(embed_dict):
 
 
 def _is_embed_sendable(embed):
-    return len(embed) <= Limits.EMBED_CHARACTER_LIMIT
+    return len(embed) <= limits.EMBED_CHARACTER_LIMIT
 
 
 def _strip_nonstatic_fields(embed_dict):

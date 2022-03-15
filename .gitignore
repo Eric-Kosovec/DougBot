@@ -4,6 +4,7 @@ __pycache__
 *$py.class
 
 *.db
+*.log
 
-/resources/dougbot/extensions/music
 /resources/config/test_config.ini
+/resources/dougbot/extensions/music
