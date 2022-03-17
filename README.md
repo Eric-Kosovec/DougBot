@@ -7,7 +7,7 @@ Python-based Discord bot for the SadDoug server.
 * Install the latest Python; while installing, check the button add Python to PATH variable.
 * Setup environment variable called `DOUGBOT_TOKEN` with the bot's token and restart (if on Windows, see section below before restarting).
 * Run `setup.py` from the console through the command `python3 setup.py`.
-* Change the `resources/config/config.ini` file to suit your needs, and `dougbot/core/configure/config.py`, if need be.
+* Change the `resources/config/config.ini` file to suit your needs, and `dougbot/config.py`, if need be.
 * For a testing bot environment, create or modify `resources/config/test_config.ini`. Any settings in this file will override the main config file.
 * To start the bot, execute `run.bat` or from the console through the command `python3 run.py`.
 
