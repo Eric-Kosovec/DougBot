@@ -8,7 +8,7 @@ import cachetools
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EXTENSIONS_DIR = os.path.join(ROOT_DIR, 'dougbot', 'extensions')
 RESOURCES_DIR = os.path.join(ROOT_DIR, 'resources')
-EXTENSION_RESOURCES_DIR = os.path.join(ROOT_DIR, 'resources', 'dougbot', 'extensions')
+EXTENSION_RESOURCES_DIR = os.path.join(RESOURCES_DIR, 'dougbot', 'extensions')
 
 _CONFIG_PATH = os.path.join(ROOT_DIR, 'resources', 'config')
 _CONFIG_FILENAME = 'config.ini'
