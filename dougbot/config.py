@@ -10,7 +10,7 @@ EXTENSIONS_DIR = os.path.join(ROOT_DIR, 'dougbot', 'extensions')
 RESOURCES_DIR = os.path.join(ROOT_DIR, 'resources')
 EXTENSION_RESOURCES_DIR = os.path.join(RESOURCES_DIR, 'dougbot', 'extensions')
 
-_CONFIG_PATH = os.path.join(ROOT_DIR, 'resources', 'config')
+_CONFIG_PATH = os.path.join(RESOURCES_DIR, 'config')
 _CONFIG_FILENAME = 'config.ini'
 _TEST_CONFIG_FILENAME = 'test_config.ini'
 
