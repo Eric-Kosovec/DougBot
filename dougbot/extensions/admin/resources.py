@@ -1,10 +1,8 @@
-import os
-
 from nextcord.ext import commands
 
 from dougbot.common.messaging import reactions
 from dougbot.common.messaging.message_utils import split_message
-from dougbot.config import RESOURCES_DIR
+from dougbot.config import RESOURCES_MAIN_PACKAGE_DIR
 from dougbot.core.bot import DougBot
 from dougbot.extensions.common import webutils
 from dougbot.extensions.common.annotation.admincheck import admin_command
@@ -12,16 +10,15 @@ from dougbot.extensions.common.filemanager import FileManager
 
 
 class Resources(commands.Cog, FileManager):
-    _RESOURCES_PATH = os.path.join(RESOURCES_DIR, 'dougbot')
 
     def __init__(self, bot: DougBot):
-        super().__init__(self._RESOURCES_PATH)
+        super().__init__(RESOURCES_MAIN_PACKAGE_DIR)
         self.bot = bot
 
-    @commands.group(invoke_without_command=True)
+    @commands.group()
     @admin_command()
-    async def resources(self, ctx):
-        await ctx.send("Resources commands: get, list, make_directory, remove, rename, create")
+    async def resources(self, _):
+        pass
 
     @resources.command(name='get')
     @admin_command()

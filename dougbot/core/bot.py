@@ -4,12 +4,12 @@ import nextcord
 from nextcord import Intents
 from nextcord import Status
 from nextcord.ext import commands
-from nextcord.ext.commands import MinimalHelpCommand
 
 from dougbot import config
 from dougbot.common.logevent import LogEvent
 from dougbot.common.messaging import reactions
 from dougbot.core import extloader
+from dougbot.core.help import CustomHelpCommand
 from dougbot.core.log.channelhandler import ChannelHandler
 
 
@@ -56,7 +56,7 @@ class DougBot(commands.Bot):
         if log_channel:
             LogEvent.add_handler(ChannelHandler(log_channel, self.loop))
 
-        self.help_command = MinimalHelpCommand(no_category='Misc')
+        self.help_command = CustomHelpCommand(no_category='Misc', dm_help=None)
 
         for error in self._extension_load_errors:
             LogEvent(__file__) \

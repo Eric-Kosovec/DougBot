@@ -14,11 +14,10 @@ class Debug(commands.Cog):
     def __init__(self, bot: DougBot):
         self.bot = bot
 
-    @commands.group(invoke_without_command=True)
+    @commands.group()
     @admin_command()
-    async def clear(self, ctx):
-        await ctx.send("'clear log' or 'clear debug'")
-        await ctx.message.delete(delay=3)
+    async def clear(self, _):
+        pass
 
     @clear.command()
     @admin_command()

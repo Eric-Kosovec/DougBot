@@ -7,7 +7,6 @@ from dougbot.common.messaging.message_utils import split_message
 
 
 class ChannelHandler(Handler):
-
     _LOGGING_FORMAT = '%(levelname)s: %(message)s'
 
     def __init__(self, channel, loop):
