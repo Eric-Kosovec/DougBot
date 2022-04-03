@@ -7,4 +7,4 @@ __pycache__
 *.log
 
 /resources/config/test_config.ini
-/resources/dougbot/extensions/music
+/resources/dougbot/extensions
