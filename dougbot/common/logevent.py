@@ -71,14 +71,6 @@ class LogEvent:
     def logger(file):
         return logging.getLogger(file)
 
-    @staticmethod
-    def add_handler(handler):
-        """
-        For Core use only
-        :param handler: handler for log
-        """
-        LogEvent.logger('').addHandler(handler)
-
     def _build_log_message(self):
         log_message = f"{self._file}{'' if self._class == '' else ' '}{self._class}: {self._message}\n"
 

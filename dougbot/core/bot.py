@@ -54,7 +54,7 @@ class DougBot(commands.Bot):
 
         log_channel = await self.fetch_channel(self.config.logging_channel_id)
         if log_channel:
-            LogEvent.add_handler(ChannelHandler(log_channel, self.loop))
+            LogEvent.logger('').addHandler(ChannelHandler(log_channel, self.loop))
 
         self.help_command = CustomHelpCommand(no_category='Misc', dm_help=None)
 
