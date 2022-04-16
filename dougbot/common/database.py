@@ -1,12 +1,8 @@
-from mysql import connector
+from supabase.client import create_client, Client
 
 from dougbot import config
 
 
-def connect(database=None):
+def connect() -> Client:
     configs = config.get_configuration()
-    return connector.connect(
-        host=f'{configs.db_hostname}:{configs.db_port}',
-        database=database,
-        user=configs.db_username,
-        password=configs.db_password)
+    return create_client(configs.db_url, configs.db_api_key)

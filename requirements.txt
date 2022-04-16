@@ -2,10 +2,10 @@ pip
 
 aiohttp
 cachetools
-mysql-connector-python
 nextcord[speed]
 nextcord[voice]
 PyNaCl
 requests
+supabase
 youtube_dl
 youtube_search
