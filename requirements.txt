@@ -4,6 +4,7 @@ aiohttp
 cachetools
 nextcord[speed]
 nextcord[voice]
+pendulum
 PyNaCl
 requests
 supabase
