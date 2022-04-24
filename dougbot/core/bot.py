@@ -36,6 +36,7 @@ class DougBot(commands.Bot):
 
         super().__init__(self.config.command_prefix, **bot_kwargs)
         self._extension_load_errors = extloader.load_extensions(self)
+        LogEvent.clear_handlers()  # Temporary until Supabase's realtime dependency gets rid of their global logging setup
 
     def run(self, *args, **kwargs):
         try:
@@ -54,7 +55,7 @@ class DougBot(commands.Bot):
 
         log_channel = await self.fetch_channel(self.config.logging_channel_id)
         if log_channel:
-            LogEvent.logger('').addHandler(ChannelHandler(log_channel, self.loop))
+            LogEvent.add_handler(ChannelHandler(log_channel, self.loop))
 
         self.help_command = CustomHelpCommand(no_category='Misc', dm_help=None)
 

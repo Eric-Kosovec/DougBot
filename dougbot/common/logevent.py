@@ -68,8 +68,16 @@ class LogEvent:
         self.logger(self._file).critical(log_message)
 
     @staticmethod
-    def logger(file):
+    def logger(file=''):
         return logging.getLogger(file)
+
+    @staticmethod
+    def add_handler(handler, file=''):
+        LogEvent.logger(file).addHandler(handler)
+
+    @staticmethod
+    def clear_handlers():
+        LogEvent.logger('').handlers = []
 
     def _build_log_message(self):
         log_message = f"{self._file}{'' if self._class == '' else ' '}{self._class}: {self._message}\n"
