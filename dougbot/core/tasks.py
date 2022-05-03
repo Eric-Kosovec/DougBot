@@ -8,5 +8,10 @@ async def touch_supabase_api():
     """
     Supabase pauses projects after 1 week of inactivity, so touch an API endpoint that should have no data
     """
-    client = database.connect()
-    await client.storage().list_buckets()
+    client = None
+    try:
+        client = database.connect()
+        await client.storage().list_buckets()
+    finally:
+        if client is not None:
+            client.auth.close()

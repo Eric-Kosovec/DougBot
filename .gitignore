@@ -6,5 +6,6 @@ __pycache__
 *.db
 *.log
 
+/resources/config/dev_config.ini
 /resources/config/test_config.ini
 /resources/dougbot/extensions

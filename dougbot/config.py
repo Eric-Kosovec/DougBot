@@ -1,4 +1,3 @@
-import hashlib
 import os
 from configparser import ConfigParser
 from types import SimpleNamespace
@@ -13,16 +12,16 @@ EXTENSION_RESOURCES_DIR = os.path.join(RESOURCES_MAIN_PACKAGE_DIR, 'extensions')
 
 _CONFIG_PATH = os.path.join(RESOURCES_DIR, 'config')
 _CONFIG_FILENAME = 'config.ini'
-_TEST_CONFIG_FILENAME = 'test_config.ini'
+_DEV_CONFIG_FILENAME = 'dev_config.ini'
 
 
 @cachetools.cached(cache={})
 def get_configuration():
     config = os.path.join(_CONFIG_PATH, _CONFIG_FILENAME)
-    test_config = os.path.join(_CONFIG_PATH, _TEST_CONFIG_FILENAME)
+    dev_config = os.path.join(_CONFIG_PATH, _DEV_CONFIG_FILENAME)
 
     config_parser = ConfigParser()
-    config_parser.read([config, test_config])
+    config_parser.read([config, dev_config])
 
     command_prefix = config_parser.get('Commands', 'prefix')
     admin_role_id = int(config_parser.get('Permissions', 'admin_role_id'))
@@ -32,12 +31,10 @@ def get_configuration():
     db_api_key = os.getenv(config_parser.get('Environment', 'db_api_key_name'))
 
     token = os.getenv(config_parser.get('Environment', 'token_name'))
-
-    if os.path.exists(test_config):  # For test config only settings - These ones should NEVER exist in regular config
-        test_config_parser = ConfigParser()
-        test_config_parser.read(test_config)
-        if token is None:
-            token = test_config_parser.get('Environment', 'token', fallback=None)
+    if token is None and os.path.exists(dev_config):
+        dev_config_parser = ConfigParser()
+        dev_config_parser.read(dev_config)
+        token = dev_config_parser.get('Environment', 'token', fallback=None)
 
     config_namespace = SimpleNamespace()
     config_namespace.command_prefix = command_prefix

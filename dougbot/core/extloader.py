@@ -2,12 +2,16 @@ import os
 
 from dougbot.config import EXTENSIONS_DIR, ROOT_DIR
 
+'''
+TODO TIME ALL THIS CODE ON STARTUP
+'''
+
 
 def load_extensions(bot):
-    exceptions = []
     if not os.path.exists(EXTENSIONS_DIR):
-        exceptions.append(Exception(f"Path to extensions '{EXTENSIONS_DIR}' does not exist."))
-        return
+        return [Exception(f"Path to extensions '{EXTENSIONS_DIR}' does not exist")]
+
+    exceptions = []
 
     for root, _, files in os.walk(EXTENSIONS_DIR):
         _load_from_package(bot, root, files, exceptions)

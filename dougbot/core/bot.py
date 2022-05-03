@@ -81,7 +81,7 @@ class DougBot(commands.Bot):
             commands.errors.MissingRequiredArgument: f'Missing argument(s), type {ctx.prefix}help <command_name>',
             commands.errors.CheckFailure: f'{ctx.author.mention} You do not have permissions for this command',
             commands.errors.NoPrivateMessage: 'Command cannot be used in private messages',
-            commands.errors.DisabledCommand: 'Command disabled and cannot be used',
+            commands.errors.DisabledCommand: 'Command disabled',
             commands.errors.CommandNotFound: 'Command not found',
             commands.errors.CommandOnCooldown: 'Command on cooldown'
         }

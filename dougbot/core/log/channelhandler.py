@@ -3,7 +3,7 @@ import sys
 from logging import Formatter
 from logging import Handler
 
-from dougbot.common.messaging.message_utils import split_message
+from dougbot.common.messaging import message_utils
 
 
 class ChannelHandler(Handler):
@@ -16,7 +16,7 @@ class ChannelHandler(Handler):
         self.setFormatter(Formatter(self._LOGGING_FORMAT))
 
     def emit(self, record):
-        for message in split_message(self.format(record)):
+        for message in message_utils.split_message(self.format(record)):
             if self._loop.is_closed():
                 print(message, sys.stderr)
             else:
