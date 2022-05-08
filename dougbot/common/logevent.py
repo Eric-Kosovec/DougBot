@@ -7,6 +7,7 @@ from dougbot.config import RESOURCES_DIR
 
 
 class LogEvent:
+    _FATAL_LOG_FILE_MAX_BYTES = 5.12e+8  # 512 MB
     _FATAL_LOG_FILE_PATH = os.path.join(RESOURCES_DIR, 'fatal.log')
 
     def __init__(self, file):
@@ -21,7 +22,7 @@ class LogEvent:
         return self
 
     def message(self, message):
-        self._message = message
+        self._message += f"{' ' if len(self._message) else ''}{message}"
         return self
 
     def exception(self, exception):
@@ -59,13 +60,23 @@ class LogEvent:
             print(log_message, file=sys.stderr)
 
     def fatal(self):
+        """
+        Print to stderr and log to file when bot instability won't allow logging to log channel
+        """
         log_message = self._build_log_message()
         print(log_message, file=sys.stderr)
 
-        with open(self._FATAL_LOG_FILE_PATH, 'w') as fd:
-            fd.write(log_message)
+        try:
+            if os.path.getsize(self._FATAL_LOG_FILE_PATH) >= self._FATAL_LOG_FILE_MAX_BYTES:
+                os.remove(self._FATAL_LOG_FILE_PATH)
+        except OSError as e:
+            print(f'Failed to delete log file: {e}', file=sys.stderr)
 
-        self.logger(self._file).critical(log_message)
+        try:
+            with open(self._FATAL_LOG_FILE_PATH, 'a') as fd:
+                fd.write(log_message)
+        except OSError as e:
+            print(f'Failed to append to log file: {e}', file=sys.stderr)
 
     @staticmethod
     def logger(file=''):

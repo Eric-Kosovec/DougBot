@@ -2,10 +2,6 @@ import os
 
 from dougbot.config import EXTENSIONS_DIR, ROOT_DIR
 
-'''
-TODO TIME ALL THIS CODE ON STARTUP
-'''
-
 
 def load_extensions(bot):
     if not os.path.exists(EXTENSIONS_DIR):

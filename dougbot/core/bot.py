@@ -57,7 +57,7 @@ class DougBot(commands.Bot):
         if log_channel:
             LogEvent.add_handler(ChannelHandler(log_channel, self.loop))
 
-        self.help_command = CustomHelpCommand(no_category='Misc', dm_help=None)
+        self.help_command = CustomHelpCommand(dm_help=None, no_category='Misc')
 
         for error in self._extension_load_errors:
             LogEvent(__file__) \
