@@ -1,3 +1,4 @@
+# DougBot
 
 #### 4.0.0
   - Migrate to Nextcord-based bot
