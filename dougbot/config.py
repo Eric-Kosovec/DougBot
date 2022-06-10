@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import cachetools
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CORE_DIR = os.path.join(ROOT_DIR, 'dougbot', 'core')
 EXTENSIONS_DIR = os.path.join(ROOT_DIR, 'dougbot', 'extensions')
 RESOURCES_DIR = os.path.join(ROOT_DIR, 'resources')
 RESOURCES_MAIN_PACKAGE_DIR = os.path.join(RESOURCES_DIR, 'dougbot')
@@ -29,12 +30,7 @@ def get_configuration():
 
     db_url = os.getenv(config_parser.get('Environment', 'db_url_name'))
     db_api_key = os.getenv(config_parser.get('Environment', 'db_api_key_name'))
-
     token = os.getenv(config_parser.get('Environment', 'token_name'))
-    if token is None and os.path.exists(dev_config):
-        dev_config_parser = ConfigParser()
-        dev_config_parser.read(dev_config)
-        token = dev_config_parser.get('Environment', 'token', fallback=None)
 
     config_namespace = SimpleNamespace()
     config_namespace.command_prefix = command_prefix

@@ -1,4 +1,5 @@
 import asyncio
+import os
 from logging import Formatter
 from logging import Handler
 
@@ -7,36 +8,33 @@ from dougbot.common.messaging import message_utils
 
 
 class ChannelHandler(Handler):
-    _LOGGING_FORMAT = '%(levelname)s: %(message)s'
+    _LOGGING_FORMAT = '%(message)s'
 
-    def __init__(self, channel, loop):
+    def __init__(self, root_dir, channel, loop):
         super().__init__()
+        self._root_dir = root_dir
         self._channel = channel
         self._loop = loop
         self.setFormatter(Formatter(self._LOGGING_FORMAT))
 
     def emit(self, record):
-        send_failure = False
-        send_failure_exception = None
+        if self._from_library(record):
+            return
 
         for message in message_utils.split_message(self.format(record)):
-            if self._loop.is_closed():
-                LogEvent('') \
-                    .message(message) \
-                    .fatal()
-                continue
-
             try:
                 asyncio.run_coroutine_threadsafe(self._channel.send(message), self._loop)
             except Exception as e:
-                LogEvent('') \
-                    .message(message) \
-                    .fatal()
-                send_failure = True
-                send_failure_exception = e
+                self.handleError(record, e)
+                return
 
-        if send_failure:
-            LogEvent(__file__) \
-                .message('Failed to send error message to logging channel') \
-                .exception(send_failure_exception) \
-                .fatal()
+    def handleError(self, record, exception=None):
+        LogEvent(__file__) \
+            .message('ChannelHandler failed to send log') \
+            .add_field('record', self.format(record)) \
+            .exception(exception) \
+            .fatal()
+
+    def _from_library(self, record):
+        return os.path.splitdrive(record.pathname)[0] != os.path.splitdrive(self._root_dir)[0] or \
+               os.path.commonpath([record.pathname, self._root_dir]) != self._root_dir

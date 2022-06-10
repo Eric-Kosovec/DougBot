@@ -4,8 +4,9 @@ import subprocess
 def update():
     with open('requirements.txt', 'r') as fd:
         for requirement in fd.readlines():
-            if len(requirement.strip()) > 0:
-                subprocess.run(['pip', 'install', '--upgrade', requirement.strip()])
+            cleansed_requirement = requirement.strip()
+            if len(cleansed_requirement) > 0:
+                subprocess.run(['pip', 'install', '--upgrade', cleansed_requirement])
                 print()
 
 

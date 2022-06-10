@@ -2,7 +2,6 @@ from supabase import client
 from supabase.client import Client
 
 from dougbot import config
-from dougbot.common.logevent import LogEvent
 
 
 def connect() -> Client:
@@ -16,12 +15,8 @@ async def check_connection():
         db_client = connect()
         db_client.storage().list_buckets()
         return True
-    except Exception as e:
-        LogEvent(__file__) \
-            .message('Database down') \
-            .exception(e) \
-            .error()
+    except Exception:
         return False
     finally:
-        if db_client is not None:
+        if db_client:
             db_client.auth.close()

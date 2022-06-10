@@ -6,6 +6,7 @@ nextcord[speed]
 nextcord[voice]
 pendulum
 PyNaCl
+python-dateutil
 requests
 supabase
 youtube_dl

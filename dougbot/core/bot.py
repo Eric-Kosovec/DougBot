@@ -17,19 +17,10 @@ class DougBot(commands.Bot):
 
     def __init__(self):
         self.config = config.get_configuration()
-        self._is_ready = False
-
-        intents = Intents(
-            emojis_and_stickers=True,
-            guilds=True,
-            members=True,
-            messages=True,
-            presences=True,
-            reactions=True,
-            voice_states=True)
+        self._log_channel = None
 
         bot_kwargs = {
-            "intents": intents,
+            "intents": Intents.all(),
             "case_insensitive": True,
             "strip_after_prefix": True
         }
@@ -49,32 +40,40 @@ class DougBot(commands.Bot):
                 .fatal()
             sys.exit(1)
 
-    async def on_ready(self):
-        if self._is_ready:
-            return
-
-        log_channel = await self.fetch_channel(self.config.logging_channel_id)
-        if log_channel:
-            LogEvent.add_handler(ChannelHandler(log_channel, self.loop))
+    async def on_connect(self):
+        self._log_channel = await self.fetch_channel(self.config.logging_channel_id)
+        if self._log_channel:
+            LogEvent.add_handler(ChannelHandler(config.ROOT_DIR, self._log_channel, self.loop))
 
         self.help_command = CustomHelpCommand(dm_help=None, no_category='Misc')
+
+        print('Doug Online')
+
+    async def on_ready(self):
+        # Log any errors that occurred while bot was down
+        if self._log_channel:
+            LogEvent.log_fatal_file()
 
         for error in self._extension_load_errors:
             LogEvent(__file__) \
                 .exception(error) \
                 .error(to_console=True)
 
-        print('Doug Online')
-
-        self._is_ready = True
+        self._extension_load_errors.clear()
 
     async def close(self):
         if self.loop and self.loop.is_running():
             await self.change_presence(status=Status.offline)
-            await super().close()
+        await super().close()
 
     async def on_error(self, event_method, *args, **kwargs):
-        pass
+        _, exception, _ = sys.exc_info()
+        LogEvent(__file__) \
+            .method(event_method) \
+            .add_field('arguments', args) \
+            .add_field('keyword_arguments', kwargs) \
+            .exception(exception) \
+            .error()
 
     async def on_command_error(self, ctx, error):
         error_texts = {
@@ -88,11 +87,12 @@ class DougBot(commands.Bot):
 
         for error_class, error_msg in error_texts.items():
             if isinstance(error, error_class):
-                await reactions.confusion(ctx.message, error_msg)
+                await reactions.confusion(ctx.message, error_msg, delete_after=5)
                 return
 
-        # Catches rest of exceptions
         LogEvent(__file__) \
+            .message('Error executing command') \
+            .context(ctx) \
             .exception(error) \
             .error()
 

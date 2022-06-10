@@ -3,100 +3,166 @@ import os
 import sys
 import traceback
 
-from dougbot.config import RESOURCES_DIR
+from dateutil.tz import tz
+from nextcord import Interaction
+from nextcord.ext.commands import Context
+
+from dougbot.config import CORE_DIR
 
 
 class LogEvent:
-    _FATAL_LOG_FILE_MAX_BYTES = 5.12e+8  # 512 MB
-    _FATAL_LOG_FILE_PATH = os.path.join(RESOURCES_DIR, 'fatal.log')
+    CLASS_FIELD = 'class'
+    CONTEXT_FIELD = 'context'
+    ERROR_LEVEL_FIELD = 'error_level'
+    EXCEPTION_FIELD = 'exception'
+    INTERACTION_FIELD = 'interaction'
+    MESSAGE_FIELD = 'message'
+    METHOD_FIELD = 'method'
+    MODULE_FIELD = 'module'
 
-    def __init__(self, file):
-        self._file = file
-        self._class = ''
-        self._message = ''
-        self._exception = None
-        self._objects = []
+    _FATAL_LOG_MAX_BYTES = 5.12e+8  # 512 MB
+    _FATAL_LOG_PATH = os.path.join(CORE_DIR, 'fatal.log')
+    _ROOT_LOGGER_NAME = ''
+
+    def __init__(self, module):
+        if type(module) != str or len(module) == 0:
+            raise ValueError('Invalid module name')
+
+        self._fields = []
+        self.add_field(self.MODULE_FIELD, module)
 
     def clazz(self, clazz):
-        self._class = clazz.__qualname__
-        return self
+        return self.add_field(self.CLASS_FIELD, clazz.__qualname__ if clazz else None)
 
-    def message(self, message):
-        self._message += f"{' ' if len(self._message) else ''}{message}"
-        return self
+    def context(self, ctx: Context):
+        return self.add_field(self.CONTEXT_FIELD, ctx)
 
     def exception(self, exception):
-        self._exception = exception
-        return self
+        return self.add_field(self.EXCEPTION_FIELD, exception)
 
-    def object(self, obj, message=''):
-        self._objects.append((obj, message))
+    def interaction(self, interaction: Interaction):
+        return self.add_field(self.INTERACTION_FIELD, interaction)
+
+    def message(self, message):
+        return self.add_field(self.MESSAGE_FIELD, message)
+
+    def method(self, method):
+        return self.add_field(self.METHOD_FIELD, method)
+
+    def add_field(self, field, value):
+        if type(field) != str or len(field) == 0:
+            raise ValueError(f"Invalid field name '{field}'")
+
+        if any(t for t in self._fields if t[0] == field):
+            raise ValueError(f"Field '{field}' already exists")
+
+        self._fields.append((field, value))
         return self
 
     def info(self, *, to_console=False):
-        log_message = self._build_log_message()
-        self.logger(self._file).info(log_message)
+        self.add_field(self.ERROR_LEVEL_FIELD, 'INFO')
+
+        log_message = self._build_output()
+        self.logger(self._module_field()).info(log_message)
 
         if to_console:
             print(log_message, file=sys.stderr)
 
     def debug(self):
-        log_message = self._build_log_message()
+        self.add_field(self.ERROR_LEVEL_FIELD, 'DEBUG')
+
+        log_message = self._build_output()
+        self.logger(self._module_field()).debug(log_message)
+
         print(log_message, file=sys.stderr)
-        self.logger(self._file).debug(log_message)
 
     def warn(self, *, to_console=False):
-        log_message = self._build_log_message()
-        self.logger(self._file).warning(log_message)
+        self.add_field(self.ERROR_LEVEL_FIELD, 'WARN')
+
+        log_message = self._build_output()
+        self.logger(self._module_field()).warning(log_message)
 
         if to_console:
             print(log_message, file=sys.stderr)
 
     def error(self, *, to_console=False):
-        log_message = self._build_log_message()
-        self.logger(self._file).error(log_message)
+        self.add_field(self.ERROR_LEVEL_FIELD, 'ERROR')
+
+        log_message = self._build_output()
+        self.logger(self._module_field()).error(log_message)
 
         if to_console:
             print(log_message, file=sys.stderr)
 
     def fatal(self):
         """
-        Print to stderr and log to file when bot instability won't allow logging to log channel
+        Print to stderr and log to file when instability prevents logging to channel
         """
-        log_message = self._build_log_message()
+        self.add_field(self.ERROR_LEVEL_FIELD, 'FATAL')
+
+        log_message = self._build_output()
         print(log_message, file=sys.stderr)
-
-        try:
-            if os.path.getsize(self._FATAL_LOG_FILE_PATH) >= self._FATAL_LOG_FILE_MAX_BYTES:
-                os.remove(self._FATAL_LOG_FILE_PATH)
-        except OSError as e:
-            print(f'Failed to delete log file: {e}', file=sys.stderr)
-
-        try:
-            with open(self._FATAL_LOG_FILE_PATH, 'a') as fd:
-                fd.write(log_message)
-        except OSError as e:
-            print(f'Failed to append to log file: {e}', file=sys.stderr)
+        self._append_fatal_log(log_message)
 
     @staticmethod
-    def logger(file=''):
-        return logging.getLogger(file)
+    def logger(name=_ROOT_LOGGER_NAME):
+        return logging.getLogger(name)
 
     @staticmethod
-    def add_handler(handler, file=''):
-        LogEvent.logger(file).addHandler(handler)
+    def add_handler(handler, name=_ROOT_LOGGER_NAME):
+        LogEvent.logger(name).addHandler(handler)
 
     @staticmethod
     def clear_handlers():
-        LogEvent.logger('').handlers = []
+        LogEvent.logger(LogEvent._ROOT_LOGGER_NAME).handlers = []
 
-    def _build_log_message(self):
-        log_message = f"{self._file}{'' if self._class == '' else ' '}{self._class}: {self._message}\n"
+    @staticmethod
+    def log_fatal_file():
+        log_data = LogEvent._read_fatal_log()
+        if log_data:
+            LogEvent.logger().error(f'Errors while bot was down:\n{log_data}')
 
-        for obj, msg in self._objects:
-            log_message += f'{msg}: {obj}\n'
+    def _build_output(self):
+        output = f'{self._fields[-1][0]} = {self._fields[-1][1]}\n'  # Error level field
 
-        if self._exception is not None:
-            log_message += f'{self._exception}\n{traceback.format_tb(self._exception.__traceback__)}\n'
+        for field, value in self._fields[:-1]:
+            output += f'{field} = '
+            if field in [self.CONTEXT_FIELD, self.INTERACTION_FIELD]:
+                output += f"'{value.message.clean_content}' from {value.message.author} at {value.message.created_at.astimezone(tz.gettz('America/Chicago'))} CST"
+            else:
+                output += str(value)
+                if field == self.EXCEPTION_FIELD:
+                    output += '\n' + ''.join(traceback.format_exception(value))
+            output += '\n'
 
-        return log_message
+        return output
+
+    def _module_field(self):
+        return next(t[1] for t in self._fields if t[0] == self.MODULE_FIELD)
+
+    @staticmethod
+    def _read_fatal_log():
+        log_data = None
+        try:
+            with open(LogEvent._FATAL_LOG_PATH) as fd:
+                log_data = fd.read()
+            os.remove(LogEvent._FATAL_LOG_PATH)
+            return log_data
+        except OSError:
+            pass
+        finally:
+            return log_data
+
+    def _append_fatal_log(self, data):
+        try:
+            if os.path.getsize(self._FATAL_LOG_PATH) >= self._FATAL_LOG_MAX_BYTES:
+                os.remove(self._FATAL_LOG_PATH)
+        except OSError:
+            pass
+
+        try:
+            os.makedirs(CORE_DIR, exist_ok=True)
+            with open(self._FATAL_LOG_PATH, 'a') as fd:
+                fd.write(data)
+        except OSError as e:
+            print(f'Failed to append to log file: {e}', file=sys.stderr)

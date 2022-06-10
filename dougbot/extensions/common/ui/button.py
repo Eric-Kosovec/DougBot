@@ -9,5 +9,5 @@ class DougButton(Button):
         self._callback = callback
 
     async def callback(self, interaction: Interaction):
-        if self._callback is not None:
+        if self._callback:
             await self._callback(interaction)

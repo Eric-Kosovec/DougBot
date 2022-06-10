@@ -2,6 +2,7 @@ from nextcord.ext import commands
 
 from dougbot import config
 from dougbot.common import database
+from dougbot.common.logevent import LogEvent
 from dougbot.core.bot import DougBot
 from dougbot.extensions.common import channelutils
 from dougbot.extensions.common.annotation.admincheck import admin_command
@@ -40,11 +41,14 @@ class Debug(commands.Cog):
         one_hundred_emoji = '\U0001F4AF'
         file_cabinet_emoji = '\U0001F5C4'
         red_x_emoji = '\U0000274C'
+
         await ctx.message.add_reaction(one_hundred_emoji)
+
+        database_status_emoji = red_x_emoji
         if await database.check_connection():
-            await ctx.message.add_reaction(file_cabinet_emoji)
-        else:
-            await ctx.message.add_reaction(red_x_emoji)
+            database_status_emoji = file_cabinet_emoji
+
+        await ctx.message.add_reaction(database_status_emoji)
         await ctx.message.delete(delay=10)
 
 

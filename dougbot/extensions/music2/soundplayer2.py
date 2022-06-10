@@ -22,7 +22,7 @@ from dougbot.core.bot import DougBot
 from dougbot.extensions.common import fileutils
 from dougbot.extensions.common import webutils
 from dougbot.extensions.common.annotation.miccheck import voice_command
-from dougbot.extensions.common.ui.dougbutton import DougButton
+from dougbot.extensions.common.ui.button import DougButton
 from dougbot.extensions.music2.soundconsumer import SoundConsumer
 from dougbot.extensions.music2.track import Track
 
