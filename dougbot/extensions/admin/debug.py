@@ -2,7 +2,6 @@ from nextcord.ext import commands
 
 from dougbot import config
 from dougbot.common import database
-from dougbot.common.logevent import LogEvent
 from dougbot.core.bot import DougBot
 from dougbot.extensions.common import channelutils
 from dougbot.extensions.common.annotation.admincheck import admin_command

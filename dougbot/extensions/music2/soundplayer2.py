@@ -63,7 +63,7 @@ class SoundPlayer2(commands.Cog):
 
         track = Track(ctx, source, times)
         self._sound_consumer.enqueue(track)
-        asyncio.create_task(self._prepare_track(track))
+        await self._prepare_track(track)
         await ctx.message.delete(delay=3)
 
     @commands.command()
@@ -198,7 +198,7 @@ class SoundPlayer2(commands.Cog):
         self._file_to_message[dl_path] = await track.ctx.send(embed=self._link_download_embed(track), view=self._create_controls_view())
 
         await self.loop.run_in_executor(self._thread_pool, ytdl.extract_info, track.source)
-        asyncio.create_task(self._delete_embed(dl_path))
+        await self._delete_embed(dl_path)
 
         return dl_path
 

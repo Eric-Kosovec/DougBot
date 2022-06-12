@@ -325,13 +325,6 @@ class PetCommands(commands.Cog):
         embed.add_field(name='Defence', value=str(pet['defence']), inline=True)
         await ctx.send(embed=embed)
 
-    @commands.command()
-    async def test(self, ctx):
-        user = ctx.message.author
-        pet = PetHandler.getcurrentpet()
-        pet = PetHandler.favorability(pet, user.id, 1)
-        PetHandler.savedata(pet)
-
     @staticmethod
     def buildembed(json_object, ableto, type):
         embed = Embed(title='<:sipsScared:819393684549533716> Name: ' + str(json_object['name']), color=0x228B22)

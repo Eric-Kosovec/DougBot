@@ -56,6 +56,7 @@ class DougBot(commands.Bot):
 
         for error in self._extension_load_errors:
             LogEvent(__file__) \
+                .message('Error while loading extension') \
                 .exception(error) \
                 .error(to_console=True)
 
@@ -77,18 +78,18 @@ class DougBot(commands.Bot):
 
     async def on_command_error(self, ctx, error):
         error_texts = {
-            commands.errors.MissingRequiredArgument: f'Missing argument(s), type {ctx.prefix}help <command_name>',
             commands.errors.CheckFailure: f'{ctx.author.mention} You do not have permissions for this command',
-            commands.errors.NoPrivateMessage: 'Command cannot be used in private messages',
-            commands.errors.DisabledCommand: 'Command disabled',
             commands.errors.CommandNotFound: 'Command not found',
-            commands.errors.CommandOnCooldown: 'Command on cooldown'
+            commands.errors.CommandOnCooldown: 'Command on cooldown',
+            commands.errors.DisabledCommand: 'Command disabled',
+            commands.errors.MissingRequiredArgument: f'Missing argument(s), type {ctx.prefix}help <command_name>',
+            commands.errors.NoPrivateMessage: 'Command cannot be used in private messages',
+            commands.errors.TooManyArguments: 'Too many arguments'
         }
 
-        for error_class, error_msg in error_texts.items():
-            if isinstance(error, error_class):
-                await reactions.confusion(ctx.message, error_msg, delete_after=5)
-                return
+        if type(error) in error_texts:
+            await reactions.confusion(ctx.message, error_texts[type(error)], delete_after=8)
+            return
 
         LogEvent(__file__) \
             .message('Error executing command') \

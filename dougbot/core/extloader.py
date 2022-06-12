@@ -31,7 +31,7 @@ def _load_from_module(bot, root, filename, exceptions):
     try:
         bot.load_extension(module_path)
     except Exception as e:
-        # Ignore when there is no setup function. Can't know if it is an intentional issue or not.
+        # Ignore when there is no setup function. Can't know if it's an intentional issue or not.
         # If an extension SHOULD exist, but doesn't, this is likely the issue.
         if "no 'setup' function" not in str(e):
             exceptions.append(e)
