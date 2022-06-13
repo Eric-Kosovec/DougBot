@@ -20,19 +20,19 @@ class Resources(commands.Cog, FileManager):
     async def resources(self, _):
         pass
 
-    @resources.command(name='get')
+    @resources.command()
     @admin_command()
-    async def get_file(self, ctx, path: str):
+    async def get(self, ctx, path: str):
         file = await super().get_file(path)
 
-        if file is None:
-            await reactions.confusion(ctx.message, f'{path} is not a file')
-        else:
+        if file:
             await ctx.send(file=file)
+        else:
+            await reactions.confusion(ctx.message, f'{path} is not a file', delete_text_after=10)
 
         await ctx.message.delete(delay=3)
 
-    @resources.command(name='list')
+    @resources.command()
     @admin_command()
     async def list(self, ctx, path: str = None):
         files = await super().list(path)
@@ -42,44 +42,38 @@ class Resources(commands.Cog, FileManager):
 
         await ctx.message.delete(delay=3)
 
-    @resources.command(name='mkdir')
+    @resources.command()
     @admin_command()
-    async def make_directory(self, ctx, directory):
+    async def mkdir(self, ctx, directory):
         await super().make_directory(directory)
-        await reactions.confirmation(ctx.message)
-        await ctx.message.delete(delay=3)
+        await reactions.confirmation(ctx.message, delete_message_after=3)
 
-    @resources.command(name='remove')
+    @resources.command()
     @admin_command()
     async def remove(self, ctx, path: str, force: bool = False):
         await super().remove(path, force)
-        await reactions.confirmation(ctx.message)
-        await ctx.message.delete(delay=3)
+        await reactions.confirmation(ctx.message, delete_message_after=3)
 
-    @resources.command(name='rename')
+    @resources.command()
     @admin_command()
     async def rename(self, ctx, from_path: str, to_path: str):
         await super().rename(from_path, to_path)
-        await reactions.confirmation(ctx.message)
-        await ctx.message.delete(delay=3)
+        await reactions.confirmation(ctx.message, delete_message_after=3)
 
-    @resources.command(name='create')
+    @resources.command()
     @admin_command()
-    async def make_file(self, ctx, path: str, url: str = None):
+    async def create(self, ctx, path: str, url: str = None):
         if url is None and len(ctx.message.attachments) == 0:
-            await reactions.confusion(ctx.message, 'No attachments given')
+            await reactions.confusion(ctx.message, 'No attachments given', delete_message_after=10, delete_text_after=10)
             return
 
-        if not webutils.is_file_url(url):
-            await reactions.confusion(ctx.message, 'Not a file url')
-            return
-
-        url = ctx.message.attachments[0].url if url is None else url
-        file = await webutils.download_file(url)
-        await super().make_file(path, file.raw)
-
-        await reactions.confirmation(ctx.message)
-        await ctx.message.delete(delay=3)
+        if webutils.is_file_url(url):
+            url = url if url else ctx.message.attachments[0].url
+            file = await webutils.download_file(url)
+            await super().make_file(path, file.raw)
+            await reactions.confirmation(ctx.message, delete_message_after=3)
+        else:
+            await reactions.confusion(ctx.message, 'Not a file url', delete_message_after=10, delete_text_after=10)
 
 
 def setup(bot):

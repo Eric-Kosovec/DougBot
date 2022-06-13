@@ -2,6 +2,7 @@ from nextcord.ext import commands
 
 from dougbot import config
 from dougbot.common import database
+from dougbot.common.messaging import reactions
 from dougbot.core.bot import DougBot
 from dougbot.extensions.common import channelutils
 from dougbot.extensions.common.annotation.admincheck import admin_command
@@ -25,14 +26,14 @@ class Debug(commands.Cog):
     async def log(self, ctx):
         log_channel = await self.bot.fetch_channel(config.get_configuration().logging_channel_id)
         await channelutils.clear_channel(log_channel, limit=self._DELETE_LIMIT)
-        await ctx.message.delete(delay=3)
+        await reactions.confirmation(ctx.message, delete_message_after=3)
 
     @clear.command()
     @admin_command()
     async def debug(self, ctx):
         debug_channel = await channelutils.channel_name_like(ctx.message.guild, self._DEBUG_CHANNEL_NAME)
         await channelutils.clear_channel(debug_channel, limit=self._DELETE_LIMIT)
-        await ctx.message.delete(delay=3)
+        await reactions.confirmation(ctx.message, delete_message_after=3)
 
     @commands.command()
     @admin_command()
@@ -41,14 +42,12 @@ class Debug(commands.Cog):
         file_cabinet_emoji = '\U0001F5C4'
         red_x_emoji = '\U0000274C'
 
-        await ctx.message.add_reaction(one_hundred_emoji)
-
         database_status_emoji = red_x_emoji
         if await database.check_connection():
             database_status_emoji = file_cabinet_emoji
 
-        await ctx.message.add_reaction(database_status_emoji)
-        await ctx.message.delete(delay=10)
+        await reactions.reaction_response(ctx.message, one_hundred_emoji)
+        await reactions.reaction_response(ctx.message, database_status_emoji, delete_message_after=10)
 
 
 def setup(bot):

@@ -88,7 +88,7 @@ class DougBot(commands.Bot):
         }
 
         if type(error) in error_texts:
-            await reactions.confusion(ctx.message, error_texts[type(error)], delete_after=8)
+            await reactions.confusion(ctx.message, error_texts[type(error)], delete_text_after=10)
             return
 
         LogEvent(__file__) \

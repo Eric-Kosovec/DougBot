@@ -70,7 +70,7 @@ class ExtensionAdmin(commands.Cog):
     @admin_command()
     async def disable_for(self, ctx: Context, name: str, seconds: int = 0, minutes: int = 0, hours: int = 0):
         if name in self._READONLY_EXTENSIONS:
-            await reactions.confusion(ctx.message, f'{name} is read-only', delete_after=5)
+            await reactions.confusion(ctx.message, f'{name} is read-only', delete_text_after=5)
             return
 
         cog = self.bot.remove_cog(name)
@@ -86,7 +86,7 @@ class ExtensionAdmin(commands.Cog):
     @admin_command()
     async def restart(self, ctx: Context, name: str):
         if name in self._disabled_cogs:
-            await reactions.confusion(ctx.message, f'{name} is disabled', delete_after=5)
+            await reactions.confusion(ctx.message, f'{name} is disabled', delete_text_after=5)
             return
 
         await self.disable(ctx, name)
