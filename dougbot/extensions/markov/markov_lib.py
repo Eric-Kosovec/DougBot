@@ -8,7 +8,7 @@ from json.decoder import JSONDecodeError
 # Generates Markov chains from discord chat
 ##Dictionary Template: defaultdict(lambda:[0, defaultdict(int)])   #{'the': (7, {'wood': 5})}
 ##Dictionary Template: dict{rootWord:[rootCount, dict{leafWord:leafCount}]}   #{'the': (7, {'wood': 5})}
-class Markov:
+class MarkovLib:
     # Static variables
     _TOTAL = 0  # Occurances of words after the root word
     _WORDS = 1  # Occurances of current word after root word
@@ -50,10 +50,10 @@ class Markov:
     async def addWordToDict(markovDict, rootOne, rootTwo, leafWord):
         if (rootOne, rootTwo) not in markovDict:
             markovDict[(rootOne, rootTwo)] = [0, {leafWord: 0}]
-        if leafWord not in markovDict[(rootOne, rootTwo)][Markov._WORDS]:
-            markovDict[(rootOne, rootTwo)][Markov._WORDS][leafWord] = 0
-        markovDict[(rootOne, rootTwo)][Markov._TOTAL] += 1
-        markovDict[(rootOne, rootTwo)][Markov._WORDS][leafWord] += 1
+        if leafWord not in markovDict[(rootOne, rootTwo)][MarkovLib._WORDS]:
+            markovDict[(rootOne, rootTwo)][MarkovLib._WORDS][leafWord] = 0
+        markovDict[(rootOne, rootTwo)][MarkovLib._TOTAL] += 1
+        markovDict[(rootOne, rootTwo)][MarkovLib._WORDS][leafWord] += 1
 
     # Adds a sentence to the dictionary
     ##markovDict    - Dictionary to populate
@@ -69,14 +69,14 @@ class Markov:
         # Seperates all symbols and words
         # sentenceList = re.findall(r"[\w']+|[.,!?;]", sentence)
 
-        for spaced in Markov._SYMBOLS:
+        for spaced in MarkovLib._SYMBOLS:
             sentence = sentence.replace(spaced, ' {0} '.format(spaced))
         sentenceList = sentence.split()
 
         prevWord2 = sentenceList[0].lower()
         word = sentenceList[1].lower()
 
-        await Markov.addWordToDict(markovDict, prevWord1, prevWord2, word)
+        await MarkovLib.addWordToDict(markovDict, prevWord1, prevWord2, word)
 
         for i in range(0, len(sentenceList)):
             if len(sentenceList) > i + 2:
@@ -84,10 +84,10 @@ class Markov:
                 prevWord2 = sentenceList[i + 1].lower()
                 word = sentenceList[i + 2].lower()
 
-                await Markov.addWordToDict(markovDict, prevWord1, prevWord2, word)
+                await MarkovLib.addWordToDict(markovDict, prevWord1, prevWord2, word)
 
         if (word not in string.punctuation):
-            await Markov.addWordToDict(markovDict, prevWord2, word, ".")
+            await MarkovLib.addWordToDict(markovDict, prevWord2, word, ".")
 
     # Populates the dictionary from a file of strings
     ##markovDict     - Dictionary to populate
@@ -97,7 +97,7 @@ class Markov:
         with open(fileName, "r", encoding='utf-8') as file:
             lines = file.readlines()
             for line in lines:
-                await Markov.addSentenceToDict(markovDict, line)
+                await MarkovLib.addSentenceToDict(markovDict, line)
         return
 
     # Generates a phrase(chain) from the dictionary
@@ -114,8 +114,8 @@ class Markov:
         phrase += curTuple[1]
 
         if weighted:  # Control
-            while curWord not in Markov._ENDPUNCTUATION and curTuple[1] != '' and length < 100:
-                curWord = random.choices(list(markovDict[curTuple][1].keys()), weights=list(markovDict[curTuple][Markov._WORDS].values()))[0]
+            while curWord not in MarkovLib._ENDPUNCTUATION and curTuple[1] != '' and length < 100:
+                curWord = random.choices(list(markovDict[curTuple][1].keys()), weights=list(markovDict[curTuple][MarkovLib._WORDS].values()))[0]
                 if (curWord not in string.punctuation and length > 0):
                     phrase += " "
                 phrase += curWord
@@ -123,7 +123,7 @@ class Markov:
                 curTuple = (curTuple[1], curWord)
 
         else:  # Chaos
-            while curWord not in Markov._ENDPUNCTUATION:
+            while curWord not in MarkovLib._ENDPUNCTUATION:
                 curWord = random.choice(list(markovDict[curTuple][1].keys()))
                 if (curWord not in string.punctuation and length > 0):
                     phrase += " "
