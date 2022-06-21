@@ -40,7 +40,7 @@ class Markov(commands.Cog):
         if existingDict:
             while (phrase == '' or length < 5) and attempts < 10:  # Generate new phrase if last one sucked
                 try:
-                    phrase, length = await Markov.generateChain(markovDict, True)
+                    phrase, length = await MarkovLib.generateChain(markovDict, True)
                 except KeyError:  # On error just make a new phrase (I'll fix this later maybe)
                     continue
 
