@@ -5,7 +5,7 @@ from nextcord.ext.commands import Context
 
 from dougbot.common.messaging import reactions
 from dougbot.core.bot import DougBot
-from dougbot.extensions.common.annotation.admincheck import admin_command
+from dougbot.extensions.common.annotation.admincheck import admin_command, mod_command
 
 
 class ExtensionAdmin(commands.Cog):
@@ -21,7 +21,7 @@ class ExtensionAdmin(commands.Cog):
         pass
 
     @extension.command()
-    @admin_command()
+    @mod_command()
     async def list(self, ctx: Context):
         enabled_cogs = [c for c in self.bot.cogs.keys()]
         enabled_cogs.sort()
@@ -37,7 +37,7 @@ class ExtensionAdmin(commands.Cog):
         await ctx.send(cog_list)
 
     @extension.command()
-    @admin_command()
+    @mod_command()
     async def status(self, ctx: Context, name: str):
         is_disabled = name in self._disabled_cogs
         await ctx.send(f"{name} is {'disabled' if is_disabled else 'enabled'}")

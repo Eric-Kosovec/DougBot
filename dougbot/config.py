@@ -24,20 +24,22 @@ def get_configuration():
     config_parser = ConfigParser()
     config_parser.read([config, dev_config])
 
-    command_prefix = config_parser.get('Commands', 'prefix')
-    admin_role_id = int(config_parser.get('Permissions', 'admin_role_id'))
-    logging_channel_id = int(config_parser.get('Channels', 'logging_channel_id'))
-
-    db_url = os.getenv(config_parser.get('Environment', 'db_url_name'))
-    db_api_key = os.getenv(config_parser.get('Environment', 'db_api_key_name'))
-    token = os.getenv(config_parser.get('Environment', 'token_name'))
-
     config_namespace = SimpleNamespace()
-    config_namespace.command_prefix = command_prefix
-    config_namespace.admin_role_id = admin_role_id
-    config_namespace.logging_channel_id = logging_channel_id
-    config_namespace.token = token
-    config_namespace.db_url = db_url
-    config_namespace.db_api_key = db_api_key
+
+    # Commands
+    config_namespace.command_prefix = config_parser.get('Commands', 'prefix')
+
+    # Permissions
+    config_namespace.admin_role_id = int(config_parser.get('Permissions', 'admin_role_id'))
+    config_namespace.mod_role_id = int(config_parser.get('Permissions', 'mod_role_id'))
+
+    # Channels
+    config_namespace.debug_channel_id = int(config_parser.get('Channels', 'debug_channel_id'))
+    config_namespace.logging_channel_id = int(config_parser.get('Channels', 'logging_channel_id'))
+
+    # Environment
+    config_namespace.db_api_key = os.getenv(config_parser.get('Environment', 'db_api_key_name'))
+    config_namespace.db_url = os.getenv(config_parser.get('Environment', 'db_url_name'))
+    config_namespace.token = os.getenv(config_parser.get('Environment', 'token_name'))
 
     return config_namespace

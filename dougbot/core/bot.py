@@ -1,4 +1,5 @@
 import sys
+from typing import Any
 
 import nextcord
 from nextcord import Intents
@@ -63,8 +64,7 @@ class DougBot(commands.Bot):
         self._extension_load_errors.clear()
 
     async def close(self):
-        if self.loop and self.loop.is_running():
-            await self.change_presence(status=Status.offline)
+        await self.change_presence(status=Status.offline)
         await super().close()
 
     async def on_error(self, event_method, *args, **kwargs):
@@ -98,6 +98,14 @@ class DougBot(commands.Bot):
             .error()
 
         await reactions.check_log(ctx.message)
+
+    def get_cog(self, name: str) -> Any:
+        """
+        Override commands.Bot's get_cog to eliminate dumb warnings when type hinting the return
+        :param name: Class name of Cog
+        :return: Cog instance
+        """
+        return super().get_cog(name)
 
     async def join_voice_channel(self, channel):
         voice_client = await self.voice_in(channel)

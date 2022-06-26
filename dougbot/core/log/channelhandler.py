@@ -27,6 +27,7 @@ class ChannelHandler(Handler):
             except Exception as e:
                 self.handleError(record, e)
                 return
+        asyncio.run_coroutine_threadsafe(self._channel.send('---------------'), self._loop)
 
     def handleError(self, record, exception=None):
         LogEvent(__file__) \
