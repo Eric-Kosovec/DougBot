@@ -1,19 +1,15 @@
-import requests
+import aiohttp
 
 
 async def is_file_url(url):
     return await is_link(url) and len(url[url.rfind('.'):]) in range(1, 6)
 
 
-async def async_is_link(url):
-    return url.startswith('https://') or url.startswith('http://') or url.startswith('www.')
+async def is_link(url):
+    return url.startswith('https://') or url.startswith('www.') or url.startswith('http://')
 
 
-def is_link(url):
-    return url.startswith('https://') or url.startswith('http://') or url.startswith('www.')
-
-
-async def download_file(url):
-    if not await is_file_url(url):
-        return b''
-    return requests.get(url, stream=True)
+async def url_get(url):
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as data:
+            return await data.read()

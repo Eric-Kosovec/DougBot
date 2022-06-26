@@ -43,4 +43,4 @@ def _is_extension_module(path, filename):
 
 
 def _is_extension_package(path):
-    return not (os.path.basename(path).startswith('__') or 'example' in path or 'util' in path or 'common' in path)
+    return not (os.path.basename(path).startswith('__') or 'example' in path or 'common' in path)

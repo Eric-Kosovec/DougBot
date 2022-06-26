@@ -2,13 +2,12 @@ import os
 import shutil
 
 import nextcord
-import requests
 from nextcord.ext import commands
 
 from dougbot.common.messaging import reactions
 from dougbot.config import EXTENSION_RESOURCES_DIR
 from dougbot.core.bot import DougBot
-from dougbot.extensions.common import fileutils
+from dougbot.extensions.common import fileutils, webutils
 from dougbot.extensions.common.annotation.admincheck import admin_command
 
 
@@ -109,22 +108,21 @@ class SoundManager(commands.Cog):
                 return
             url = ctx.message.attachments[0].url
 
-        if not await self._check_url(url):
+        if not await self._valid_url(url):
             await reactions.confusion(ctx.message)
             return
 
         if '.' not in clip_name:
             clip_name += url[url.rfind('.'):]
 
-        file = await self._download_file(url)
-        if file is None:
+        if not await self._valid_url(url):
             await reactions.confusion(ctx.message)
             return
 
         path = os.path.join(self._clips_dir, f'{folder}', clip_name.lower())
         try:
             with open(path, 'wb') as out_file:
-                shutil.copyfileobj(file.raw, out_file)
+                shutil.copyfileobj((await webutils.url_get(url)).raw, out_file)
         except Exception:
             await reactions.confusion(ctx.message)
             raise
@@ -198,13 +196,8 @@ class SoundManager(commands.Cog):
         # Rudimentary link detection
         return candidate.startswith('https://') or candidate.startswith('http://') or candidate.startswith('www.')
 
-    async def _check_url(self, url):
+    async def _valid_url(self, url):
         return url is not None and await self._is_link(url) and '.' in url
-
-    async def _download_file(self, url):
-        if not await self._check_url(url):
-            return None
-        return requests.get(url, stream=True)
 
 
 def setup(bot):

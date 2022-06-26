@@ -74,7 +74,7 @@ class SoundPlayer(commands.Cog):
     @voice_command()
     async def ytplay(self, ctx, *, search_terms: str):
         yt_url = ''
-        if await webutils.async_is_link(search_terms):
+        if await webutils.is_link(search_terms):
             yt_url = search_terms
         else:
             results = YoutubeSearch(search_terms, max_results=20).to_dict()
@@ -154,7 +154,7 @@ class SoundPlayer(commands.Cog):
         self._sound_consumer.enqueue(track)
 
     async def _create_track(self, ctx, voice, source, times):
-        is_link = webutils.is_link(source)
+        is_link = await webutils.is_link(source)
 
         if not is_link:
             track_source = await self._get_path(source)

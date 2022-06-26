@@ -1,4 +1,5 @@
 from nextcord.ext import commands
+from nextcord.ext.commands import Context
 
 from dougbot.core.bot import DougBot
 
@@ -9,12 +10,8 @@ class Links(commands.Cog):
         self.bot = bot
 
     @commands.command()
-    async def sdt(self, ctx):
+    async def sdt(self, ctx: Context):
         await ctx.send('https://cytu.be/r/SadDoug')
-
-    @commands.command()
-    async def bingo(self, ctx):
-        await ctx.send('http://saddoug.rf.gd/')
 
 
 def setup(bot):

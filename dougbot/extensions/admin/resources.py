@@ -67,9 +67,8 @@ class Resources(commands.Cog, FileManager):
             await reactions.confusion(ctx.message, 'No attachments given', delete_message_after=10, delete_text_after=10)
             return
 
-        if webutils.is_file_url(url):
-            url = url if url else ctx.message.attachments[0].url
-            file = await webutils.download_file(url)
+        if await webutils.is_file_url(url):
+            file = await webutils.url_get(url if url else ctx.message.attachments[0].url)
             await super().make_file(path, file.raw)
             await reactions.confirmation(ctx.message, delete_message_after=3)
         else:
