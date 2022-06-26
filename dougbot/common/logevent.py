@@ -13,7 +13,7 @@ from dougbot.config import CORE_DIR
 class LogEvent:
     CLASS_FIELD = 'class'
     CONTEXT_FIELD = 'context'
-    ERROR_LEVEL_FIELD = 'error_level'
+    LEVEL_FIELD = 'level'
     EXCEPTION_FIELD = 'exception'
     INTERACTION_FIELD = 'interaction'
     MESSAGE_FIELD = 'message'
@@ -60,7 +60,7 @@ class LogEvent:
         return self
 
     def info(self, *, to_console=False):
-        self.add_field(self.ERROR_LEVEL_FIELD, 'INFO')
+        self.add_field(self.LEVEL_FIELD, 'INFO')
 
         log_message = self._build_output()
         self.logger(self._module_field()).info(log_message)
@@ -69,7 +69,7 @@ class LogEvent:
             print(log_message, file=sys.stderr)
 
     def debug(self):
-        self.add_field(self.ERROR_LEVEL_FIELD, 'DEBUG')
+        self.add_field(self.LEVEL_FIELD, 'DEBUG')
 
         log_message = self._build_output()
         self.logger(self._module_field()).debug(log_message)
@@ -77,7 +77,7 @@ class LogEvent:
         print(log_message, file=sys.stderr)
 
     def warn(self, *, to_console=False):
-        self.add_field(self.ERROR_LEVEL_FIELD, 'WARN')
+        self.add_field(self.LEVEL_FIELD, 'WARN')
 
         log_message = self._build_output()
         self.logger(self._module_field()).warning(log_message)
@@ -86,7 +86,7 @@ class LogEvent:
             print(log_message, file=sys.stderr)
 
     def error(self, *, to_console=False):
-        self.add_field(self.ERROR_LEVEL_FIELD, 'ERROR')
+        self.add_field(self.LEVEL_FIELD, 'ERROR')
 
         log_message = self._build_output()
         self.logger(self._module_field()).error(log_message)
@@ -98,7 +98,7 @@ class LogEvent:
         """
         Print to stderr and log to file when instability prevents logging to channel
         """
-        self.add_field(self.ERROR_LEVEL_FIELD, 'FATAL')
+        self.add_field(self.LEVEL_FIELD, 'FATAL')
 
         log_message = self._build_output()
         print(log_message, file=sys.stderr)
@@ -120,7 +120,7 @@ class LogEvent:
     def log_fatal_file():
         log_data = LogEvent._read_fatal_log()
         if log_data:
-            LogEvent.logger().error(f'Errors while bot was down:\n{log_data}')
+            LogEvent.logger().error(f'**Errors while bot was down**\n\n{log_data}')
 
     def _build_output(self):
         output = f'{self._fields[-1][0]} = {self._fields[-1][1]}\n'  # Error level field
@@ -128,11 +128,11 @@ class LogEvent:
         for field, value in self._fields[:-1]:
             output += f'{field} = '
             if field in [self.CONTEXT_FIELD, self.INTERACTION_FIELD]:
-                output += f"'{value.message.clean_content}' from {value.message.author} at {value.message.created_at.astimezone(tz.gettz('America/Chicago'))} CST"
+                output += f"'{value.message.clean_content}' from {value.message.author} at {self._time_as_cst(value.message.created_at)} CST"
             else:
                 output += str(value)
                 if field == self.EXCEPTION_FIELD:
-                    output += '\n' + ''.join(traceback.format_exception(value))
+                    output += f"\n{''.join(traceback.format_exception(value))}"
             output += '\n'
 
         return output
@@ -141,17 +141,20 @@ class LogEvent:
         return next(t[1] for t in self._fields if t[0] == self.MODULE_FIELD)
 
     @staticmethod
+    def _time_as_cst(original_time):
+        return original_time.astimezone(tz.gettz('America/Chicago'))
+
+    @staticmethod
     def _read_fatal_log():
         log_data = None
         try:
             with open(LogEvent._FATAL_LOG_PATH) as fd:
                 log_data = fd.read()
             os.remove(LogEvent._FATAL_LOG_PATH)
-            return log_data
         except OSError:
             pass
-        finally:
-            return log_data
+
+        return log_data
 
     def _append_fatal_log(self, data):
         try:

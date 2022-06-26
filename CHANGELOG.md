@@ -6,8 +6,8 @@
     to `dev_config.ini` and `dev_config.ini.example`
 
 #### 2.0.0
-  - Discord.py-based bot
+  - Use new Discord.py bot infrastructure
 
 #### 1.0.0
-  - Custom bot infrastructure
   - Initial commit
+  - Custom bot infrastructure using Discord.py
