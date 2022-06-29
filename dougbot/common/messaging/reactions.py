@@ -1,3 +1,7 @@
+from nextcord import Message
+from nextcord.ext.commands import Context
+
+
 async def check_log(message, error_text=None, *, delete_text_after=None, delete_message_after=None):
     page_emoji = '\U0001F4C4'
     await reaction_response(message, page_emoji, error_text, delete_text_after=delete_text_after, delete_message_after=delete_message_after)
@@ -21,3 +25,16 @@ async def reaction_response(message, emoji, text=None, *, delete_text_after=None
 
     if delete_message_after:
         await message.delete(delay=delete_message_after)
+
+
+async def users_who_reacted(context: Context, message: Message):
+    # Have to re-fetch message to get updated reactions list
+    message = await context.fetch_message(message.id)
+
+    users = []
+    for reaction in message.reactions:
+        async for user in reaction.users():
+            if user not in users and not user.bot:
+                users.append(user)
+
+    return users

@@ -7,6 +7,7 @@ from dateutil.tz import tz
 from nextcord import Interaction
 from nextcord.ext.commands import Context
 
+from dougbot import config
 from dougbot.config import CORE_DIR
 
 
@@ -30,6 +31,8 @@ class LogEvent:
 
         self._fields = []
         self.add_field(self.MODULE_FIELD, module)
+
+        self._log_to_console = config.get_configuration().log_to_console
 
     def clazz(self, clazz):
         return self.add_field(self.CLASS_FIELD, clazz.__qualname__ if clazz else None)
@@ -65,7 +68,7 @@ class LogEvent:
         log_message = self._build_output()
         self.logger(self._module_field()).info(log_message)
 
-        if to_console:
+        if to_console or self._log_to_console:
             print(log_message, file=sys.stderr)
 
     def debug(self):
@@ -82,7 +85,7 @@ class LogEvent:
         log_message = self._build_output()
         self.logger(self._module_field()).warning(log_message)
 
-        if to_console:
+        if to_console or self._log_to_console:
             print(log_message, file=sys.stderr)
 
     def error(self, *, to_console=False):
@@ -91,7 +94,7 @@ class LogEvent:
         log_message = self._build_output()
         self.logger(self._module_field()).error(log_message)
 
-        if to_console:
+        if to_console or self._log_to_console:
             print(log_message, file=sys.stderr)
 
     def fatal(self):

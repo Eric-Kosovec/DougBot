@@ -9,6 +9,7 @@ from dougbot.common.messaging import message_utils
 
 class ChannelHandler(Handler):
     _LOGGING_FORMAT = '%(message)s'
+    _MARKDOWN_CHARACTERS = '*_~|>`'
 
     def __init__(self, root_dir, channel, loop):
         super().__init__()
@@ -21,7 +22,9 @@ class ChannelHandler(Handler):
         if self._from_library(record):
             return
 
-        for message in message_utils.split_message(self.format(record)):
+        asyncio.run_coroutine_threadsafe(self._channel.send('-' * 100), self._loop)
+
+        for message in message_utils.split_message(self._escape_markdown(self.format(record))):
             try:
                 asyncio.run_coroutine_threadsafe(self._channel.send(message), self._loop)
             except Exception as e:
@@ -34,6 +37,14 @@ class ChannelHandler(Handler):
             .add_field('record', self.format(record)) \
             .exception(exception) \
             .fatal()
+
+    def _escape_markdown(self, text):
+        new_text = ''
+        for c in text:
+            if c in self._MARKDOWN_CHARACTERS:
+                new_text += '\\'
+            new_text += c
+        return new_text
 
     def _from_library(self, record):
         return os.path.splitdrive(record.pathname)[0] != os.path.splitdrive(self._root_dir)[0] or \

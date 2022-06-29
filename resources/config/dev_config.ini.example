@@ -1,2 +1,5 @@
 [Commands]
 prefix: d&
+
+[Logging]
+log_to_console: False

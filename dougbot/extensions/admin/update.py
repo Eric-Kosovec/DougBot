@@ -3,6 +3,7 @@ import shutil
 import subprocess
 import sys
 
+from nextcord import Status
 from nextcord.ext import commands
 
 from dougbot.common.messaging import reactions
@@ -62,9 +63,9 @@ class Update(commands.Cog):
         finally:
             os.chdir(cwd)
 
-    @staticmethod
-    async def _restart_bot(ctx):
+    async def _restart_bot(self, ctx):
         await ctx.message.delete(delay=3)
+        await self.bot.change_presence(status=Status.offline)
         os.execl(sys.executable, sys.executable, *sys.argv)
         await ctx.send('Failed to restart')
 
