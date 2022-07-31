@@ -122,7 +122,7 @@ class SoundManager(commands.Cog):
         path = os.path.join(self._clips_dir, f'{folder}', clip_name.lower())
         try:
             with open(path, 'wb') as out_file:
-                shutil.copyfileobj((await webutils.url_get(url)).raw, out_file)
+                out_file.write(await webutils.url_get(url))
         except Exception:
             await reactions.confusion(ctx.message)
             raise
