@@ -166,7 +166,6 @@ class SoundPlayer(commands.Cog):
 
         return Track(ctx, voice, track_source, is_link, times)
 
-    @cachetools.cached(cache=LRUCache(20))
     async def _get_path(self, audio):
         return await fileutils.find_file_async(self._clips_dir, audio)
 
