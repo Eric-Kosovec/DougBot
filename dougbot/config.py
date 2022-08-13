@@ -42,6 +42,9 @@ def get_configuration():
     # Logging
     config_namespace.log_to_console = strtobool(config_parser.get('Logging', 'log_to_console', fallback='False'))
 
+    # Meta
+    config_namespace.is_dev_bot = os.path.exists(dev_config)
+
     # Permissions
     config_namespace.admin_role_id = int(config_parser.get('Permissions', 'admin_role_id'))
     config_namespace.mod_role_id = int(config_parser.get('Permissions', 'mod_role_id'))

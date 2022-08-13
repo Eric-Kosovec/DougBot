@@ -18,5 +18,6 @@ def setup(bot: DougBot):
     bot.add_cog(Example(bot))
 
 
+# Optional, delete if not needed
 def teardown(bot: DougBot):
     _ = bot

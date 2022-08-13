@@ -24,6 +24,7 @@ class ChannelHandler(Handler):
 
         asyncio.run_coroutine_threadsafe(self._channel.send('-' * 100), self._loop)
 
+        # TODO SMART SPLIT WITH FIELDS AND REMOVE EMBEDS
         for message in message_utils.split_message(self._escape_markdown(self.format(record))):
             try:
                 asyncio.run_coroutine_threadsafe(self._channel.send(message), self._loop)

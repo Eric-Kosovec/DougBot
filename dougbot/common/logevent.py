@@ -10,12 +10,16 @@ from nextcord.ext.commands import Context
 from dougbot import config
 from dougbot.config import CORE_DIR
 
+# TODO MAKE ASYNCABLE WHEN NEEDED
+
 
 class LogEvent:
+    CHANNEL_FIELD = 'channel'
     CLASS_FIELD = 'class'
     CONTEXT_FIELD = 'context'
     LEVEL_FIELD = 'level'
     EXCEPTION_FIELD = 'exception'
+    EXTENSION_FIELD = 'extension'
     INTERACTION_FIELD = 'interaction'
     MESSAGE_FIELD = 'message'
     METHOD_FIELD = 'method'
@@ -34,6 +38,9 @@ class LogEvent:
 
         self._log_to_console = config.get_configuration().log_to_console
 
+    def channel(self, channel):
+        return self.add_field(self.CHANNEL_FIELD, channel)
+
     def clazz(self, clazz):
         return self.add_field(self.CLASS_FIELD, clazz.__qualname__ if clazz else None)
 
@@ -42,6 +49,9 @@ class LogEvent:
 
     def exception(self, exception):
         return self.add_field(self.EXCEPTION_FIELD, exception)
+
+    def extension(self, extension):
+        return self.add_field(self.EXTENSION_FIELD, extension)
 
     def interaction(self, interaction: Interaction):
         return self.add_field(self.INTERACTION_FIELD, interaction)
@@ -123,7 +133,7 @@ class LogEvent:
     def log_fatal_file():
         log_data = LogEvent._read_fatal_log()
         if log_data:
-            LogEvent.logger().error(f'**Errors while bot was down**\n\n{log_data}')
+            LogEvent.logger().error(f'Errors while bot was down:\n\n{log_data}\n\nEnd of offline errors')
 
     def _build_output(self):
         output = f'{self._fields[-1][0]} = {self._fields[-1][1]}\n'  # Error level field

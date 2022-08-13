@@ -23,13 +23,14 @@ from dougbot.extensions.music.track import Track
 
 
 class SoundPlayer(commands.Cog):
+    THREAD_POOL: ThreadPoolExecutor = None
 
     def __init__(self, bot: DougBot):
         self.bot = bot
         self.loop = self.bot.loop
         self.bot.event(self.on_voice_state_update)
 
-        self._thread_pool = ThreadPoolExecutor()
+        _THREAD_POOL = ThreadPoolExecutor()
 
         self._order_lock = asyncio.Lock()  # Keeps order tracks are played in.
         self._volume = 1.0
@@ -140,11 +141,11 @@ class SoundPlayer(commands.Cog):
                 await self._quit_playing(voice)
 
     async def _quit_playing(self, voice):
-        await self.loop.run_in_executor(self._thread_pool, self._sound_consumer.stop_playing)
+        await self.loop.run_in_executor(self.THREAD_POOL, self._sound_consumer.stop_playing)
         if voice is not None:
             await voice.disconnect()
         async with self._order_lock:
-            await self.loop.run_in_executor(self._thread_pool, fileutils.delete_directories, self._cache_dir)
+            await self.loop.run_in_executor(self.THREAD_POOL, fileutils.delete_directories, self._cache_dir)
 
     async def _enqueue_audio(self, ctx, voice, source, times):
         track = await self._create_track(ctx, voice, source, times)
@@ -193,7 +194,7 @@ class SoundPlayer(commands.Cog):
         }
         ytdl = youtube_dl.YoutubeDL(ytdl_params)
 
-        ie_result = await self.bot.loop.run_in_executor(self._thread_pool, ytdl.extract_info, link, False)
+        ie_result = await self.bot.loop.run_in_executor(self.THREAD_POOL, ytdl.extract_info, link, False)
         if ie_result is None:
             return None
 
@@ -204,7 +205,7 @@ class SoundPlayer(commands.Cog):
 
         self._url = link
         self._last_embed_message = await ctx.send(embed=self._link_download_embed(self._title, self._uploader, self._thumbnail, self._url, 0))
-        await self.bot.loop.run_in_executor(self._thread_pool, ytdl.extract_info, link)
+        await self.bot.loop.run_in_executor(self.THREAD_POOL, ytdl.extract_info, link)
 
         return dl_path
 
@@ -250,5 +251,7 @@ def setup(bot):
 
 
 def teardown(_):
+    if SoundPlayer.THREAD_POOL:
+        SoundPlayer.THREAD_POOL.shutdown()
     cache_path = os.path.join(EXTENSION_RESOURCES_DIR, 'music', 'cache')
     fileutils.delete_directories(cache_path, True)
