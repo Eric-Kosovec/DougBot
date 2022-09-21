@@ -1,5 +1,4 @@
 import os
-import shutil
 
 import nextcord
 from nextcord.ext import commands
@@ -7,8 +6,9 @@ from nextcord.ext import commands
 from dougbot.common.messaging import reactions
 from dougbot.config import EXTENSION_RESOURCES_DIR
 from dougbot.core.bot import DougBot
-from dougbot.extensions.common import fileutils, webutils
+from dougbot.extensions.common import webutils
 from dougbot.extensions.common.annotation.admincheck import admin_command
+from dougbot.extensions.common.file import fileutils
 
 
 class SoundManager(commands.Cog):
@@ -132,7 +132,7 @@ class SoundManager(commands.Cog):
     @commands.command(aliases=['list'])
     async def clips(self, ctx, *, category: str = None):
         if category is None or category == 'all':
-            categories = filter(lambda f: os.path.isdir(os.path.join(self._clips_dir, f)), os.listdir(self._clips_dir))
+            categories = sorted(filter(lambda f: os.path.isdir(os.path.join(self._clips_dir, f)), os.listdir(self._clips_dir)))
         else:
             categories = [os.path.join(self._clips_dir, category)]
             if not os.path.isdir(categories[0]):
@@ -147,28 +147,19 @@ class SoundManager(commands.Cog):
         elif category == 'all':  # List all clips, sorted by category
             embed.title = '**Soundboard Clips**'
             for category in categories:
-                field_value = ''
-
-                for _, _, filenames in os.walk(os.path.join(self._clips_dir, category)):
-                    field_value += ' '.join(
-                        [f'`{f[:f.rfind(".")]}`' for f in filenames if self._is_audio_track(f)]
-                    )
-
+                field_value = ' '.join([f'`{c}`' for c in sorted(await self._clip_names(os.path.join(self._clips_dir, category)))])
                 if len(field_value) > 0:
                     embed.add_field(name=f'**{category}**', value=field_value)
         else:  # List clips within specific category
             embed.title = f'**{category} Clips**'.title()
-            description = ''
             # List clips in specific category
-            for _, _, filenames in os.walk(categories[0]):
-                description += ' '.join([f'`{f[:f.rfind(".")]}`' for f in filenames if self._is_audio_track(f)])
-            embed.description = description
+            embed.description = ' '.join(f'`{c}`' for c in sorted(await self._clip_names(categories[0])))
 
         await ctx.send(embed=embed)
 
-    def clip_names(self):
+    async def _clip_names(self, root):
         clips = []
-        for _, _, filenames in os.walk(self._clips_dir):
+        for _, _, filenames in os.walk(root):
             clips.extend([f[:f.rfind('.')] for f in filenames if self._is_audio_track(f)])
         return clips
 

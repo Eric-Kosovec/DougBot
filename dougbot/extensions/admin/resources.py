@@ -1,12 +1,11 @@
+from dougbot.extensions.common.file.filemanager import FileManager
 from nextcord.ext import commands
 
 from dougbot.common.messaging import reactions
 from dougbot.common.messaging.message_utils import split_message
 from dougbot.config import RESOURCES_MAIN_PACKAGE_DIR
 from dougbot.core.bot import DougBot
-from dougbot.extensions.common import webutils
 from dougbot.extensions.common.annotation.admincheck import admin_command
-from dougbot.extensions.common.filemanager import FileManager
 
 
 class Resources(commands.Cog, FileManager):
@@ -28,7 +27,7 @@ class Resources(commands.Cog, FileManager):
         if file:
             await ctx.send(file=file)
         else:
-            await reactions.confusion(ctx.message, f'{path} is not a file', delete_text_after=10)
+            await reactions.confusion(ctx.message, f'{path} is not a file', delete_response_after=10)
 
         await ctx.message.delete(delay=3)
 
@@ -64,15 +63,16 @@ class Resources(commands.Cog, FileManager):
     @admin_command()
     async def create(self, ctx, path: str, url: str = None):
         if url is None and len(ctx.message.attachments) == 0:
-            await reactions.confusion(ctx.message, 'No attachments given', delete_message_after=10, delete_text_after=10)
+            await reactions.confusion(ctx.message, 'No attachments given', delete_message_after=10, delete_response_after=10)
             return
 
-        if await webutils.is_file_url(url):
+        # TODO FIX
+        '''if await webutils.is_file_url(url):
             file = await webutils.url_get(url if url else ctx.message.attachments[0].url)
             await super().make_file(path, file.raw)
             await reactions.confirmation(ctx.message, delete_message_after=3)
         else:
-            await reactions.confusion(ctx.message, 'Not a file url', delete_message_after=10, delete_text_after=10)
+            await reactions.confusion(ctx.message, 'Not a file url', delete_message_after=10, delete_response_after=10)'''
 
 
 def setup(bot):

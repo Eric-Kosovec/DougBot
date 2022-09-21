@@ -57,7 +57,7 @@ class SoundConsumer:
 
             if self._callback is not None:
                 if inspect.iscoroutinefunction(self._callback):
-                    self._bot.loop.call_soon_threadsafe(self._callback, track)
+                    self._bot._loop.call_soon_threadsafe(self._callback, track)
                 else:
                     self._callback(track)
 

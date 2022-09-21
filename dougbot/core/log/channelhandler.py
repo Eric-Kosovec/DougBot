@@ -22,12 +22,13 @@ class ChannelHandler(Handler):
         if self._from_library(record):
             return
 
-        asyncio.run_coroutine_threadsafe(self._channel.send('-' * 100), self._loop)
+        self._run_coroutine(self._channel.send('-' * 100))
 
-        # TODO SMART SPLIT WITH FIELDS AND REMOVE EMBEDS
-        for message in message_utils.split_message(self._escape_markdown(self.format(record))):
+        # TODO THREADED ASYNC LOGGING SYSTEM
+        # TODO SMART SPLIT ON FIELDS AND REMOVE EMBEDS
+        for message in message_utils.split_message(self._normalize_record(record)):
             try:
-                asyncio.run_coroutine_threadsafe(self._channel.send(message), self._loop)
+                self._run_coroutine(self._channel.send(message))
             except Exception as e:
                 self.handleError(record, e)
                 return
@@ -39,13 +40,17 @@ class ChannelHandler(Handler):
             .exception(exception) \
             .fatal()
 
+    def _normalize_record(self, record):
+        return self._escape_markdown(self.format(record))
+
     def _escape_markdown(self, text):
-        new_text = ''
-        for c in text:
-            if c in self._MARKDOWN_CHARACTERS:
-                new_text += '\\'
-            new_text += c
-        return new_text
+        escaped_text = text
+        for c in self._MARKDOWN_CHARACTERS:
+            escaped_text = escaped_text.replace(c, '\\' + c)
+        return escaped_text
+
+    def _run_coroutine(self, coroutine):
+        asyncio.run_coroutine_threadsafe(coroutine, self._loop)
 
     def _from_library(self, record):
         return os.path.splitdrive(record.pathname)[0] != os.path.splitdrive(self._root_dir)[0] or \

@@ -7,8 +7,8 @@ from nextcord import Embed
 from nextcord.ext import commands
 
 from dougbot.common import limits
-from dougbot.extensions.common.embed import embed_utils
 from dougbot.core.bot import DougBot
+from dougbot.extensions.common.embed import embed_utils
 
 
 class Batsu(commands.Cog):

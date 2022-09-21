@@ -4,9 +4,7 @@ import os
 import threading
 from concurrent.futures import ThreadPoolExecutor
 
-import cachetools
 import youtube_dl
-from cachetools import LRUCache
 from nextcord.embeds import Embed
 from nextcord.ext import commands
 from youtube_search import YoutubeSearch
@@ -15,9 +13,9 @@ from dougbot.common.logevent import LogEvent
 from dougbot.common.messaging import reactions
 from dougbot.config import EXTENSION_RESOURCES_DIR
 from dougbot.core.bot import DougBot
-from dougbot.extensions.common import fileutils
 from dougbot.extensions.common import webutils
 from dougbot.extensions.common.annotation.miccheck import voice_command
+from dougbot.extensions.common.file import fileutils
 from dougbot.extensions.music.soundconsumer import SoundConsumer
 from dougbot.extensions.music.track import Track
 

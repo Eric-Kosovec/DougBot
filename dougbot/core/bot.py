@@ -32,6 +32,10 @@ class DougBot(commands.Bot):
 
     def run(self, *args, **kwargs):
         try:
+            if not self.config.token:
+                print('Token was none; check your environment variables', file=sys.stderr)
+                sys.exit(1)
+
             print("I'm starting...")
             super().run(*(self.config.token, *args), **kwargs)
         except Exception as e:
@@ -90,7 +94,7 @@ class DougBot(commands.Bot):
         }
 
         if type(error) in error_texts:
-            await reactions.confusion(ctx.message, error_texts[type(error)], delete_text_after=10)
+            await reactions.confusion(ctx.message, error_texts[type(error)], delete_response_after=10)
             return
 
         LogEvent(__file__) \

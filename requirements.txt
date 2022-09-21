@@ -5,6 +5,7 @@ cachetools
 nextcord[speed]
 nextcord[voice]
 pendulum
+psutil
 PyNaCl
 python-dateutil
 requests
