@@ -3,7 +3,7 @@ import os
 from logging import Formatter
 from logging import Handler
 
-from dougbot.common.logevent import LogEvent
+from dougbot.common.logger import Logger
 from dougbot.common.messaging import message_utils
 
 
@@ -34,7 +34,7 @@ class ChannelHandler(Handler):
                 return
 
     def handleError(self, record, exception=None):
-        LogEvent(__file__) \
+        Logger(__file__) \
             .message('ChannelHandler failed to send log') \
             .add_field('record', self.format(record)) \
             .exception(exception) \

@@ -14,7 +14,7 @@ from dougbot.config import CORE_DIR
 # TODO MAKE ASYNCABLE WHEN NEEDED
 
 
-class LogEvent:
+class Logger:
     CHANNEL_FIELD = 'channel'
     CLASS_FIELD = 'class'
     CONTEXT_FIELD = 'context'
@@ -124,17 +124,17 @@ class LogEvent:
 
     @staticmethod
     def add_handler(handler, name=_ROOT_LOGGER_NAME):
-        LogEvent.logger(name).addHandler(handler)
+        Logger.logger(name).addHandler(handler)
 
     @staticmethod
     def clear_handlers():
-        LogEvent.logger(LogEvent._ROOT_LOGGER_NAME).handlers = []
+        Logger.logger(Logger._ROOT_LOGGER_NAME).handlers = []
 
     @staticmethod
     def log_fatal_file():
-        log_data = LogEvent._read_fatal_log()
+        log_data = Logger._read_fatal_log()
         if log_data:
-            LogEvent.logger().error(f'Errors while bot was down:\n\n{log_data}\n\nEnd of offline errors')
+            Logger.logger().error(f'Errors while bot was down:\n\n{log_data}\n\nEnd of offline errors')
 
     def _build_output(self):
         output = f'{self._fields[-1][0]} = {self._fields[-1][1]}\n'  # Error level field
@@ -162,9 +162,9 @@ class LogEvent:
     def _read_fatal_log():
         log_data = None
         try:
-            with open(LogEvent._FATAL_LOG_PATH) as fd:
+            with open(Logger._FATAL_LOG_PATH) as fd:
                 log_data = fd.read()
-            os.remove(LogEvent._FATAL_LOG_PATH)
+            os.remove(Logger._FATAL_LOG_PATH)
         except OSError:
             pass
 

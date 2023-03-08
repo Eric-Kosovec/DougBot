@@ -7,7 +7,7 @@ from nextcord import Status
 from nextcord.ext import commands
 
 from dougbot import config
-from dougbot.common.logevent import LogEvent
+from dougbot.common.logger import Logger
 from dougbot.common.messaging import reactions
 from dougbot.core import extloader, tasks
 from dougbot.core.help import CustomHelpCommand
@@ -28,7 +28,7 @@ class DougBot(commands.Bot):
 
         super().__init__(self.config.command_prefix, **bot_kwargs)
         self._extension_load_errors = extloader.load_extensions(self)
-        LogEvent.clear_handlers()  # Temporary until Supabase's realtime dependency gets rid of their global logging setup
+        Logger.clear_handlers()  # Temporary until Supabase's realtime dependency gets rid of their global logging setup
 
     def run(self, *args, **kwargs):
         try:
@@ -39,7 +39,7 @@ class DougBot(commands.Bot):
             print("I'm starting...")
             super().run(*(self.config.token, *args), **kwargs)
         except Exception as e:
-            LogEvent(__file__) \
+            Logger(__file__) \
                 .message('Uncaught exception') \
                 .exception(e) \
                 .fatal()
@@ -48,7 +48,7 @@ class DougBot(commands.Bot):
     async def on_connect(self):
         self._log_channel = await self.fetch_channel(self.config.logging_channel_id)
         if self._log_channel:
-            LogEvent.add_handler(ChannelHandler(config.ROOT_DIR, self._log_channel, self.loop))
+            Logger.add_handler(ChannelHandler(config.ROOT_DIR, self._log_channel, self.loop))
 
         self.help_command = CustomHelpCommand(dm_help=None, no_category='Misc')
 
@@ -59,10 +59,10 @@ class DougBot(commands.Bot):
     async def on_ready(self):
         # Log any errors that occurred while bot was down
         if self._log_channel:
-            LogEvent.log_fatal_file()
+            Logger.log_fatal_file()
 
         for error in self._extension_load_errors:
-            LogEvent(__file__) \
+            Logger(__file__) \
                 .message('Error while loading extension') \
                 .exception(error) \
                 .error(to_console=True)
@@ -75,7 +75,7 @@ class DougBot(commands.Bot):
 
     async def on_error(self, event_method, *args, **kwargs):
         _, exception, _ = sys.exc_info()
-        LogEvent(__file__) \
+        Logger(__file__) \
             .method(event_method) \
             .add_field('arguments', args) \
             .add_field('keyword_arguments', kwargs) \
@@ -97,7 +97,7 @@ class DougBot(commands.Bot):
             await reactions.confusion(ctx.message, error_texts[type(error)], delete_response_after=10)
             return
 
-        LogEvent(__file__) \
+        Logger(__file__) \
             .message('Error executing command') \
             .context(ctx) \
             .exception(error) \

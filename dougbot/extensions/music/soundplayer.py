@@ -9,7 +9,7 @@ from nextcord.embeds import Embed
 from nextcord.ext import commands
 from youtube_search import YoutubeSearch
 
-from dougbot.common.logevent import LogEvent
+from dougbot.common.logger import Logger
 from dougbot.common.messaging import reactions
 from dougbot.config import EXTENSION_RESOURCES_DIR
 from dougbot.core.bot import DougBot
@@ -62,10 +62,8 @@ class SoundPlayer(commands.Cog):
 
         # Keep ordering of clips
         async with self._order_lock:
+            await ctx.message.delete()
             await self._enqueue_audio(ctx, voice, source, times)
-
-        await asyncio.sleep(3)
-        await ctx.message.delete()
 
     # Searches for a youtube video based on the search terms given and sends the url to the play function
     @commands.command()
@@ -187,7 +185,7 @@ class SoundPlayer(commands.Cog):
             'default_search': 'auto',
             'source_address': '0.0.0.0',
             'outtmpl': dl_path,
-            'log': LogEvent.logger(__file__),
+            'log': Logger.logger(__file__),
             'progress_hooks': [self._progress_hook]
         }
         ytdl = youtube_dl.YoutubeDL(ytdl_params)
@@ -226,7 +224,7 @@ class SoundPlayer(commands.Cog):
 
     @staticmethod
     async def _link_hash(link):
-        link = 'yt_' + link
+        link = 'sp_' + link
         md5hash = hashlib.new('md5')
         md5hash.update(link.encode('utf-8'))
         return md5hash.hexdigest()

@@ -5,7 +5,7 @@ from threading import Lock, Semaphore
 
 import nextcord
 
-from dougbot.common.logevent import LogEvent
+from dougbot.common.logger import Logger
 
 
 class SoundConsumer:
@@ -92,7 +92,7 @@ class SoundConsumer:
 
     def _finished(self, error):
         if error is not None:
-            LogEvent(__file__) \
+            Logger(__file__) \
                 .message('SoundPlayer finished error') \
                 .exception(error) \
                 .error()
