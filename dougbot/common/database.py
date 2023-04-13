@@ -4,6 +4,7 @@ from supabase import client
 from supabase.client import Client
 
 from dougbot import config
+from dougbot.common.logger import Logger
 
 
 def connect() -> Client:
@@ -19,7 +20,11 @@ async def check_connection():
             .upsert({'id': '1', 'checked_at': str(date.today())}) \
             .execute()
         return True
-    except Exception:
+    except Exception as e:
+        Logger(__file__) \
+            .message('Failed to check db connection') \
+            .exception(e) \
+            .error()
         return False
     finally:
         if db_client:
