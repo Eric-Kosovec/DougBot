@@ -71,6 +71,10 @@ class DougBot(commands.Bot):
 
     async def close(self):
         await self.change_presence(status=Status.offline)
+        
+        for vc in self.voice_clients:
+            await vc.disconnect(force=True)
+        
         await super().close()
 
     async def on_error(self, event_method, *args, **kwargs):
