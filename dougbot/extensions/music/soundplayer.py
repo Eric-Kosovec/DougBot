@@ -62,7 +62,7 @@ class SoundPlayer(commands.Cog):
 
         # Keep ordering of clips
         async with self._order_lock:
-            await ctx.message.delete()
+            asyncio.create_task(ctx.message.delete(delay=10))
             await self._enqueue_audio(ctx, voice, source, times)
 
     # Searches for a youtube video based on the search terms given and sends the url to the play function
