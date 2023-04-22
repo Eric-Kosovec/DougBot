@@ -52,18 +52,22 @@ class SoundPlayer(commands.Cog):
     async def play(self, ctx, source: str, *, times: str = '1'):
         source, times = await self._custom_play_parse(source, times)
         if times <= 0:
-            await reactions.confusion(ctx.message)
+            await reactions.confusion(ctx.message, delete_message_after=10)
             return
 
         voice = await self.bot.join_voice_channel(ctx.message.author.voice.channel)
         if voice is None:
-            await reactions.confusion(ctx.message)
+            await reactions.confusion(ctx.message, delete_message_after=10)
             return
 
         # Keep ordering of clips
         async with self._order_lock:
-            asyncio.create_task(ctx.message.delete(delay=10))
-            await self._enqueue_audio(ctx, voice, source, times)
+            success = await self._enqueue_audio(ctx, voice, source, times)
+
+        if not success:
+            await reactions.confusion(ctx.message)
+
+        await ctx.message.delete(delay=10)
 
     # Searches for a youtube video based on the search terms given and sends the url to the play function
     @commands.command()
@@ -146,9 +150,11 @@ class SoundPlayer(commands.Cog):
     async def _enqueue_audio(self, ctx, voice, source, times):
         track = await self._create_track(ctx, voice, source, times)
         if track is None:
-            await reactions.confusion(ctx.message)
-            return
+            return False
+
         self._sound_consumer.enqueue(track)
+
+        return True
 
     async def _create_track(self, ctx, voice, source, times):
         is_link = await webutils.is_link(source)
