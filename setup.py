@@ -6,7 +6,7 @@ def update():
         for requirement in fd.readlines():
             cleansed_requirement = requirement.strip()
             if len(cleansed_requirement) > 1:
-                subprocess.run(['pip', 'install', '--upgrade', cleansed_requirement])
+                subprocess.run(['pip', 'install', '--upgrade', '--force-reinstall', cleansed_requirement])
                 print()
 
 
