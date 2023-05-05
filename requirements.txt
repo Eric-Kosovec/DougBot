@@ -2,6 +2,7 @@ pip
 
 aiohttp
 cachetools
+git+https://github.com/ytdl-org/youtube-dl.git
 nextcord[speed]
 nextcord[voice]
 pendulum
@@ -10,5 +11,4 @@ PyNaCl
 python-dateutil
 requests
 supabase
-youtube_dl
 youtube_search
