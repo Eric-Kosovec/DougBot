@@ -9,7 +9,7 @@ from dougbot.extensions.common.annotation.admincheck import admin_command
 
 
 class ConfigAdmin(commands.Cog):
-    _PRIVATE_CONFIGS = {'db_api_key', 'db_url', 'token'}
+    _PRIVATE_CONFIGS = {'token'}
     _NO_DELETE_CONFIGS = {'command_prefix', 'admin_role_id', 'mod_role_id', 'debug_channel_id', 'logging_channel_id'}
 
     def __init__(self, bot: DougBot):
