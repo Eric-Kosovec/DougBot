@@ -9,6 +9,7 @@ from nextcord.embeds import Embed
 from nextcord.ext import commands
 from youtube_search import YoutubeSearch
 
+from dougbot.common import voiceutil
 from dougbot.common.logger import Logger
 from dougbot.common.messaging import reactions
 from dougbot.config import EXTENSION_RESOURCES_DIR
@@ -55,7 +56,7 @@ class SoundPlayer(commands.Cog):
             await reactions.confusion(ctx.message, delete_message_after=10)
             return
 
-        voice = await self.bot.join_voice_channel(ctx.message.author.voice.channel)
+        voice = await voiceutil.join_voice_channel(ctx.message.author.voice.channel, self.bot)
         if voice is None:
             await reactions.confusion(ctx.message, delete_message_after=10)
             return
@@ -69,7 +70,7 @@ class SoundPlayer(commands.Cog):
 
         await ctx.message.delete(delay=10)
 
-    # Searches for a youtube video based on the search terms given and sends the url to the play function
+    # Searches for a YouTube video based on the search terms given and sends the url to the play function
     @commands.command()
     @commands.guild_only()
     @voice_command()
@@ -94,7 +95,7 @@ class SoundPlayer(commands.Cog):
     @commands.guild_only()
     @voice_command()
     async def vol(self, ctx, volume: float):
-        voice = await self.bot.voice_in(ctx.message.author.voice.channel)
+        voice = await voiceutil.voice_in(ctx.message.author.voice.channel, self.bot)
         if voice is not None:
             self._volume = max(0.0, min(100.0, volume)) / 100.0
             if voice.is_playing():
@@ -105,7 +106,7 @@ class SoundPlayer(commands.Cog):
     @commands.guild_only()
     @voice_command()
     async def pause(self, ctx):
-        voice = await self.bot.voice_in(ctx.message.author.voice.channel)
+        voice = await voiceutil.voice_in(ctx.message.author.voice.channel, self.bot)
         if voice is not None and voice.is_playing():
             voice.pause()
 
@@ -113,7 +114,7 @@ class SoundPlayer(commands.Cog):
     @commands.guild_only()
     @voice_command()
     async def resume(self, ctx):
-        voice = await self.bot.voice_in(ctx.message.author.voice.channel)
+        voice = await voiceutil.voice_in(ctx.message.author.voice.channel, self.bot)
         if voice is not None and voice.is_paused():
             voice.resume()
 
@@ -121,7 +122,7 @@ class SoundPlayer(commands.Cog):
     @commands.guild_only()
     @voice_command()
     async def skip(self, ctx):
-        voice = await self.bot.voice_in(ctx.message.author.voice.channel)
+        voice = await voiceutil.voice_in(ctx.message.author.voice.channel, self.bot)
         if voice is not None and voice.is_playing():
             self._sound_consumer.skip_track()
 
@@ -129,13 +130,13 @@ class SoundPlayer(commands.Cog):
     @commands.guild_only()
     @voice_command()
     async def leave(self, ctx):
-        voice = await self.bot.voice_in(ctx.message.author.voice.channel)
+        voice = await voiceutil.voice_in(ctx.message.author.voice.channel, self.bot)
         if voice is not None:
             await self._quit_playing(voice)
 
     async def on_voice_state_update(self, _, before, after):
         if before.channel is not None and (after.channel is None or before.channel.id != after.channel.id):
-            voice = await self.bot.voice_in(before.channel)
+            voice = await voiceutil.voice_in(before.channel, self.bot)
             # Make sure there are no humans in the voice channel.
             if voice is not None and next(filter(lambda m: not m.bot, before.channel.members), None) is None:
                 await self._quit_playing(voice)

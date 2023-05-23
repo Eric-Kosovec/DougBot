@@ -1,11 +1,11 @@
 import os
-import shutil
 import subprocess
 import sys
 
 from nextcord import Status
 from nextcord.ext import commands
 
+from dougbot.common.logger import Logger
 from dougbot.common.messaging import reactions
 from dougbot.config import ROOT_DIR
 from dougbot.core.bot import DougBot
@@ -27,7 +27,7 @@ class Update(commands.Cog):
     async def update(self, ctx):
         await self._update(ctx, ['git', 'fetch', '--all'], ['git', 'pull'])
 
-    @commands.command()
+    @commands.command(aliases=['force_update'])
     @admin_command()
     async def update_force(self, ctx):
         await self._update(ctx, ['git', 'fetch', '--all'], ['git', 'reset', '--hard', 'origin/master'])
@@ -57,9 +57,14 @@ class Update(commands.Cog):
     async def _update(self, ctx, *cmds):
         cwd = os.getcwd()
         os.chdir(ROOT_DIR)
+
         try:
+            await self.bot.change_presence(status=Status.offline)
             await self._process_commands(*cmds)
             await self._restart_bot(ctx)
+        except Exception:
+            await self.bot.change_presence(status=Status.online)
+            raise
         finally:
             os.chdir(cwd)
 
@@ -67,29 +72,15 @@ class Update(commands.Cog):
         await ctx.message.delete(delay=3)
         await self.bot.change_presence(status=Status.offline)
         os.execl(sys.executable, sys.executable, *sys.argv)
-        await ctx.send('Failed to restart')
+
+        Logger(__file__)\
+            .message('Failed to restart bot')\
+            .fatal()
 
     @staticmethod
     async def _process_commands(*cmds):
         for command in cmds:
             subprocess.call(command)
-
-    async def _spawn_secondary(self):
-        python_path = await self._which_python()
-        if python_path is None:
-            return
-
-        subprocess.Popen([python_path, os.path.join(ROOT_DIR, 'run.py')])
-
-    @staticmethod
-    async def _which_python():
-        pythons = ['python3', 'python', 'py']
-        for python in pythons:
-            python_path = shutil.which(python)
-            if python_path is not None and 'WindowsApps' not in python_path:
-                return python_path
-
-        return None
 
 
 def setup(bot):

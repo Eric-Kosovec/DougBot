@@ -1,7 +1,6 @@
 import sys
 from typing import Any
 
-import nextcord
 from nextcord import Intents
 from nextcord import Status
 from nextcord.ext import commands
@@ -87,6 +86,7 @@ class DougBot(commands.Bot):
             .error()
 
     async def on_command_error(self, ctx, error):
+        # TODO IMPROVE
         error_texts = {
             commands.errors.CheckFailure: f'{ctx.author.mention} You do not have permissions for this command',
             commands.errors.CommandNotFound: 'Command not found',
@@ -111,15 +111,8 @@ class DougBot(commands.Bot):
 
     def get_cog(self, name: str) -> Any:
         """
-        Override commands.Bot's get_cog to eliminate dumb warnings when type hinting the return
+        Override commands.Bot get_cog to eliminate dumb warnings when type hinting the return
         :param name: Class name of Cog
         :return: Cog instance
         """
         return super().get_cog(name)
-
-    async def join_voice_channel(self, channel):
-        voice_client = await self.voice_in(channel)
-        return await channel.connect() if voice_client is None else voice_client
-
-    async def voice_in(self, channel):
-        return nextcord.utils.find(lambda vc: vc.channel.id == channel.id, self.voice_clients)

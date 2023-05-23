@@ -36,7 +36,7 @@ class ConfigAdmin(commands.Cog):
     @admin_command()
     async def list(self, ctx: Context):
         configs = {k: v for k, v in vars(config.get_configuration()).items() if k not in self._PRIVATE_CONFIGS}
-        await ctx.send(f'{configs}')  # TODO BETTER OUTPUT AND MAYBE ONLY TO ADMIN CHANNEL
+        await ctx.author.send(f'{configs}')
 
     @config.command()
     @admin_command()
