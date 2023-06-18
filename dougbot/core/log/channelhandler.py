@@ -19,8 +19,8 @@ class ChannelHandler(Handler):
         self.setFormatter(Formatter(self._LOGGING_FORMAT))
 
     def emit(self, record):
-        # if self._from_library(record):
-        #    return
+        if self._from_library(record):
+            return
 
         self._run_coroutine(self._channel.send('-' * 100))
 
