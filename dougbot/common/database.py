@@ -1,31 +1,36 @@
-from datetime import date
-
-from supabase import client
-from supabase.client import Client
+from mysql.connector import connection
+from mysql.connector.types import Tuple
 
 from dougbot import config
-from dougbot.common.logger import Logger
 
-
-def connect() -> Client:
+def connect() -> connection:
     configs = config.get_configuration()
-    return client.create_client(configs.db_url, configs.db_api_key)
+    return connection.MySQLConnection(user=configs.username, password=configs.password, host=configs.host, database=configs.database)
 
+def connect_specific(username: str, password: str, host: str, database_name: str) -> connection:
+    configs = config.get_configuration()
+    return connection.MySQLConnection(user=username, password=password, host=host, database=database_name)
 
-async def check_connection():
-    db_client = None
-    try:
-        db_client = connect()
-        db_client.table('bot_health') \
-            .upsert({'id': '1', 'checked_at': str(date.today())}) \
-            .execute()
-        return True
-    except Exception as e:
-        Logger(__file__) \
-            .message('Failed to check db connection') \
-            .exception(e) \
-            .error()
-        return False
-    finally:
-        if db_client:
-            db_client.auth.close()
+def mysql_select(conn: connection, query: str) -> Tuple:
+    cursor = conn.cursor()
+    cursor.execute(query)
+    result_set = cursor.fetchall()
+    return result_set
+
+def mysql_insert(conn: connection, statement: str) -> int:
+    cursor = conn.cursor()
+    cursor.execute(statement)
+    conn.commit()
+    return cursor.rowcount()
+
+def mysql_delete(conn: connection, statement: str) -> int:
+    cursor = conn.cursor()
+    cursor.execute(statement)
+    conn.commit()
+    return cursor.rowcount()
+
+def mysql_update(conn: connection, statement: str) -> int:
+    cursor = conn.cursor()
+    cursor.execute(statement)
+    conn.commit()
+    return cursor.rowcount()

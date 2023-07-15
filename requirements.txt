@@ -12,3 +12,4 @@ python-dateutil
 requests
 supabase
 youtube_search
+mysql
