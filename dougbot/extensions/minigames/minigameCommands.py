@@ -9,6 +9,9 @@ from nextcord.ext import commands, tasks
 
 from dougbot.core.bot import DougBot
 
+from dougbot.common import database
+from emoji_racer import EmojiRacer
+
 
 class MinigameCommands(commands.Cog):
 
@@ -62,14 +65,27 @@ class MinigameCommands(commands.Cog):
         movespeedstat = 0
         movechancestat = 0
         embed = Embed(color=0x228B22)
-        raceremojilist = []
+        racer_list = []
         racerpositionlist = []
         winner = ['none', 0]
         roundtimer = 0
         overtimeround = 20
         specialtraitslist = []
 
+        avaliable_racer_list = MinigameCommands.load_emoji_racers()
+
         # initalboardsetup
+        for racer in listofracers:
+            #assign random emoji to racer
+            avaliable_racer_list = MinigameCommands.assign_random_owner(racer,avaliable_racer_list)
+        selected_racers = []
+        for racer in avaliable_racer_list:
+            if racer.owner is not None:
+                selected_racers.append(racer)
+                # update the overal move/chance stats
+                movechancestat = racer.all_increase_move_chance + racer.all_decrease_move_chance
+                movespeedstat = racer.all_increase_max_move + racer.all_decrease_max_move
+
         for x, racer in enumerate(listofracers):
             # assign random emoji to racer
             selectedemojiobject = MinigameCommands.randomemoji(raceremojilist, movechancestat, movespeedstat, specialtraitslist)
@@ -149,6 +165,16 @@ class MinigameCommands(commands.Cog):
         MinigameCommands.recordstats(emoji, raceremojilist)
 
     @staticmethod
+    def assign_random_owner(owner_name: str, available_racers):
+        selected_free_racer = False
+        while not selected_free_racer:
+            rand_index = random.randint(0,(len(available_racers)-1))
+            if available_racers[rand_index].owner is None:
+                available_racers[rand_index].owner = owner_name
+                selected_free_racer = True
+        return available_racers
+    
+    @staticmethod
     @tasks.loop(seconds=1, count=1)
     async def joinracetask(joinroundtimer, message, ctx):
         MinigameCommands.joininground = True
@@ -182,6 +208,16 @@ class MinigameCommands(commands.Cog):
 
         return spacestring
 
+
+    @staticmethod
+    def load_emoji_racers():
+        conn  = database.connect()
+        results = database.mysql_select(conn, 'SELECT * FROM dougbot.emoji_racers')
+        list_of_emoji_racers = []
+
+        for racer in results:
+            list_of_emoji_racers.append(EmojiRacer(racer[0], racer[1], racer[2], racer[3], racer[4], racer[5], racer[6], racer[7], racer[8], racer[9], racer[10], racer[11]))
+        return list_of_emoji_racers
     @staticmethod
     def randomemoji(alreadyselected, movechancestat, movespeedstat, specialtraits):
         package_dir = os.path.dirname(os.path.abspath(__file__))
