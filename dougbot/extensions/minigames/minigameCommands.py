@@ -25,7 +25,7 @@ class MinigameCommands(commands.Cog):
     # TODO:when win react with emoji winning placement
     @commands.command()
     async def startrace(self, ctx):
-        botlist = ['Shot Hottie', 'Anonymous', '( ͡° ͜ʖ ͡°)', 'TryhardTimmy', 'Doug', 'Cool Whip', 'Thunder Bunt', 'Lowercase Guy', '✧GͥOͣDͫ✧', '𝐅𝐎𝐑𝐓𝐍𝐈𝐓𝐄 GOD', '¯\_(ツ)_/¯']
+        botlist = ['Shot Hottie', 'Anonymous', '( ͡° ͜ʖ ͡°)', 'TryhardTimmy', 'Doug', 'Cool Whip', 'Thunder Bunt', 'Lowercase Guy', '✧GͥOͣDͫ✧', '𝐅𝐎𝐑𝐓𝐍𝐈𝐓𝐄 GOD', '¯\\_(ツ)_/¯']
 
         if not MinigameCommands.raceongoing:
             joinroundtimer = 15

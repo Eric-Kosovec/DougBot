@@ -3,6 +3,7 @@ pip
 aiohttp
 cachetools
 git+https://github.com/ytdl-org/youtube-dl.git@master#egg=youtube_dl
+mysql-connector-python
 nextcord[speed]
 nextcord[voice]
 pendulum
@@ -10,6 +11,6 @@ psutil
 PyNaCl
 python-dateutil
 requests
+setuptools
 supabase
 youtube_search
-mysql
