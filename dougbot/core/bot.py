@@ -8,7 +8,7 @@ from nextcord.ext import commands
 from dougbot import config
 from dougbot.common.logger import Logger
 from dougbot.common.messaging import reactions
-from dougbot.core import extloader, tasks
+from dougbot.core import extloader
 from dougbot.core.help import CustomHelpCommand
 from dougbot.core.log.channelhandler import ChannelHandler
 
@@ -52,8 +52,6 @@ class DougBot(commands.Bot):
         self.help_command = CustomHelpCommand(dm_help=None, no_category='Misc')
 
         print('Doug Online')
-
-        await tasks.start_tasks()
 
     async def on_ready(self):
         # Log any errors that occurred while bot was down
