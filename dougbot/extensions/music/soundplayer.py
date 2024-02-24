@@ -24,7 +24,7 @@ from dougbot.extensions.music.track import Track
 
 class SoundPlayer(commands.Cog):
     CLIP_DIR = os.path.join(EXTENSION_RESOURCES_DIR, 'music', 'audio')
-    CACHE_DIR = os.path.join(EXTENSION_RESOURCES_DIR, 'music', 'audio')
+    CACHE_DIR = os.path.join(EXTENSION_RESOURCES_DIR, 'music', 'cache')
     THREAD_POOL: ThreadPoolExecutor = ThreadPoolExecutor()
 
     def __init__(self, bot: DougBot):
