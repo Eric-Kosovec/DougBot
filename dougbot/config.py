@@ -42,10 +42,10 @@ def get_configuration():
     config_namespace.token = os.getenv(config_parser.get('Environment', 'token_name'))
 
     # Debug Env - Do this so you don't have to set environment vars. Just edit config.ini with login info
-    #config_namespace.username = config_parser.get('Environment', 'username')
-    #config_namespace.password = config_parser.get('Environment', 'password')
-    #config_namespace.host = config_parser.get('Environment', 'host')
-    #config_namespace.database = config_parser.get('Environment', 'database')
+    # config_namespace.username = config_parser.get('Environment', 'username')
+    # config_namespace.password = config_parser.get('Environment', 'password')
+    # config_namespace.host = config_parser.get('Environment', 'host')
+    # config_namespace.database = config_parser.get('Environment', 'database')
 
     # Logging
     config_namespace.log_to_console = strtobool(config_parser.get('Logging', 'log_to_console', fallback='False'))

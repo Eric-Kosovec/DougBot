@@ -127,10 +127,6 @@ class Logger:
         Logger.logger(name).addHandler(handler)
 
     @staticmethod
-    def clear_handlers():
-        Logger.logger(Logger._ROOT_LOGGER_NAME).handlers = []
-
-    @staticmethod
     def log_fatal_file():
         log_data = Logger._read_fatal_log()
         if log_data:

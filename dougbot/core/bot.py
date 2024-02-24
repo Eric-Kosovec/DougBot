@@ -1,3 +1,5 @@
+import asyncio
+import signal
 import sys
 from typing import Any
 
@@ -25,16 +27,17 @@ class DougBot(commands.Bot):
             "strip_after_prefix": True
         }
 
+        self._create_signal_handler()
+
         super().__init__(self.config.command_prefix, **bot_kwargs)
         self._extension_load_errors = extloader.load_extensions(self)
-        Logger.clear_handlers()  # Temporary until Supabase's realtime dependency gets rid of their global logging setup
 
     def run(self, *args, **kwargs):
-        try:
-            if not self.config.token:
-                print('Token was none; check your environment variables', file=sys.stderr)
-                sys.exit(1)
+        if not self.config.token:
+            print("Token doesn't exist; check your environment variables", file=sys.stderr)
+            sys.exit(1)
 
+        try:
             print("I'm starting...")
             super().run(*(self.config.token, *args), **kwargs)
         except Exception as e:
@@ -114,3 +117,11 @@ class DougBot(commands.Bot):
         :return: Cog instance
         """
         return super().get_cog(name)
+
+    def _create_signal_handler(self):
+        def signal_handler(_, __):
+            if self.loop.is_running():
+                asyncio.run_coroutine_threadsafe(self.close(), self.loop)
+
+        for sig in signal.valid_signals():
+            signal.signal(sig, signal_handler)
