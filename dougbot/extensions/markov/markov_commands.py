@@ -76,7 +76,7 @@ class Markov(commands.Cog):
                 timeStamps, _ = await MarkovLib.load_json(os.path.join(self._chains_dir, str(user) + Markov._TIMESTAMPEXT))
                 lastTimestamp = timeStamps.get(text_channel.name)
                 if lastTimestamp:
-                    lastTimestamp = datetime.strptime(timeStamps[text_channel.name], '%Y-%m-%d %H:%M:%S.%f%z')
+                    lastTimestamp = datetime.strptime(timeStamps[text_channel.name], '%Y-%m-%d %H:%M:%S.%f')
 
             async for message in text_channel.history(limit=None, after=lastTimestamp, oldest_first=True):
                 if (message.author == user  # From the user specified
