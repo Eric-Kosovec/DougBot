@@ -37,6 +37,10 @@ WINDOWS_PYTHON = 'python'
 
 
 def _install_dependencies():
+    is_windows = os.name == 'nt'
+
+    ffmpeg_exception = None if is_windows else _install_ffmpeg()
+
     with open('requirements.txt', 'r') as fd:
         for requirement in fd.readlines():
             clean_requirement = requirement.strip()
@@ -50,6 +54,31 @@ def _install_dependencies():
 
                 subprocess.run(commands.split())
                 print()
+
+    if ffmpeg_exception:
+        print(f'\nFFmpeg not installed: {ffmpeg_exception}', file=sys.stderr)
+    elif not is_windows:
+        print(f'FFmpeg installed')
+
+
+def _install_ffmpeg():
+    try:
+        result = subprocess.run('which ffmpeg'.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+        # ffmpeg installed
+        if result.returncode == 0:
+            return None
+
+        # Update the package list
+        subprocess.run('sudo apt-get update'.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+        # Install ffmpeg
+        subprocess.run('sudo apt-get install -y ffmpeg'.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                       text=True, check=True)
+
+        return None
+    except Exception as e:
+        return e
 
 
 def _add_persistence():

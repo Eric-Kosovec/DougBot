@@ -21,6 +21,7 @@ class SoundConsumer:
 
     def __init__(self, bot, volume, callback=None, notify_lock=None):
         self._bot = bot
+        self._loop = self._bot.loop
         self._callback = callback
         self._notify_lock = notify_lock
 
@@ -48,16 +49,27 @@ class SoundConsumer:
             for _ in range(track.repeat):
                 if self._stop or self._skip:
                     break
+
                 self._voice = track.voice
-                self._voice.play(self._create_audio_source(track, self._volume), after=self._finished)
-                self._done_playing_lock.acquire()
+
+                audio_source = self._create_audio_source(track, self._volume)
+
+                if audio_source is not None:
+                    try:
+                        self._voice.play(audio_source, after=self._finished)
+                        self._done_playing_lock.acquire()
+                    except Exception as e:
+                        Logger(__file__) \
+                            .message('SoundConsumer failed to play') \
+                            .exception(e) \
+                            .error()
 
             self._queue.task_done()
             self._skip = False
 
             if self._callback is not None:
                 if inspect.iscoroutinefunction(self._callback):
-                    self._bot._loop.call_soon_threadsafe(self._callback, track)
+                    self._loop.call_soon_threadsafe(self._callback, track)
                 else:
                     self._callback(track)
 
@@ -93,13 +105,22 @@ class SoundConsumer:
     def _finished(self, error):
         if error is not None:
             Logger(__file__) \
-                .message('SoundPlayer finished error') \
+                .message('SoundConsumer playing error') \
                 .exception(error) \
                 .error()
+
         self._done_playing_lock.release()
 
     @staticmethod
     def _create_audio_source(track, volume):
-        audio_source = nextcord.PCMVolumeTransformer(nextcord.FFmpegPCMAudio(track.src, options='-loglevel quiet'))
-        audio_source.volume = volume
-        return audio_source
+        try:
+            audio_source = nextcord.PCMVolumeTransformer(nextcord.FFmpegPCMAudio(track.src, options='-loglevel quiet'))
+            audio_source.volume = volume
+            return audio_source
+        except Exception as e:
+            Logger(__file__) \
+                .message('Failed to create audio source') \
+                .exception(e) \
+                .error()
+
+            return None

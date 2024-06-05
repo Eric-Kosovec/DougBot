@@ -53,5 +53,4 @@ class ChannelHandler(Handler):
         asyncio.run_coroutine_threadsafe(coroutine, self._loop)
 
     def _from_library(self, record):
-        return os.path.splitdrive(record.pathname)[0] != os.path.splitdrive(self._root_dir)[0] or \
-               os.path.commonpath([record.pathname, self._root_dir]) != self._root_dir
+        return False

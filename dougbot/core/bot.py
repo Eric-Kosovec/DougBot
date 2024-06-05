@@ -1,4 +1,5 @@
 import asyncio
+import os
 import signal
 import sys
 from typing import Any
@@ -123,6 +124,6 @@ class DougBot(commands.Bot):
             if self.loop.is_running():
                 asyncio.run_coroutine_threadsafe(self.close(), self.loop)
 
-        catchable_signals = {sig for sig in signal.valid_signals() if sig not in (signal.SIGKILL, signal.SIGSTOP)}
-        for sig in catchable_signals:
-            signal.signal(sig, signal_handler)
+        signal.signal(signal.SIGINT, signal_handler)
+        if os.name != 'nt':  # Windows
+            signal.signal(signal.SIGTERM, signal_handler)
