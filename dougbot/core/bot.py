@@ -123,5 +123,6 @@ class DougBot(commands.Bot):
             if self.loop.is_running():
                 asyncio.run_coroutine_threadsafe(self.close(), self.loop)
 
-        for sig in signal.valid_signals():
+        catchable_signals = {sig for sig in signal.valid_signals() if sig not in (signal.SIGKILL, signal.SIGSTOP)}
+        for sig in catchable_signals:
             signal.signal(sig, signal_handler)
