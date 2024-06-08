@@ -102,7 +102,7 @@ class SoundManager(commands.Cog):
                 raise
 
         if url is None or len(url) <= 0:
-            # If no url was provided, then there has to be an audio attachment.
+            # If no url was provided, then there has to be an audio attachment
             if len(ctx.message.attachments) <= 0:
                 await reactions.confusion(ctx.message)
                 return
@@ -113,11 +113,13 @@ class SoundManager(commands.Cog):
             return
 
         if '.' not in clip_name:
+            # Attach file type to clip name
             clip_name += url[url.rfind('.'):]
 
-        if not await self._valid_url(url):
-            await reactions.confusion(ctx.message)
-            return
+        # Strip Discord added params
+        params_index = clip_name.rfind('?')
+        if params_index >= 0:
+            clip_name = clip_name[0:params_index]
 
         path = os.path.join(self._clips_dir, f'{folder}', clip_name.lower())
         try:
