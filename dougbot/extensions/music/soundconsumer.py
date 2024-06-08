@@ -7,21 +7,23 @@ import nextcord
 
 from dougbot.common.logger import Logger
 
+_FFMPEG_OPTIONS = '-loglevel quiet'
+
 
 class SoundConsumer:
     __sound_consumer_lock = Lock()
     __sound_consumer = None
 
     @classmethod
-    def get_soundconsumer(cls, bot, volume, callback=None, notify_lock=None):
+    def get_sound_consumer(cls, bot, volume, callback=None, notify_lock=None):
         with cls.__sound_consumer_lock:
             if cls.__sound_consumer is None:
                 cls.__sound_consumer = SoundConsumer(bot, volume, callback, notify_lock)
             return cls.__sound_consumer
 
     def __init__(self, bot, volume, callback=None, notify_lock=None):
-        self._bot = bot
-        self._loop = self._bot.loop
+        self.bot = bot
+        self.loop = bot.loop
         self._callback = callback
         self._notify_lock = notify_lock
 
@@ -52,24 +54,26 @@ class SoundConsumer:
 
                 self._voice = track.voice
 
-                audio_source = self._create_audio_source(track, self._volume)
+                source = self._make_audio_source(track, self._volume)
 
-                if audio_source is not None:
-                    try:
-                        self._voice.play(audio_source, after=self._finished)
-                        self._done_playing_lock.acquire()
-                    except Exception as e:
-                        Logger(__file__) \
-                            .message('SoundConsumer failed to play') \
-                            .exception(e) \
-                            .error()
+                if not source:
+                    continue
+
+                try:
+                    self._voice.play(source, after=self._finished)
+                    self._done_playing_lock.acquire()
+                except Exception as e:
+                    Logger(__file__) \
+                        .message('SoundConsumer failed to play') \
+                        .exception(e) \
+                        .error()
 
             self._queue.task_done()
             self._skip = False
 
             if self._callback is not None:
                 if inspect.iscoroutinefunction(self._callback):
-                    self._loop.call_soon_threadsafe(self._callback, track)
+                    self.loop.call_soon_threadsafe(self._callback, track)
                 else:
                     self._callback(track)
 
@@ -112,14 +116,14 @@ class SoundConsumer:
         self._done_playing_lock.release()
 
     @staticmethod
-    def _create_audio_source(track, volume):
+    def _make_audio_source(track, volume):
         try:
-            audio_source = nextcord.PCMVolumeTransformer(nextcord.FFmpegPCMAudio(track.src, options='-loglevel quiet'))
-            audio_source.volume = volume
-            return audio_source
+            source = nextcord.PCMVolumeTransformer(nextcord.FFmpegPCMAudio(track.src, options=_FFMPEG_OPTIONS))
+            source.volume = volume
+            return source
         except Exception as e:
             Logger(__file__) \
-                .message('Failed to create audio source') \
+                .message('Failed to make audio source') \
                 .exception(e) \
                 .error()
 

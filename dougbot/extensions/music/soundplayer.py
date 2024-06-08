@@ -1,5 +1,4 @@
 import asyncio
-import datetime
 import hashlib
 import os
 import threading
@@ -41,7 +40,7 @@ class SoundPlayer(commands.Cog):
         self._thumbnail = ''
         self._duration = 0
 
-        self._sound_consumer = SoundConsumer.get_soundconsumer(self.bot, self._volume)
+        self._sound_consumer = SoundConsumer.get_sound_consumer(self.bot, self._volume)
         self._sound_consumer_thread = threading.Thread(
             target=self._sound_consumer.run,
             name='Sound_Consumer',

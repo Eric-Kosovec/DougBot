@@ -4,7 +4,7 @@ import signal
 import sys
 from typing import Any
 
-from nextcord import Intents
+from nextcord import ApplicationError, Intents, Interaction
 from nextcord import Status
 from nextcord.ext import commands
 
@@ -46,6 +46,7 @@ class DougBot(commands.Bot):
                 .message('Uncaught exception') \
                 .exception(e) \
                 .fatal()
+
             sys.exit(1)
 
     async def on_connect(self):
@@ -58,7 +59,7 @@ class DougBot(commands.Bot):
         print('Doug Online')
 
     async def on_ready(self):
-        # Log any errors that occurred while bot was down
+        # Log errors that occurred while bot was down
         if self._log_channel:
             Logger.log_fatal_file()
 
@@ -75,7 +76,9 @@ class DougBot(commands.Bot):
         
         for vc in self.voice_clients:
             await vc.disconnect(force=True)
-        
+
+        # TODO FINISH LOGGING
+
         await super().close()
 
     async def on_error(self, event_method, *args, **kwargs):
@@ -87,26 +90,20 @@ class DougBot(commands.Bot):
             .exception(exception) \
             .error()
 
-    async def on_command_error(self, ctx, error):
-        # TODO IMPROVE
-        error_texts = {
-            commands.errors.CheckFailure: f'{ctx.author.mention} You do not have permissions for this command',
-            commands.errors.CommandNotFound: 'Command not found',
-            commands.errors.CommandOnCooldown: 'Command on cooldown',
-            commands.errors.DisabledCommand: 'Command disabled',
-            commands.errors.MissingRequiredArgument: f'Missing argument(s), type {ctx.prefix}help <command_name>',
-            commands.errors.NoPrivateMessage: 'Command cannot be used in private messages',
-            commands.errors.TooManyArguments: 'Too many arguments'
-        }
+    async def on_application_command_error(self, interaction: Interaction, exception: ApplicationError):
+        Logger(__file__) \
+            .message('Error executing command') \
+            .interaction(interaction) \
+            .exception(exception) \
+            .error()
 
-        if type(error) in error_texts:
-            await reactions.confusion(ctx.message, error_texts[type(error)], delete_response_after=10)
-            return
+        await reactions.check_log(interaction.message)
 
+    async def on_command_error(self, ctx, exception):
         Logger(__file__) \
             .message('Error executing command') \
             .context(ctx) \
-            .exception(error) \
+            .exception(exception) \
             .error()
 
         await reactions.check_log(ctx.message)
@@ -123,7 +120,13 @@ class DougBot(commands.Bot):
         def signal_handler(_, __):
             if self.loop.is_running():
                 asyncio.run_coroutine_threadsafe(self.close(), self.loop)
+            else:
+                sys.exit(1)
 
-        signal.signal(signal.SIGINT, signal_handler)
         if os.name != 'nt':  # Windows
             signal.signal(signal.SIGTERM, signal_handler)
+            signal.signal(signal.SIGILL, signal_handler)
+        else:
+            signal.signal(signal.SIGBREAK, signal_handler)
+
+        signal.signal(signal.SIGINT, signal_handler)

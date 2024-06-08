@@ -12,5 +12,4 @@ PyNaCl
 python-dateutil
 requests
 setuptools
-supabase
 youtube_search

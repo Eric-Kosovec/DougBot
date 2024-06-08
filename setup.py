@@ -5,8 +5,13 @@ import sys
 
 from dougbot import config
 
-DOUGBOT_RUN_PY_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'run.py')
-DOUGBOT_SERVICE_UNIT = '''
+IS_LINUX = os.name == 'posix'
+IS_WINDOWS = os.name == 'nt'
+LINUX_PIP = 'pip3'
+LINUX_PYTHON = 'python3'
+RUN_PY_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'run.py')
+
+SERVICE_UNIT = '''
 [Unit]
 Description=DougBot
 After=network.target network-online.target
@@ -25,22 +30,15 @@ ExecStart=/usr/bin/python3 {run_py_path}
 [Install]
 WantedBy=multi-user.target
 '''
-DOUGBOT_UNIT_FILE_PATH = '/lib/systemd/system/dougbot.service'
-DOUGBOT_WINDOWS_START_SCRIPT = (f'C:\\Users\\{getpass.getuser()}\\AppData\\Roaming'
-                                f'\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\start_dougbot.bat')
-IS_LINUX = os.name == 'posix'
-IS_WINDOWS = os.name == 'nt'
-LINUX_PIP = 'pip3'
-LINUX_PYTHON = 'python3'
+
+UNIT_FILE_PATH = '/lib/systemd/system/dougbot.service'
 WINDOWS_PIP = 'pip'
 WINDOWS_PYTHON = 'python'
+WINDOWS_START_SCRIPT = (f'C:\\Users\\{getpass.getuser()}\\AppData\\Roaming'
+                        f'\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\start_dougbot.bat')
 
 
 def _install_dependencies():
-    is_windows = os.name == 'nt'
-
-    ffmpeg_exception = None if is_windows else _install_ffmpeg()
-
     with open('requirements.txt', 'r') as fd:
         for requirement in fd.readlines():
             clean_requirement = requirement.strip()
@@ -55,9 +53,10 @@ def _install_dependencies():
                 subprocess.run(commands.split())
                 print()
 
+    ffmpeg_exception = None if IS_WINDOWS else _install_ffmpeg()
     if ffmpeg_exception:
         print(f'\nFFmpeg not installed: {ffmpeg_exception}', file=sys.stderr)
-    elif not is_windows:
+    elif IS_LINUX:
         print(f'FFmpeg installed')
 
 
@@ -99,20 +98,20 @@ def _remove_persistence():
 
 
 def _create_linux_service():
-    if os.path.exists(DOUGBOT_UNIT_FILE_PATH):
+    if os.path.exists(UNIT_FILE_PATH):
         return
 
     if os.geteuid() != 0:
         raise PermissionError()
 
     username = getpass.getuser()
-    dougbot_unit = DOUGBOT_SERVICE_UNIT.format(
+    dougbot_unit = SERVICE_UNIT.format(
         username=username,
         group_name=username,
         token=config.get_configuration().token,
-        run_py_path=DOUGBOT_RUN_PY_PATH)
+        run_py_path=RUN_PY_PATH)
 
-    with open(DOUGBOT_UNIT_FILE_PATH, 'w+') as service_file:
+    with open(UNIT_FILE_PATH, 'w+') as service_file:
         service_file.write(dougbot_unit)
 
     subprocess.run('sudo systemctl daemon-reload'.split())
@@ -120,26 +119,26 @@ def _create_linux_service():
 
 
 def _remove_linux_service():
-    if not os.path.exists(DOUGBOT_UNIT_FILE_PATH):
+    if not os.path.exists(UNIT_FILE_PATH):
         return
 
     if os.geteuid() != 0:
         raise PermissionError()
 
-    os.remove(DOUGBOT_UNIT_FILE_PATH)
+    os.remove(UNIT_FILE_PATH)
 
 
 def _start_on_windows_login():
-    if os.path.exists(DOUGBOT_WINDOWS_START_SCRIPT):
+    if os.path.exists(WINDOWS_START_SCRIPT):
         return
 
-    with open(DOUGBOT_WINDOWS_START_SCRIPT, 'w+') as batch_file:
-        batch_file.write(f'call {WINDOWS_PYTHON} {DOUGBOT_RUN_PY_PATH}')
+    with open(WINDOWS_START_SCRIPT, 'w+') as batch_file:
+        batch_file.write(f'call {WINDOWS_PYTHON} {RUN_PY_PATH}')
 
 
 def _remove_from_windows_login():
-    if os.path.exists(DOUGBOT_WINDOWS_START_SCRIPT):
-        os.remove(DOUGBOT_WINDOWS_START_SCRIPT)
+    if os.path.exists(WINDOWS_START_SCRIPT):
+        os.remove(WINDOWS_START_SCRIPT)
 
 
 def _pip():

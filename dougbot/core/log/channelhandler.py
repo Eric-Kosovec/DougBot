@@ -1,5 +1,4 @@
 import asyncio
-import os
 from logging import Formatter
 from logging import Handler
 
@@ -10,6 +9,7 @@ from dougbot.common.messaging import message_utils
 class ChannelHandler(Handler):
     _LOGGING_FORMAT = '%(message)s'
     _MARKDOWN_CHARACTERS = '*_~|>`'
+    _LOG_DELIMITER = '-' * 100
 
     def __init__(self, root_dir, channel, loop):
         super().__init__()
@@ -22,7 +22,7 @@ class ChannelHandler(Handler):
         if self._from_library(record):
             return
 
-        self._run_coroutine(self._channel.send('-' * 100))
+        self._run_coroutine(self._channel.send(self._LOG_DELIMITER))
 
         # TODO THREADED ASYNC LOGGING SYSTEM
         # TODO SMART SPLIT ON FIELDS AND REMOVE EMBEDS
