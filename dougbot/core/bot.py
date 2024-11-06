@@ -2,6 +2,7 @@ import asyncio
 import os
 import signal
 import sys
+import time
 from typing import Any
 
 from nextcord import ApplicationError, Intents, Interaction
@@ -22,6 +23,8 @@ class DougBot(commands.Bot):
         self.config = config.get_configuration()
         self._log_channel = None
 
+        self._attempt_run = True
+
         bot_kwargs = {
             "intents": Intents.all(),
             "case_insensitive": True,
@@ -38,21 +41,27 @@ class DougBot(commands.Bot):
             print("Token doesn't exist; check your environment variables", file=sys.stderr)
             sys.exit(1)
 
-        try:
+        while self._attempt_run:
             print("I'm starting...")
-            super().run(*(self.config.token, *args), **kwargs)
-        except Exception as e:
-            Logger(__file__) \
-                .message('Uncaught exception') \
-                .exception(e) \
-                .fatal()
 
-            sys.exit(1)
+            try:
+                super().run(*(self.config.token, *args), **kwargs)
+                self._attempt_run = False
+            except Exception as e:
+                Logger(__file__) \
+                    .message('Failed to run') \
+                    .exception(e) \
+                    .fatal()
+
+                # Create a new loop, as the superclass closes the old one and only grabs a new one in the constructor
+                self.loop = asyncio.new_event_loop()
+
+                time.sleep(self.config.run_attempt_cooldown_secs)
 
     async def on_connect(self):
         self._log_channel = await self.fetch_channel(self.config.logging_channel_id)
         if self._log_channel:
-            Logger.add_handler(ChannelHandler(config.ROOT_DIR, self._log_channel, self.loop))
+            Logger.add_handler(ChannelHandler(self._log_channel, self.loop))
 
         self.help_command = CustomHelpCommand(dm_help=None, no_category='Misc')
 
@@ -72,10 +81,12 @@ class DougBot(commands.Bot):
         self._extension_load_errors.clear()
 
     async def close(self):
-        await self.change_presence(status=Status.offline)
-        
-        for vc in self.voice_clients:
-            await vc.disconnect(force=True)
+        # TODO CHECK THIS WORKS
+        if await self.has_connection():
+            await self.change_presence(status=Status.offline)
+
+            for vc in self.voice_clients:
+                await vc.disconnect(force=True)
 
         # TODO FINISH LOGGING
 
@@ -108,6 +119,9 @@ class DougBot(commands.Bot):
 
         await reactions.check_log(ctx.message)
 
+    async def has_connection(self):
+        return self.ws and not self.is_closed()
+
     def get_cog(self, name: str) -> Any:
         """
         Override commands.Bot get_cog to eliminate dumb warnings when type hinting the return
@@ -123,7 +137,7 @@ class DougBot(commands.Bot):
             else:
                 sys.exit(1)
 
-        if os.name != 'nt':  # Windows
+        if os.name != 'nt':  # Linux
             signal.signal(signal.SIGTERM, signal_handler)
             signal.signal(signal.SIGILL, signal_handler)
         else:

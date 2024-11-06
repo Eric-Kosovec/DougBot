@@ -4,7 +4,6 @@ import os
 import threading
 from concurrent.futures import ThreadPoolExecutor
 
-import youtube_dl
 from nextcord.embeds import Embed
 from nextcord.ext import commands
 from youtube_search import YoutubeSearch
@@ -16,6 +15,7 @@ from dougbot.config import EXTENSION_RESOURCES_DIR
 from dougbot.core.bot import DougBot
 from dougbot.extensions.common import webutils
 from dougbot.extensions.common.annotation.miccheck import voice_command
+from dougbot.extensions.common.audio.youtubedl import YouTubeDL
 from dougbot.extensions.common.file import fileutils
 from dougbot.extensions.music.soundconsumer import SoundConsumer
 from dougbot.extensions.music.track import Track
@@ -39,6 +39,8 @@ class SoundPlayer(commands.Cog):
         self._title = ''
         self._thumbnail = ''
         self._duration = 0
+
+        self._yt_downloader = YouTubeDL(self._progress_hook, Logger.logger(__file__))
 
         self._sound_consumer = SoundConsumer.get_sound_consumer(self.bot, self._volume)
         self._sound_consumer_thread = threading.Thread(
@@ -172,31 +174,20 @@ class SoundPlayer(commands.Cog):
         return Track(ctx, voice, track_source, is_link, times)
 
     async def _download_link(self, ctx, link):
-        dl_path = os.path.join(self.CACHE_DIR, await self._link_hash(link))
-        if os.path.exists(dl_path):
-            return dl_path
+        file_path = os.path.join(self.CACHE_DIR, await self._link_hash(link))
+        if os.path.exists(file_path):
+            return file_path
 
-        ytdl_params = {
-            'format': 'bestaudio/best',
-            'extractaudio': True,
-            'audioformat': 'opus',
-            'restrictfilenames': True,
-            'noplaylist': True,
-            'nocheckcertificate': True,
-            'ignoreerrors': True,
-            'logtostderr': False,
-            'quiet': True,
-            'no_warnings': True,
-            'default_search': 'auto',
-            'source_address': '0.0.0.0',
-            'outtmpl': dl_path,
-            'log': Logger.logger(__file__),
-            'progress_hooks': [self._progress_hook]
-        }
-        ytdl = youtube_dl.YoutubeDL(ytdl_params)
-
-        info = await self.bot.loop.run_in_executor(self.THREAD_POOL, ytdl.extract_info, link, False)
+        info = await self.bot.loop.run_in_executor(self.THREAD_POOL, self._yt_downloader.info, link)
         if info is None:
+            return None
+
+        if not all(key in info for key in ('duration', 'thumbnails', 'title', 'uploader')):
+            Logger(__file__) \
+                .message('Missing required key for download embed') \
+                .add_field('info', info) \
+                .error()
+
             return None
 
         self._uploader = info['uploader']
@@ -205,9 +196,9 @@ class SoundPlayer(commands.Cog):
         self._duration = info['duration']
         self._url = link
         self._last_embed_message = await ctx.send(embed=self._status_embed())
-        await self.bot.loop.run_in_executor(self.THREAD_POOL, ytdl.extract_info, link)
+        await self.bot.loop.run_in_executor(self.THREAD_POOL, self._yt_downloader.download, link, file_path)
 
-        return dl_path
+        return file_path
 
     def _progress_hook(self, data):
         if data is None or self._last_embed_message is None:

@@ -26,18 +26,19 @@ class Logger:
     METHOD_FIELD = 'method'
     MODULE_FIELD = 'module'
 
-    _FATAL_LOG_MAX_BYTES = 5.12e+8  # 512 MB
     _FATAL_LOG_PATH = os.path.join(CORE_DIR, 'fatal.log')
     _ROOT_LOGGER_NAME = ''
 
     def __init__(self, module):
-        if type(module) != str or len(module) == 0:
+        if not isinstance(module, str) or len(module) == 0:
             raise ValueError('Invalid module name')
 
         self._fields = []
         self.add_field(self.MODULE_FIELD, module)
 
-        self._log_to_console = config.get_configuration().log_to_console
+        configs = config.get_configuration()
+        self._log_to_console = configs.log_to_console
+        self._fatal_log_max_bytes = configs.fatal_log_size
 
     def channel(self, channel):
         return self.add_field(self.CHANNEL_FIELD, channel)
@@ -168,7 +169,7 @@ class Logger:
 
     def _append_fatal_log(self, data):
         try:
-            if os.path.getsize(self._FATAL_LOG_PATH) >= self._FATAL_LOG_MAX_BYTES:
+            if os.path.getsize(self._FATAL_LOG_PATH) >= self._fatal_log_max_bytes:
                 os.remove(self._FATAL_LOG_PATH)
         except OSError:
             pass

@@ -11,17 +11,13 @@ class ChannelHandler(Handler):
     _MARKDOWN_CHARACTERS = '*_~|>`'
     _LOG_DELIMITER = '-' * 100
 
-    def __init__(self, root_dir, channel, loop):
+    def __init__(self, channel, loop):
         super().__init__()
-        self._root_dir = root_dir
         self._channel = channel
         self._loop = loop
         self.setFormatter(Formatter(self._LOGGING_FORMAT))
 
     def emit(self, record):
-        if self._from_library(record):
-            return
-
         self._run_coroutine(self._channel.send(self._LOG_DELIMITER))
 
         # TODO THREADED ASYNC LOGGING SYSTEM
@@ -51,6 +47,3 @@ class ChannelHandler(Handler):
 
     def _run_coroutine(self, coroutine):
         asyncio.run_coroutine_threadsafe(coroutine, self._loop)
-
-    def _from_library(self, record):
-        return False
