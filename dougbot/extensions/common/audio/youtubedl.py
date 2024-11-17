@@ -1,8 +1,8 @@
-import sys
+import yt_dlp
 
-import youtube_dl
-
+from dougbot.common.logger import Logger
 from dougbot.extensions.common.audio.audiodl import AudioDL
+from dougbot.extensions.common.audio.util import ytutil
 
 
 class YouTubeDL(AudioDL):
@@ -11,7 +11,7 @@ class YouTubeDL(AudioDL):
     _LOGGER_OPTION = 'logger'
     _PROGRESS_HOOKS_OPTION = 'progress_hooks'
 
-    def __init__(self, progress_hooks=None, logger=None):
+    def __init__(self, progress_hooks=None, logger: Logger = None):
         self._progress_hooks = None
 
         if progress_hooks:
@@ -20,22 +20,40 @@ class YouTubeDL(AudioDL):
         self._logger = logger
 
     def info(self, url):
-        ytdl = youtube_dl.YoutubeDL(self._setup_options(url))
-        return ytdl.extract_info(url, False)
+        normalized_url = ytutil.remove_playlist(url)
+        ydl_opts = self._setup_options()
+
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            try:
+                return ydl.extract_info(normalized_url, download=False, process=False)
+            except Exception as e:
+                self._logger.message('Failed to get url info') \
+                    .add_field('url', url) \
+                    .exception(e) \
+                    .error()
+                return {}
 
     def download(self, url, file_path):
-        ytdl = youtube_dl.YoutubeDL(self._setup_options(file_path))
-        return ytdl.extract_info(url)
+        normalized_url = ytutil.remove_playlist(url)
+        ydl_opts = self._setup_options(file_path)
+
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            # TODO RETURN FILE PATH WITH EXTENSION?
+            try:
+                return ydl.download([normalized_url])
+            except Exception as e:
+                self._logger.message('Failed to download url') \
+                    .add_field('url', url) \
+                    .add_field('path', file_path) \
+                    .exception(e) \
+                    .error()
+                return 1
 
     def _get_logger(self):
         return self._logger
 
     def _setup_options(self, file=None):
-        opts = {
-            'format': 'bestaudio/best',
-            'extractaudio': True,
-            'audioformat': 'opus',
-            'restrictfilenames': True,
+        ydl_opts = {
             'noplaylist': True,
             'nocheckcertificate': True,
             'ignoreerrors': True,
@@ -47,14 +65,20 @@ class YouTubeDL(AudioDL):
         }
 
         if file:
-            opts[self._FILE_OPTION] = file
+            ydl_opts[self._FILE_OPTION] = file
+            ydl_opts['format'] = 'm4a/bestaudio/best'
+            ydl_opts['postprocessors'] = [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'm4a',
+            }]
+            ydl_opts['restrictfilenames'] = True
 
-        if self._progress_hooks:
-            opts[self._PROGRESS_HOOKS_OPTION] = self._progress_hooks if isinstance(self._progress_hooks, list) \
-                else [self._progress_hooks]
+            if self._progress_hooks:
+                ydl_opts[self._PROGRESS_HOOKS_OPTION] = self._progress_hooks if isinstance(self._progress_hooks, list) \
+                    else [self._progress_hooks]
 
         logger = self._get_logger()
         if logger:
-            opts[self._LOGGER_OPTION] = logger
+            ydl_opts[self._LOGGER_OPTION] = logger
 
-        return opts
+        return ydl_opts

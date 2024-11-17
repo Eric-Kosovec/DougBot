@@ -3,7 +3,6 @@ pip
 aiohttp
 aiologger
 cachetools
-git+https://github.com/ytdl-org/youtube-dl.git@master#egg=youtube_dl
 mysql-connector-python
 nextcord[speed]
 nextcord[voice]
@@ -12,3 +11,4 @@ python-dateutil
 requests
 setuptools
 youtube_search
+yt-dlp

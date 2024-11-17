@@ -8,7 +8,7 @@ from nextcord.embeds import Embed
 from nextcord.ext import commands
 from youtube_search import YoutubeSearch
 
-from dougbot.common import voiceutil
+from dougbot.common import voiceutils
 from dougbot.common.logger import Logger
 from dougbot.common.messaging import reactions
 from dougbot.config import EXTENSION_RESOURCES_DIR
@@ -59,7 +59,7 @@ class SoundPlayer(commands.Cog):
             await reactions.confusion(ctx.message, delete_message_after=10)
             return
 
-        voice = await voiceutil.join_voice_channel(ctx.message.author.voice.channel, self.bot)
+        voice = await voiceutils.join_voice_channel(ctx.message.author.voice.channel, self.bot)
         if voice is None:
             await reactions.confusion(ctx.message, delete_message_after=10)
             return
@@ -98,7 +98,7 @@ class SoundPlayer(commands.Cog):
     @commands.guild_only()
     @voice_command()
     async def vol(self, ctx, volume: float):
-        voice = await voiceutil.voice_in(ctx.message.author.voice.channel, self.bot)
+        voice = await voiceutils.voice_in(ctx.message.author.voice.channel, self.bot)
         if voice is not None:
             self._volume = max(0.0, min(100.0, volume)) / 100.0
             if voice.is_playing():
@@ -109,7 +109,7 @@ class SoundPlayer(commands.Cog):
     @commands.guild_only()
     @voice_command()
     async def pause(self, ctx):
-        voice = await voiceutil.voice_in(ctx.message.author.voice.channel, self.bot)
+        voice = await voiceutils.voice_in(ctx.message.author.voice.channel, self.bot)
         if voice is not None and voice.is_playing():
             voice.pause()
 
@@ -117,7 +117,7 @@ class SoundPlayer(commands.Cog):
     @commands.guild_only()
     @voice_command()
     async def resume(self, ctx):
-        voice = await voiceutil.voice_in(ctx.message.author.voice.channel, self.bot)
+        voice = await voiceutils.voice_in(ctx.message.author.voice.channel, self.bot)
         if voice is not None and voice.is_paused():
             voice.resume()
 
@@ -125,7 +125,7 @@ class SoundPlayer(commands.Cog):
     @commands.guild_only()
     @voice_command()
     async def skip(self, ctx):
-        voice = await voiceutil.voice_in(ctx.message.author.voice.channel, self.bot)
+        voice = await voiceutils.voice_in(ctx.message.author.voice.channel, self.bot)
         if voice is not None and voice.is_playing():
             self._sound_consumer.skip_track()
 
@@ -133,13 +133,13 @@ class SoundPlayer(commands.Cog):
     @commands.guild_only()
     @voice_command()
     async def leave(self, ctx):
-        voice = await voiceutil.voice_in(ctx.message.author.voice.channel, self.bot)
+        voice = await voiceutils.voice_in(ctx.message.author.voice.channel, self.bot)
         if voice is not None:
             await self._quit_playing(voice)
 
     async def on_voice_state_update(self, _, before, after):
         if before.channel is not None and (after.channel is None or before.channel.id != after.channel.id):
-            voice = await voiceutil.voice_in(before.channel, self.bot)
+            voice = await voiceutils.voice_in(before.channel, self.bot)
             # Make sure there are no humans in the voice channel
             if voice is not None and next(filter(lambda m: not m.bot, before.channel.members), None) is None:
                 await self._quit_playing(voice)
@@ -178,16 +178,14 @@ class SoundPlayer(commands.Cog):
         if os.path.exists(file_path):
             return file_path
 
+        # TODO DL AND PLAY EVEN ON FAILURE
         info = await self.bot.loop.run_in_executor(self.THREAD_POOL, self._yt_downloader.info, link)
-        if info is None:
-            return None
 
-        if not all(key in info for key in ('duration', 'thumbnails', 'title', 'uploader')):
+        if info is None or not all(key in info for key in ('duration', 'thumbnails', 'title', 'uploader')):
             Logger(__file__) \
-                .message('Missing required key for download embed') \
+                .message('Track info missing expected key(s)') \
                 .add_field('info', info) \
                 .error()
-
             return None
 
         self._uploader = info['uploader']
@@ -198,7 +196,7 @@ class SoundPlayer(commands.Cog):
         self._last_embed_message = await ctx.send(embed=self._status_embed())
         await self.bot.loop.run_in_executor(self.THREAD_POOL, self._yt_downloader.download, link, file_path)
 
-        return file_path
+        return f'{file_path}.m4a'
 
     def _progress_hook(self, data):
         if data is None or self._last_embed_message is None:
