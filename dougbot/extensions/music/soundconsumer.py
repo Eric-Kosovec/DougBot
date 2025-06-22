@@ -15,24 +15,21 @@ class SoundConsumer:
     __sound_consumer = None
 
     @classmethod
-    def get_sound_consumer(cls, bot, volume, callback=None, notify_lock=None):
+    def get_sound_consumer(cls, bot, callback=None, notify_lock=None):
         with cls.__sound_consumer_lock:
             if cls.__sound_consumer is None:
-                cls.__sound_consumer = SoundConsumer(bot, volume, callback, notify_lock)
+                cls.__sound_consumer = SoundConsumer(bot, callback, notify_lock)
             return cls.__sound_consumer
 
-    def __init__(self, bot, volume, callback=None, notify_lock=None):
+    def __init__(self, bot, callback=None, notify_lock=None):
         self.bot = bot
         self.loop = bot.loop
         self._callback = callback
         self._notify_lock = notify_lock
 
-        # TODO IMPROVE VOLUME SITUATION, SKIPPING, STOPPING, DOWNLOADING
-
         self._stop = False
         self._skip = False
         self._voice = None
-        self._volume = volume
         self._queue = Queue()  # Thread-safe queue
         self._done_playing_lock = Semaphore(0)
 
@@ -54,7 +51,7 @@ class SoundConsumer:
 
                 self._voice = track.voice
 
-                source = self._make_audio_source(track, self._volume)
+                source = self._make_audio_source(track)
 
                 if not source:
                     continue
@@ -79,9 +76,6 @@ class SoundConsumer:
 
             if self._notify_lock is not None:
                 self._notify_lock.release()
-
-    def set_volume(self, volume):
-        self._volume = volume
 
     # TODO LOCK AROUND SKIP/STOP???
     def skip_track(self):
@@ -116,10 +110,10 @@ class SoundConsumer:
         self._done_playing_lock.release()
 
     @staticmethod
-    def _make_audio_source(track, volume):
+    def _make_audio_source(track):
         try:
             source = nextcord.PCMVolumeTransformer(nextcord.FFmpegPCMAudio(track.src, options=_FFMPEG_OPTIONS))
-            source.volume = volume
+            source.volume = 1.0
             return source
         except Exception as e:
             Logger(__file__) \

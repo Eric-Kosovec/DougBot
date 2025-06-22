@@ -32,7 +32,6 @@ class SoundPlayer(commands.Cog):
         self.bot.event(self.on_voice_state_update)
 
         self._order_lock = asyncio.Lock()  # Keeps order tracks are played in.
-        self._volume = 1.0
 
         self._last_embed_message = None
         self._url = ''
@@ -42,13 +41,15 @@ class SoundPlayer(commands.Cog):
 
         self._yt_downloader = YouTubeDL(self._progress_hook, Logger.logger(__file__))
 
-        self._sound_consumer = SoundConsumer.get_sound_consumer(self.bot, self._volume)
+        self._sound_consumer = SoundConsumer.get_sound_consumer(self.bot)
         self._sound_consumer_thread = threading.Thread(
             target=self._sound_consumer.run,
             name='Sound_Consumer',
             daemon=True)
 
         self._sound_consumer_thread.start()
+
+        # TODO CLEAR CACHE SOMEHOW
 
     @commands.command()
     @commands.guild_only()
@@ -93,18 +94,6 @@ class SoundPlayer(commands.Cog):
         else:
             await ctx.send('Could not find track to add')
 
-    # 'volume' is already a superclass' method, so can't use that method name.
-    @commands.command(name='volume', aliases=['vol'])
-    @commands.guild_only()
-    @voice_command()
-    async def vol(self, ctx, volume: float):
-        voice = await voiceutil.voice_in(ctx.message.author.voice.channel, self.bot)
-        if voice is not None:
-            self._volume = max(0.0, min(100.0, volume)) / 100.0
-            if voice.is_playing():
-                voice.source.volume = self._volume
-        self._sound_consumer.set_volume(volume)
-
     @commands.command()
     @commands.guild_only()
     @voice_command()
@@ -148,8 +137,6 @@ class SoundPlayer(commands.Cog):
         await self.loop.run_in_executor(self.THREAD_POOL, self._sound_consumer.stop_playing)
         if voice is not None:
             await voice.disconnect()
-        async with self._order_lock:
-            await self.loop.run_in_executor(self.THREAD_POOL, fileutils.delete_directories, self.CACHE_DIR)
 
     async def _enqueue_audio(self, ctx, voice, source, times):
         track = await self._create_track(ctx, voice, source, times)
@@ -161,6 +148,7 @@ class SoundPlayer(commands.Cog):
         return True
 
     async def _create_track(self, ctx, voice, source, times):
+        # TODO INSTEAD CREATE BASE TRACK, ENQUEUE, THEN DOWNLOAD AND MARK READY WHEN DONE
         is_link = await webutils.is_link(source)
 
         if not is_link:
@@ -190,6 +178,7 @@ class SoundPlayer(commands.Cog):
 
             return None
 
+        # TODO MAP OF MESSAGE OR TRACK TO EMBED
         self._uploader = info['uploader']
         self._title = info['title']
         self._thumbnail = info['thumbnails'][-1]['url']
@@ -263,7 +252,7 @@ class SoundPlayer(commands.Cog):
         try:
             times = int(times_split[-1])
             source = f'{source} {" ".join(times_split[:-1])}'
-        except ValueError:
+        except Exception:
             source = f'{source} {times}'
             times = 1
 
