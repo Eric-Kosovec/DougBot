@@ -11,4 +11,4 @@ python-dateutil
 requests
 setuptools
 youtube_search
-yt-dlp
+yt-dlp[default]
