@@ -4,8 +4,8 @@ import os
 import threading
 from concurrent.futures import ThreadPoolExecutor
 
-from nextcord.embeds import Embed
-from nextcord.ext import commands
+from discord.embeds import Embed
+from discord.ext import commands
 from youtube_search import YoutubeSearch
 
 from dougbot.common import voiceutils

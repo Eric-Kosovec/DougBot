@@ -1,5 +1,5 @@
-from nextcord import Interaction
-from nextcord.ui import TextInput
+from discord import Interaction
+from discord.ui import TextInput
 
 
 class DougTextInput(TextInput):

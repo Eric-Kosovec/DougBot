@@ -1,4 +1,4 @@
-from nextcord.ext import commands
+from discord.ext import commands
 
 from dougbot import config
 from dougbot.common.messaging import reactions

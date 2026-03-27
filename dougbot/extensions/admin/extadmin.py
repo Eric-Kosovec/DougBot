@@ -1,7 +1,7 @@
 import asyncio
 
-from nextcord.ext import commands
-from nextcord.ext.commands import Context
+from discord.ext import commands
+from discord.ext.commands import Context
 
 from dougbot.common.messaging import reactions
 from dougbot.core.bot import DougBot

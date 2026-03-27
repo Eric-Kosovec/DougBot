@@ -1,5 +1,5 @@
-from nextcord import Message
-from nextcord.ext.commands import Context
+from discord import Message
+from discord.ext.commands import Context
 
 
 async def check_log(message, error_text=None, *, delete_response_after=None, delete_message_after=None):

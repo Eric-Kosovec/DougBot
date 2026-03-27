@@ -1,5 +1,5 @@
-from nextcord.ext.commands.core import Group
-from nextcord.ext.commands.help import MinimalHelpCommand
+from discord.ext.commands.core import Group
+from discord.ext.commands.help import MinimalHelpCommand
 
 
 class CustomHelpCommand(MinimalHelpCommand):

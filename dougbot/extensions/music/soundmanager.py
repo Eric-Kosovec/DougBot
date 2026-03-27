@@ -1,7 +1,7 @@
 import os
 
-import nextcord
-from nextcord.ext import commands
+import discord
+from discord.ext import commands
 
 from dougbot.common.messaging import reactions
 from dougbot.config import EXTENSION_RESOURCES_DIR
@@ -86,7 +86,7 @@ class SoundManager(commands.Cog):
         if path is None:
             await reactions.confusion(ctx.message)
             return
-        await ctx.send(file=nextcord.File(path))
+        await ctx.send(file=discord.File(path))
 
     @commands.command()
     async def addclip(self, ctx, folder: str, clip_name: str, *, url: str = None):
@@ -141,7 +141,7 @@ class SoundManager(commands.Cog):
                 await reactions.confusion(ctx.message)
                 return
 
-        embed = nextcord.Embed(color=nextcord.Color(0xff0000))
+        embed = discord.Embed(color=discord.Color(0xff0000))
 
         if category is None:  # List category names
             embed.title = '**Soundboard Categories**'

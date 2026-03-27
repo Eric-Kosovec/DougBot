@@ -1,5 +1,5 @@
 from dougbot.extensions.common.file.filemanager import FileManager
-from nextcord.ext import commands
+from discord.ext import commands
 
 from dougbot.common.messaging import reactions
 from dougbot.common.messaging.message_utils import split_message

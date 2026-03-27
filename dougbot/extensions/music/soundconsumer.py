@@ -3,7 +3,7 @@ from queue import Empty
 from queue import Queue
 from threading import Lock, Semaphore
 
-import nextcord
+import discord
 
 from dougbot.common.logger import Logger
 
@@ -118,7 +118,7 @@ class SoundConsumer:
     @staticmethod
     def _make_audio_source(track, volume):
         try:
-            source = nextcord.PCMVolumeTransformer(nextcord.FFmpegPCMAudio(track.src, options=_FFMPEG_OPTIONS))
+            source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(track.src, options=_FFMPEG_OPTIONS))
             source.volume = volume
             return source
         except Exception as e:

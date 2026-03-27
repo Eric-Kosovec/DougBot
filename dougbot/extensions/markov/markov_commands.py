@@ -2,10 +2,10 @@ import os
 from datetime import datetime
 from dateutil import parser
 
-from nextcord import Embed
-from nextcord import TextChannel
-from nextcord import User
-from nextcord.ext import commands
+from discord import Embed
+from discord import TextChannel
+from discord import User
+from discord.ext import commands
 
 from dougbot.config import EXTENSION_RESOURCES_DIR
 from dougbot.core.bot import DougBot

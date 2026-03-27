@@ -5,9 +5,9 @@ import sys
 import time
 from typing import Any
 
-from nextcord import ApplicationError, Intents, Interaction
-from nextcord import Status
-from nextcord.ext import commands
+from discord import Intents, Interaction, ApplicationCommandError
+from discord import Status
+from discord.ext import commands
 
 from dougbot import config
 from dougbot.common.logger import Logger
@@ -101,7 +101,7 @@ class DougBot(commands.Bot):
             .exception(exception) \
             .error()
 
-    async def on_application_command_error(self, interaction: Interaction, exception: ApplicationError):
+    async def on_application_command_error(self, interaction: Interaction, exception: ApplicationCommandError):
         Logger(__file__) \
             .message('Error executing command') \
             .interaction(interaction) \

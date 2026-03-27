@@ -1,5 +1,5 @@
-from nextcord import Interaction
-from nextcord.ui.button import Button
+from discord import Interaction
+from discord.ui.button import Button
 
 
 class DougButton(Button):

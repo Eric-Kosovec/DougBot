@@ -1,4 +1,4 @@
-import nextcord
+import discord
 
 from dougbot.core.bot import DougBot
 
@@ -9,4 +9,4 @@ async def join_voice_channel(channel, bot: DougBot):
 
 
 async def voice_in(channel, bot: DougBot):
-    return nextcord.utils.find(lambda vc: vc.channel.id == channel.id, bot.voice_clients)
+    return discord.utils.find(lambda vc: vc.channel.id == channel.id, bot.voice_clients)

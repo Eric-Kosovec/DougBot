@@ -4,8 +4,8 @@ import sys
 import traceback
 
 from dateutil.tz import tz
-from nextcord import Interaction
-from nextcord.ext.commands import Context
+from discord import Interaction
+from discord.ext.commands import Context
 
 from dougbot import config
 from dougbot.config import CORE_DIR

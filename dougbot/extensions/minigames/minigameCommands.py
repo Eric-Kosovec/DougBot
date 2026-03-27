@@ -4,8 +4,8 @@ import math
 import os
 import random
 
-from nextcord import Embed
-from nextcord.ext import commands, tasks
+from discord import Embed
+from discord.ext import commands, tasks
 
 from dougbot.core.bot import DougBot
 

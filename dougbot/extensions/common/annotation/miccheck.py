@@ -1,5 +1,5 @@
-from nextcord.ext import commands
-from nextcord.user import User
+from discord.ext import commands
+from discord.user import User
 
 
 def voice_command():

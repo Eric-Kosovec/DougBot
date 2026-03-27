@@ -4,11 +4,10 @@ aiohttp
 aiologger
 cachetools
 mysql-connector-python
-nextcord[speed]
-nextcord[voice]
 PyNaCl
 python-dateutil
 requests
 setuptools
 youtube_search
 yt-dlp[default]
+py-cord

@@ -1,5 +1,5 @@
-from nextcord import Interaction
-from nextcord.ui.select import Select
+from discord import Interaction
+from discord.ui.select import Select
 
 
 class DougSelect(Select):

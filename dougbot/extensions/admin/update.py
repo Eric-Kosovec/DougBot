@@ -2,8 +2,8 @@ import os
 import subprocess
 import sys
 
-from nextcord import Status
-from nextcord.ext import commands
+from discord import Status
+from discord.ext import commands
 
 from dougbot.common.logger import Logger
 from dougbot.common.messaging import reactions

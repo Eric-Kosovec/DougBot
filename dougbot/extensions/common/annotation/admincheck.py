@@ -1,6 +1,6 @@
-import nextcord
-from nextcord import Member
-from nextcord.ext import commands
+import discord
+from discord import Member
+from discord.ext import commands
 
 from dougbot import config
 
@@ -22,4 +22,4 @@ def mod_command():
 
 
 def _has_role(ctx, *role_ids):
-    return isinstance(ctx.author, Member) and nextcord.utils.find(lambda r: r.id in role_ids, ctx.author.roles)
+    return isinstance(ctx.author, Member) and discord.utils.find(lambda r: r.id in role_ids, ctx.author.roles)
