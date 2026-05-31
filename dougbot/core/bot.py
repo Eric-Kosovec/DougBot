@@ -10,10 +10,12 @@ from discord import Status
 from discord.ext import commands
 
 from dougbot import config
+from dougbot.common.alogger import AsyncLogger
 from dougbot.common.logger import Logger
 from dougbot.common.messaging import reactions
 from dougbot.core import extloader
 from dougbot.core.help import CustomHelpCommand
+from dougbot.core.log.async_channel_handler import AsyncChannelHandler
 from dougbot.core.log.channelhandler import ChannelHandler
 
 
@@ -36,7 +38,7 @@ class DougBot(commands.Bot):
         super().__init__(self.config.command_prefix, **bot_kwargs)
         self._extension_load_errors = extloader.load_extensions(self)
 
-    def run(self, *args, **kwargs):
+    def run(self, token: str = None, *, reconnect: bool = True):
         if not self.config.token:
             print("Token doesn't exist; check your environment variables", file=sys.stderr)
             sys.exit(1)
@@ -45,13 +47,10 @@ class DougBot(commands.Bot):
             print("I'm starting...")
 
             try:
-                super().run(*(self.config.token, *args), **kwargs)
+                super().run(self.config.token, reconnect=reconnect)
                 self._attempt_run = False
             except Exception as e:
-                Logger(__file__) \
-                    .message('Failed to run') \
-                    .exception(e) \
-                    .fatal()
+                print(f'Failed to run: {e}', file=sys.stderr)
 
                 # Create a new loop, as the superclass closes the old one and only grabs a new one in the constructor
                 self.loop = asyncio.new_event_loop()
@@ -59,9 +58,12 @@ class DougBot(commands.Bot):
                 time.sleep(self.config.run_attempt_cooldown_secs)
 
     async def on_connect(self):
+        await AsyncLogger.start()
+
+        # TODO DOES THIS METHOD RUN ONCE? IF NO, THEN HANDLER WILL NEED TO BE THOUGHT ABOUT MORE
         self._log_channel = await self.fetch_channel(self.config.logging_channel_id)
         if self._log_channel:
-            Logger.add_handler(ChannelHandler(self._log_channel, self.loop))
+            await AsyncLogger.set_handler(AsyncChannelHandler(self._log_channel))
 
         self.help_command = CustomHelpCommand(dm_help=None, no_category='Misc')
 
@@ -70,13 +72,11 @@ class DougBot(commands.Bot):
     async def on_ready(self):
         # Log errors that occurred while bot was down
         if self._log_channel:
-            Logger.log_fatal_file()
+            asyncio.create_task(AsyncLogger.log_pending())
 
         for error in self._extension_load_errors:
-            Logger(__file__) \
-                .message('Error while loading extension') \
-                .exception(error) \
-                .error(to_console=True)
+            asyncio.create_task(AsyncLogger.error(
+                __file__, message='Error while loading extension', exception=error, to_console=True))
 
         self._extension_load_errors.clear()
 
@@ -88,7 +88,8 @@ class DougBot(commands.Bot):
             for vc in self.voice_clients:
                 await vc.disconnect(force=True)
 
-        # TODO FINISH LOGGING
+        # TODO MAKE SURE THIS WORKS
+        await AsyncLogger.close()
 
         await super().close()
 

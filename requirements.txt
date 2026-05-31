@@ -11,3 +11,4 @@ setuptools
 youtube_search
 yt-dlp[default]
 py-cord
+py-cord[voice]
