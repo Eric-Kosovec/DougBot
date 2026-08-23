@@ -59,6 +59,17 @@ def get_configuration():
         # Meta
         config_namespace.is_dev_bot = os.path.exists(dev_config)
 
+        if sys.platform == 'win32':
+            config_namespace.deno_path = os.path.join(os.environ['LOCALAPPDATA'], 'DougBot', 'deno', 'deno.exe')
+        else:
+            config_namespace.deno_path = os.path.join(
+                os.path.expanduser('~'),
+                '.local',
+                'share',
+                'DougBot',
+                'deno',
+                'deno')
+
         # Permissions
         config_namespace.admin_role_id = int(config_parser.get('Permissions', 'admin_role_id'))
         config_namespace.mod_role_id = int(config_parser.get('Permissions', 'mod_role_id'))

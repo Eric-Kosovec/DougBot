@@ -12,6 +12,8 @@ SadDoug Discord server bot
   * Select: Workloads → Desktop development with C++, then for Individual Components, select only: the relevant 
     Windows SDK for your version of Windows and C++ x64/x86 build tools.
 * Run `setup.py` through the command `python3 setup.py`.
+* YTDL requires Deno for YouTube's JavaScript challenges. `setup.py` will automatically download the appropriate Deno 
+  executable for your operating system.
 * Change the `resources/config/config.ini` file to suit your needs, and `dougbot/config.py`, if need be.
 * For a development environment, create `resources/config/dev_config.ini`. Any settings in this file will override the 
   main config file.
@@ -20,10 +22,12 @@ SadDoug Discord server bot
 #### Windows
 * Download FFmpeg and place somewhere on your machine. Add directory containing `ffmpeg.exe` to PATH variable and 
   restart.
+* Deno will be installed to `%LOCALAPPDATA%\DougBot\deno\deno.exe`.
 
 #### Linux
 * During the "OS Independent" steps, `setup.py` will attempt to install `ffmpeg` on the system, if missing, so it may 
   ask for a sudo password. If this fails, manually install with `sudo apt-get install -y ffmpeg`.
+* Deno will be installed to `~/.local/share/DougBot/deno/deno`.
 
 ## Installing/Updating Required Libraries
 Run `setup.py` using the command `python3 setup.py`.

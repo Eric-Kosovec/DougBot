@@ -1,10 +1,15 @@
 import getpass
+import io
 import os
 import subprocess
 import sys
+import zipfile
+from pathlib import Path
+from urllib.request import urlopen
 
 from dougbot import config
 
+DENO_VERSION = '2.9.5'
 IS_LINUX = os.name == 'posix'
 IS_WINDOWS = os.name == 'nt'
 LINUX_PIP = 'pip3'
@@ -58,6 +63,42 @@ def _install_dependencies():
         print(f'\nFFmpeg not installed: {ffmpeg_exception}', file=sys.stderr)
     elif IS_LINUX:
         print(f'FFmpeg installed')
+
+
+def _install_deno():
+    if IS_WINDOWS:
+        deno_dir = Path(os.environ['LOCALAPPDATA']) / 'DougBot' / 'deno'
+        deno_exe = deno_dir / 'deno.exe'
+        archive_name = 'deno-x86_64-pc-windows-msvc.zip'
+        executable_name = 'deno'
+    elif IS_LINUX:
+        deno_dir = Path.home() / '.local' / 'share' / 'DougBot' / 'deno'
+        deno_exe = deno_dir / 'deno'
+        archive_name = 'deno-x86_64-unknown-linux-gnu.zip'
+        executable_name = 'deno'
+    else:
+        return
+
+    if deno_exe.exists():
+        return
+
+    deno_dir.mkdir(parents=True, exist_ok=True)
+
+    url = f'https://github.com/denoland/deno/releases/download/v{DENO_VERSION}/{archive_name}'
+
+    print(f'Downloading Deno {DENO_VERSION}...')
+
+    with urlopen(url) as response:
+        data = response.read()
+
+    with zipfile.ZipFile(io.BytesIO(data)) as archive:
+        with archive.open(executable_name) as source:
+            deno_exe.write_bytes(source.read())
+
+    if IS_LINUX:
+        deno_exe.chmod(0o755)
+
+    print(f'Deno installed to {deno_exe}')
 
 
 def _install_ffmpeg():
@@ -166,3 +207,4 @@ if __name__ == '__main__':
             print(f"Error: '{_python()} setup.py --remove-persist' must be run with 'sudo'", file=sys.stderr)
     else:
         _install_dependencies()
+        _install_deno()

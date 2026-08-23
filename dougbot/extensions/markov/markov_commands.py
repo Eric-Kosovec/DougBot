@@ -1,7 +1,6 @@
 import os
-from datetime import datetime
-from dateutil import parser
 
+from dateutil import parser
 from discord import Embed
 from discord import TextChannel
 from discord import User

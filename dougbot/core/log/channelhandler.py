@@ -1,5 +1,5 @@
 import asyncio
-from logging import Formatter
+from logging import Formatter, LogRecord
 from logging import Handler
 
 from dougbot.common.logger import Logger
@@ -17,7 +17,13 @@ class ChannelHandler(Handler):
         self._loop = loop
         self.setFormatter(Formatter(self._LOGGING_FORMAT))
 
-    def emit(self, record):
+    def emit(self, record: LogRecord):
+        # Stop PyCord socket logging when playing sounds
+        if (record.getMessage().startswith('Socket reader ')
+                and ' is waiting to be set as running' in record.getMessage()):
+
+            return
+
         self._run_coroutine(self._channel.send(self._LOG_DELIMITER))
 
         # TODO THREADED ASYNC LOGGING SYSTEM
@@ -36,7 +42,7 @@ class ChannelHandler(Handler):
             .exception(exception) \
             .fatal()
 
-    def _normalize_record(self, record):
+    def _normalize_record(self, record: LogRecord):
         return self._escape_markdown(self.format(record))
 
     def _escape_markdown(self, text):

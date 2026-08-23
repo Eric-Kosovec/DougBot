@@ -1,8 +1,9 @@
+import re
+
 import yt_dlp
 
 from dougbot.common.logger import Logger
 from dougbot.extensions.common.audio.audiodl import AudioDL
-from dougbot.extensions.common.audio.util import ytutil
 
 
 class YouTubeDL(AudioDL):
@@ -20,7 +21,7 @@ class YouTubeDL(AudioDL):
         self._logger = logger
 
     def info(self, url):
-        normalized_url = ytutil.remove_playlist(url)
+        normalized_url = self._remove_playlist(url)
         ydl_opts = self._setup_options()
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -31,23 +32,25 @@ class YouTubeDL(AudioDL):
                     .add_field('url', url) \
                     .exception(e) \
                     .error()
+
                 return {}
 
-    def download(self, url, file_path):
-        normalized_url = ytutil.remove_playlist(url)
+    def download(self, url, file_path) -> bool:
+        normalized_url = self._remove_playlist(url)
         ydl_opts = self._setup_options(file_path)
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             # TODO RETURN FILE PATH WITH EXTENSION?
             try:
-                return ydl.download([normalized_url])
+                return ydl.download([normalized_url]) == 0
             except Exception as e:
                 self._logger.message('Failed to download url') \
                     .add_field('url', url) \
                     .add_field('path', file_path) \
                     .exception(e) \
                     .error()
-                return 1
+
+                return False
 
     def _get_logger(self):
         return self._logger
@@ -82,3 +85,7 @@ class YouTubeDL(AudioDL):
             ydl_opts[self._LOGGER_OPTION] = logger
 
         return ydl_opts
+
+    @staticmethod
+    def _remove_playlist(url):
+        return re.sub(r'&list=[a-zA-Z0-9_-]+', '', url)

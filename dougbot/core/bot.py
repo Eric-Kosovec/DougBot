@@ -1,12 +1,7 @@
-import asyncio
-import os
-import signal
 import sys
-import time
 from typing import Any
 
 from discord import Intents, Interaction, ApplicationCommandError
-from discord import Status
 from discord.ext import commands
 
 from dougbot import config
@@ -23,15 +18,11 @@ class DougBot(commands.Bot):
         self.config = config.get_configuration()
         self._log_channel = None
 
-        self._attempt_run = True
-
         bot_kwargs = {
             "intents": Intents.all(),
             "case_insensitive": True,
             "strip_after_prefix": True
         }
-
-        self._create_signal_handler()
 
         super().__init__(self.config.command_prefix, **bot_kwargs)
         self._extension_load_errors = extloader.load_extensions(self)
@@ -41,27 +32,22 @@ class DougBot(commands.Bot):
             print("Token doesn't exist; check your environment variables", file=sys.stderr)
             sys.exit(1)
 
-        while self._attempt_run:
-            print("I'm starting...")
+        print("I'm starting...")
 
-            try:
-                super().run(*(self.config.token, *args), **kwargs)
-                self._attempt_run = False
-            except Exception as e:
-                Logger(__file__) \
-                    .message('Failed to run') \
-                    .exception(e) \
-                    .fatal()
-
-                # Create a new loop, as the superclass closes the old one and only grabs a new one in the constructor
-                self.loop = asyncio.new_event_loop()
-
-                time.sleep(self.config.run_attempt_cooldown_secs)
+        try:
+            super().run(*(self.config.token, *args), **kwargs)
+        except Exception as e:
+            Logger(__file__) \
+                .message('Failed to run') \
+                .exception(e) \
+                .fatal()
 
     async def on_connect(self):
         self._log_channel = await self.fetch_channel(self.config.logging_channel_id)
         if self._log_channel:
             Logger.add_handler(ChannelHandler(self._log_channel, self.loop))
+        else:
+            print("Log channel doesn't exist", file=sys.stderr)
 
         self.help_command = CustomHelpCommand(dm_help=None, no_category='Misc')
 
@@ -81,12 +67,11 @@ class DougBot(commands.Bot):
         self._extension_load_errors.clear()
 
     async def close(self):
-        # TODO CHECK THIS WORKS
-        if await self.has_connection():
-            await self.change_presence(status=Status.offline)
+        if self.is_closed():
+            return
 
-            for vc in self.voice_clients:
-                await vc.disconnect(force=True)
+        for vc in self.voice_clients:
+            await vc.disconnect(force=True)
 
         # TODO FINISH LOGGING
 
@@ -108,7 +93,7 @@ class DougBot(commands.Bot):
             .exception(exception) \
             .error()
 
-        await reactions.check_log(interaction.message)
+        await reactions.confusion(interaction.message)
 
     async def on_command_error(self, ctx, exception):
         Logger(__file__) \
@@ -117,10 +102,7 @@ class DougBot(commands.Bot):
             .exception(exception) \
             .error()
 
-        await reactions.check_log(ctx.message)
-
-    async def has_connection(self):
-        return self.ws and not self.is_closed()
+        await reactions.confusion(ctx.message)
 
     def get_cog(self, name: str) -> Any:
         """
@@ -129,18 +111,3 @@ class DougBot(commands.Bot):
         :return: Cog instance
         """
         return super().get_cog(name)
-
-    def _create_signal_handler(self):
-        def signal_handler(_, __):
-            if self.loop.is_running():
-                asyncio.run_coroutine_threadsafe(self.close(), self.loop)
-            else:
-                sys.exit(1)
-
-        if os.name != 'nt':  # Linux
-            signal.signal(signal.SIGTERM, signal_handler)
-            signal.signal(signal.SIGILL, signal_handler)
-        else:
-            signal.signal(signal.SIGBREAK, signal_handler)
-
-        signal.signal(signal.SIGINT, signal_handler)
