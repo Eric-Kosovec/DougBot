@@ -9,5 +9,6 @@ python-dateutil
 requests
 setuptools
 youtube_search
-yt-dlp[default]
+yt-dlp[default,curl-cffi]
 py-cord
+py-cord[voice]

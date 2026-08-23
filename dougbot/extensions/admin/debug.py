@@ -3,7 +3,7 @@ from discord.ext import commands
 from dougbot import config
 from dougbot.common.messaging import reactions
 from dougbot.core.bot import DougBot
-from dougbot.extensions.common.annotation.admincheck import admin_command, mod_command
+from dougbot.extensions.common.annotation.admincheck import admin_command
 
 
 class Debug(commands.Cog):

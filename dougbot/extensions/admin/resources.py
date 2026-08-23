@@ -1,4 +1,3 @@
-from dougbot.extensions.common.file.filemanager import FileManager
 from discord.ext import commands
 
 from dougbot.common.messaging import reactions
@@ -6,6 +5,7 @@ from dougbot.common.messaging.message_utils import split_message
 from dougbot.config import RESOURCES_MAIN_PACKAGE_DIR
 from dougbot.core.bot import DougBot
 from dougbot.extensions.common.annotation.admincheck import admin_command
+from dougbot.extensions.common.file.filemanager import FileManager
 
 
 class Resources(commands.Cog, FileManager):
