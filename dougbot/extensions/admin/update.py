@@ -1,3 +1,4 @@
+import asyncio
 import os
 import subprocess
 import sys
@@ -62,8 +63,9 @@ class Update(commands.Cog):
             await self.bot.change_presence(status=Status.offline)
             await self._process_commands(*cmds)
             await self._restart_bot(ctx)
-        except Exception:
+        except Exception as e:
             await self.bot.change_presence(status=Status.online)
+            await ctx.send(f"Update failed: {e}")
             raise
         finally:
             os.chdir(cwd)
@@ -80,7 +82,12 @@ class Update(commands.Cog):
     @staticmethod
     async def _process_commands(*cmds):
         for command in cmds:
-            subprocess.call(command)
+            result = await asyncio.to_thread(subprocess.run, command, capture_output=True, text=True)
+            if result.returncode != 0:
+                raise RuntimeError(
+                    f"`{' '.join(command)}` failed (exit {result.returncode}): "
+                    f"{result.stderr.strip() or result.stdout.strip()}"
+                )
 
 
 def setup(bot):
