@@ -149,8 +149,6 @@ class SoundPlayer(commands.Cog):
         self._path_cache.clear()
 
     async def on_voice_state_update(self, member, _, __):
-        Logger(__file__).message('TEST').error()
-
         # Avoid warnings when passing to stop
         none_context: Context | None = None
 
