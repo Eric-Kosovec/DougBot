@@ -1,5 +1,11 @@
 # DougBot
 
+#### 4.0.0
+  - Migrated to Pycord from Nextcord because they cannot fix anything on time
+  - Added Mysql database infrastructure
+  - Added SQLAlchemy
+  - Updated minigames for database
+
 #### 3.0.0
   - Migrate to Nextcord-based bot
   - Rename `test_config.ini` and `test_config.ini.example` 

@@ -39,18 +39,19 @@ def get_configuration():
         config_namespace.debug_channel_id = int(config_parser.get('Channels', 'debug_channel_id'))
         config_namespace.logging_channel_id = int(config_parser.get('Channels', 'logging_channel_id'))
 
-        # Environment
+        # Environment - the [Environment] section maps setting -> OS environment variable name
         config_namespace.username = os.getenv(config_parser.get('Environment', 'username'))
         config_namespace.password = os.getenv(config_parser.get('Environment', 'password'))
         config_namespace.host = os.getenv(config_parser.get('Environment', 'host'))
         config_namespace.database = os.getenv(config_parser.get('Environment', 'database'))
+        config_namespace.port = int(os.getenv(config_parser.get('Environment', 'port', fallback='DOUGBOT_DB_PORT'), '3306'))
         config_namespace.token = os.getenv(config_parser.get('Environment', 'token_name'))
-
-        # Debug Env - Do this so you don't have to set environment vars. Just edit config.ini with login info
-        # config_namespace.username = config_parser.get('Environment', 'username')
-        # config_namespace.password = config_parser.get('Environment', 'password')
-        # config_namespace.host = config_parser.get('Environment', 'host')
-        # config_namespace.database = config_parser.get('Environment', 'database')
+        config_namespace.db_pool_name = os.getenv(
+            config_parser.get('Environment', 'pool_name', fallback='DOUGBOT_DB_POOL_NAME'), 'dougbot_pool')
+        config_namespace.db_pool_size = int(os.getenv(
+            config_parser.get('Environment', 'pool_size', fallback='DOUGBOT_DB_POOL_SIZE'), '5'))
+        config_namespace.db_connection_timeout = int(os.getenv(
+            config_parser.get('Environment', 'connection_timeout', fallback='DOUGBOT_DB_CONNECTION_TIMEOUT'), '10'))
 
         # Logging
         config_namespace.log_to_console = _str_to_bool(config_parser.get('Logging', 'log_to_console', fallback='False'))

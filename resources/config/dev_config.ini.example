@@ -3,3 +3,11 @@ prefix: d&
 
 [Logging]
 log_to_console: False
+
+# Database connection info and pool tuning come from environment variables (see
+# [Environment] in config.ini for the variable names), e.g. for local dev:
+# DOUGBOT_DB_HOST=127.0.0.1
+# DOUGBOT_DB_PORT=3306
+# DOUGBOT_DB_DATABASE=dougbot
+# DOUGBOT_DB_USERNAME=dougbot
+# DOUGBOT_DB_PASSWORD=changeme

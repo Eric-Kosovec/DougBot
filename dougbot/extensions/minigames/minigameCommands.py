@@ -1,303 +1,256 @@
+# Chat minigames for DougBot.
 import asyncio
-import json
 import math
-import os
 import random
+from contextlib import suppress
 
+import discord
 from discord import Embed
-from discord.ext import commands, tasks
+from discord.ext import commands
 
+from dougbot.common.logger import Logger
 from dougbot.core.bot import DougBot
+from dougbot.extensions.minigames.emoji_racers import EMOJI_RACERS, EmojiRacer
+from dougbot.extensions.minigames.minigameLib import EmojiRacerStore
+
+_RACE_COLOR = 0x228B22
+_SLOTS_COLOR = 0xA2AFB8
+
+_JOIN_EMOJI = "<:smug32:255496009361129483>"
+_SCARED_EMOJI = "<:sipsScared:819393684549533716>"
+
+_JOIN_WINDOW_SECS = 15
+_ROUND_PAUSE_SECS = 2
+_MIN_RACERS = 4
+_TRACK_LENGTH = 10
+# After this many rounds the whole field gets a growing chance/speed bonus so
+# stalled races still finish.
+_OVERTIME_ROUND = 20
+
+_FILLER_NAMES = (
+    "Shot Hottie", "Anonymous", "( ͡° ͜ʖ ͡°)", "TryhardTimmy", "Doug", "Cool Whip",
+    "Thunder Bunt", "Lowercase Guy", "✧GͥOͣDͫ✧", "𝐅𝐎𝐑𝐓𝐍𝐈𝐓𝐄 GOD", "¯\\_(ツ)_/¯",
+)
+
+_SLOT_EMOJIS = (
+    "<:sipsScared:819393684549533716>", "<:passMan:256140704806338560>",
+    "<:fireball:267121761173110784>", "<:gabeN:255489512543748097>",
+    "<:doug:337020649753018368>", "<:ripley:532377971009257492>",
+    "<:alex:338163624063533056>",
+)
+
+
+class _Racer:
+    """A competitor's live state during a single race."""
+
+    __slots__ = ("name", "mention", "card", "position")
+
+    def __init__(self, competitor, card: EmojiRacer):
+        if isinstance(competitor, str):
+            self.name = self.mention = competitor
+        else:
+            self.name = competitor.display_name
+            self.mention = competitor.mention
+        self.card = card
+        self.position = 1.0
 
 
 class MinigameCommands(commands.Cog):
 
     def __init__(self, bot: DougBot):
         self.bot = bot
+        self._stats = EmojiRacerStore()
+        # Channel ids with a race in progress - one race per channel at a time.
+        self._racing_channels: set[int] = set()
 
-    ##########################RACING##############################################################################################################################
-    listofracers = []
-    joininground = False
-    raceongoing = False
+    # --------------------race------------------------------------------------
 
-    # TODO:record wins / average round length
-    # TODO:detailed win stats
-    # TODO:when win react with emoji winning placement
-    @commands.command()
-    async def startrace(self, ctx):
-        botlist = ['Shot Hottie', 'Anonymous', '( ͡° ͜ʖ ͡°)', 'TryhardTimmy', 'Doug', 'Cool Whip', 'Thunder Bunt', 'Lowercase Guy', '✧GͥOͣDͫ✧', '𝐅𝐎𝐑𝐓𝐍𝐈𝐓𝐄 GOD', '¯\\_(ツ)_/¯']
+    @commands.command(aliases=["race"])
+    async def startrace(self, ctx: commands.Context):
+        """Start an emoji drag race in this channel."""
+        if ctx.channel.id in self._racing_channels:
+            await ctx.message.add_reaction(_SCARED_EMOJI)
+            return
 
-        if not MinigameCommands.raceongoing:
-            joinroundtimer = 15
-            MinigameCommands.listofracers = []
+        self._racing_channels.add(ctx.channel.id)
+        try:
+            message = await ctx.send("The Depression races are starting!")
+            competitors = await self._sign_up(ctx, message)
+            racers, winner = await self._run_race(message, competitors)
+            await self._save_result(ctx, racers, winner)
+        except Exception as e:
+            Logger(__file__).message("Emoji race failed").context(ctx).exception(e).error()
+        finally:
+            self._racing_channels.discard(ctx.channel.id)
+            with suppress(discord.HTTPException):
+                await ctx.message.delete()
 
-            message = await ctx.send('The Depression races are starting! in ' + str(joinroundtimer) + 's Type !joinrace to enter!')
-            # start the join race background
-            joinracetask = MinigameCommands.joinracetask.start(joinroundtimer, message, ctx)
-            await joinracetask
-            await asyncio.sleep(2)
+    async def _sign_up(self, ctx: commands.Context, message: discord.Message) -> list:
+        """Run the sign-up countdown and return the competitor list."""
+        await message.add_reaction(_JOIN_EMOJI)
 
-            # start the race
-            MinigameCommands.raceongoing = True
+        for remaining in range(_JOIN_WINDOW_SECS, 0, -1):
+            await message.edit(
+                content=f"The Depression races start in {remaining}s - "
+                        f"react with {_JOIN_EMOJI} to enter!"
+            )
+            await asyncio.sleep(1)
 
-            # adding bots if not enough players
-            if len(MinigameCommands.listofracers) < 4:
-                for x in range(4 - len(MinigameCommands.listofracers)):
-                    rand = random.randint(0, len(botlist) - 1)
-                    botname = botlist[rand]
-                    if botname not in MinigameCommands.listofracers:
-                        MinigameCommands.listofracers.append(botname)
+        await message.edit(content="Let the sadness begin. Setting up the race...")
+        competitors = await self._joined_members(ctx, message)
+        with suppress(discord.HTTPException):
+            await message.clear_reactions()
 
-            await MinigameCommands.race(MinigameCommands.listofracers, message)
-            await asyncio.sleep(2)
-            await ctx.message.delete()
-        else:
-            await ctx.message.add_reaction('<:sipsScared:819393684549533716>')
-            await asyncio.sleep(2)
-            await ctx.message.delete()
+        shortfall = _MIN_RACERS - len(competitors)
+        if shortfall > 0:
+            competitors.extend(random.sample(_FILLER_NAMES, shortfall))
+        return competitors
 
     @staticmethod
-    async def race(listofracers, message):
-        tracklength = 10
-        movespeedstat = 0
-        movechancestat = 0
-        embed = Embed(color=0x228B22)
-        raceremojilist = []
-        racerpositionlist = []
-        winner = ['none', 0]
-        roundtimer = 0
-        overtimeround = 20
-        specialtraitslist = []
+    async def _joined_members(ctx: commands.Context, message: discord.Message) -> list:
+        message = await ctx.fetch_message(message.id)
 
-        # initalboardsetup
-        for x, racer in enumerate(listofracers):
-            # assign random emoji to racer
-            selectedemojiobject = MinigameCommands.randomemoji(raceremojilist, movechancestat, movespeedstat, specialtraitslist)
-            raceremojilist.append(selectedemojiobject[0])
+        members: list = []
+        for reaction in message.reactions:
+            if str(reaction.emoji) != _JOIN_EMOJI:
+                continue
+            async for user in reaction.users():
+                if not user.bot and user not in members:
+                    members.append(user)
+        return members
 
-            # update the overal move/chance stats
-            movechancestat = selectedemojiobject[1]
-            movespeedstat = selectedemojiobject[2]
+    async def _run_race(self, message: discord.Message, competitors: list) -> tuple[list[_Racer], _Racer]:
+        cards = self._deal_cards(len(competitors))
+        racers = [_Racer(c, card) for c, card in zip(competitors, cards)]
+        field_chance, field_speed = self._field_modifiers(cards)
 
-            # update special traits list
-            specialtraitslist = selectedemojiobject[3]
+        round_no = 0
+        winner: _Racer | None = None
+        await self._render(message, racers, round_no, field_chance, field_speed)
 
-            # apply special traits
-            if 'protection' in specialtraitslist:
-                movechancestat = 0
-                movespeedstat = 0
+        while winner is None:
+            round_no += 1
+            await asyncio.sleep(_ROUND_PAUSE_SECS)
 
-            # set racer position at starting line
-            racerpositionlist.append(1)
+            catchup = max(0, round_no - _OVERTIME_ROUND)
+            chance, speed = field_chance + catchup, field_speed + catchup
 
-            msgcontentline = MinigameCommands.calnumberbehind(racerpositionlist[x], tracklength) + raceremojilist[x]['emoji'] + MinigameCommands.calnumberahead(racerpositionlist[x], tracklength)
-
-            # if it is a bot we just pass the string, if not the user object
-            if type(racer) is str:
-                embed.add_field(name=racer, value=msgcontentline, inline=False)
-            else:
-                embed.add_field(name=racer.name, value=msgcontentline, inline=False)
-
-        await message.edit(content='Go! Go! Go!\n Round: ' + str(roundtimer) + '\nMovespeed stat: ' + str(movespeedstat) + '\nMovechance stat: ' + str(movechancestat), embed=embed)
-
-        # racing
-        while MinigameCommands.raceongoing:
-
-            roundtimer += 1
-
-            if roundtimer > overtimeround:
-                movechancestat += 1
-                movespeedstat += 1
-
-            await message.edit(content='Round: ' + str(roundtimer) + '\nMovespeed stat: ' + str(movespeedstat) + '\nMovechance stat: ' + str(movechancestat), embed=embed)
-
-            # reset embed
-            embed = Embed(color=0x228B22)
-
-            for x, racer in enumerate(listofracers):
-                moveroll = random.uniform(0, 10)
-                movechance = raceremojilist[x]['movechance'] + movechancestat
-                # movechance adjustment
-                if movechance < 0:
-                    movechance = .1
-                if moveroll <= movechance:
-                    movement = random.uniform(raceremojilist[x]['minmove'], raceremojilist[x]['maxmove'] + movespeedstat)
-                    # movement adjustment
-                    if movement < 0:
-                        movement = 0
-                else:
-                    movement = 0
-                racerpositionlist[x] = racerpositionlist[x] + movement
-                # check for race win
-                if racerpositionlist[x] >= 10:
-                    MinigameCommands.raceongoing = False
+            for racer in racers:
+                racer.position += self._advance(racer.card, chance, speed)
+                if racer.position >= _TRACK_LENGTH and winner is None:
+                    racer.position = _TRACK_LENGTH
                     winner = racer
-                    emoji = raceremojilist[x]
-                msgcontentline = MinigameCommands.calnumberbehind(racerpositionlist[x], tracklength) + raceremojilist[x]['emoji'] + MinigameCommands.calnumberahead(racerpositionlist[x], tracklength)
-                if type(racer) is str:
-                    embed.add_field(name=racer, value=msgcontentline, inline=False)
-                else:
-                    embed.add_field(name=racer.name, value=msgcontentline, inline=False)
 
-            await message.edit(embed=embed)
-            await asyncio.sleep(2)
+            await self._render(message, racers, round_no, chance, speed)
 
-        if type(winner) is str:
-            await message.edit(content='Winner: ' + winner + '\n ' + emoji['emoji'] + ': ' + emoji['quote'] + '\n \u200b', embed=None)
-        else:
-            await message.edit(content='Winner: ' + winner.mention + '\n ' + emoji['emoji'] + ': ' + emoji['quote'] + '\n \u200b', embed=None)
-        MinigameCommands.recordstats(emoji, raceremojilist)
+        await message.edit(
+            content=f"🏆 Winner: {winner.mention}\n{winner.card.emoji} {winner.card.quote}",
+            embed=None,
+        )
+        return racers, winner
 
     @staticmethod
-    @tasks.loop(seconds=1, count=1)
-    async def joinracetask(joinroundtimer, message, ctx):
-        MinigameCommands.joininground = True
-        MinigameCommands.raceongoing = True
-        await message.add_reaction('<:smug32:255496009361129483>')
-
-        while joinroundtimer != 0:
-            joinroundtimer -= 1
-            await message.edit(content=('The Depression races are starting! in ' + str(joinroundtimer) + 's Click <:smug32:255496009361129483> to enter!'))
-            if joinroundtimer == 0:
-                await message.edit(content='Let the Sadness begin. Setting up race...')
-                # need to fetch message again to get reaction list
-                updatedmessage = await ctx.fetch_message(message.id)
-                for reaction in updatedmessage.reactions:
-                    if reaction.emoji.name == 'smug32':
-                        async for user in reaction.users():
-                            if user not in MinigameCommands.listofracers and user.bot is False:
-                                MinigameCommands.listofracers.append(user)
-                await asyncio.sleep(2)
-            else:
-                await asyncio.sleep(1)
-        MinigameCommands.joininground = False
-        await message.clear_reactions()
+    def _deal_cards(count: int) -> list[EmojiRacer]:
+        if count <= len(EMOJI_RACERS):
+            return random.sample(EMOJI_RACERS, count)
+        return random.choices(EMOJI_RACERS, k=count)
 
     @staticmethod
-    def addspaces(numberofspaces):
-        spacestring = ''
-
-        for x in range(numberofspaces):
-            spacestring = spacestring + ' '
-
-        return spacestring
-
-    @staticmethod
-    def randomemoji(alreadyselected, movechancestat, movespeedstat, specialtraits):
-        package_dir = os.path.dirname(os.path.abspath(__file__))
-        thefile = os.path.join(package_dir, 'emojiracers.txt')
-
-        with open(thefile) as json_file:
-            json_object = json.load(json_file)
-
-        selectuniqueemoji = True
-        selectedemojiobject = None
-        while selectuniqueemoji:
-            selectedemoji = random.randint(0, len(json_object['emojilist']) - 1)
-            selectedemojiobject = json_object['emojilist'][selectedemoji]
-            if selectedemojiobject not in alreadyselected:
-                selectuniqueemoji = False
-                movechancestat = movechancestat + selectedemojiobject['allincreasemovechance'] + selectedemojiobject['alldecreasemovechance']
-                movespeedstat = movespeedstat + selectedemojiobject['allincreasemaxmove'] + selectedemojiobject['alldecreasemaxmove']
-                if selectedemojiobject['emoji'] == '<:protection:401942229943320586>':
-                    specialtraits.append('protection')
-
-        return [selectedemojiobject, movechancestat, movespeedstat, specialtraits]
+    def _field_modifiers(cards: list[EmojiRacer]) -> tuple[float, float]:
+        if any(card.protection for card in cards):
+            return 0.0, 0.0
+        return (
+            sum(card.field_chance_effect for card in cards),
+            sum(card.field_speed_effect for card in cards),
+        )
 
     @staticmethod
-    def calnumberbehind(number, tracklength):
-        listofnumbers = [':one:', ':two:', ':three:', ':four:', ':five:', ':six:', ':seven:', ':eight:', ':nine:', ':checkered_flag:']
-        numberbehind = math.floor(number)
-        trackstring = ''
-
-        if numberbehind > tracklength:
-            numberbehind = tracklength
-
-        for x in range(0, numberbehind - 1):
-            trackstring = trackstring + listofnumbers[x]
-        return trackstring
+    def _advance(card: EmojiRacer, field_chance: float, field_speed: float) -> float:
+        chance = max(0.1, card.move_chance + field_chance)
+        if random.uniform(0, 10) > chance:
+            return 0.0
+        return max(0.0, random.uniform(card.min_move, card.max_move + field_speed))
 
     @staticmethod
-    def calnumberahead(number, tracklength):
-        listofnumbers = [':one:', ':two:', ':three:', ':four:', ':five:', ':six:', ':seven:', ':eight:', ':nine:', ':checkered_flag:']
-        numberahead = tracklength - math.floor(number)
-        trackstring = ''
+    async def _render(message: discord.Message, racers: list[_Racer],
+                      round_no: int, field_chance: float, field_speed: float) -> None:
+        embed = Embed(color=_RACE_COLOR)
+        for racer in racers:
+            filled = max(0, min(_TRACK_LENGTH, math.floor(racer.position)))
+            track = f"{'▰' * filled}{racer.card.emoji}{'▱' * (_TRACK_LENGTH - filled)}🏁"
+            embed.add_field(name=racer.name, value=track, inline=False)
 
-        if numberahead > tracklength:
-            numberahead = tracklength
+        header = (f"🏁 Round {round_no}  ·  chance {field_chance:+g}  ·  "
+                  f"speed {field_speed:+g}")
+        await message.edit(content=header, embed=embed)
 
-        start = tracklength - numberahead
-        for x in range(start, tracklength):
-            trackstring = trackstring + listofnumbers[x]
-        return trackstring
+    async def _save_result(self, ctx: commands.Context, racers: list[_Racer], winner: _Racer) -> None:
+        try:
+            await self._stats.record_race([r.card.emoji for r in racers], winner.card.emoji)
+        except Exception as e:
+            Logger(__file__).message("Failed to record emoji race stats") \
+                .context(ctx).exception(e).error()
 
-    @staticmethod
-    def recordstats(winnerobject, listofraceremojis):
-        package_dir = os.path.dirname(os.path.abspath(__file__))
-        thefile = os.path.join(package_dir, 'emojiracers.txt')
+    @commands.command(aliases=["racers", "racestats"])
+    async def racerinfo(self, ctx: commands.Context):
+        try:
+            rows = {row["emoji"]: row for row in await self._stats.leaderboard()}
+        except Exception as e:
+            Logger(__file__).message("Failed to read emoji race stats") \
+                .context(ctx).exception(e).error()
+            await ctx.send("Racer stats are unavailable right now.")
+            return
 
-        with open(thefile) as json_file:
-            json_object = json.load(json_file)
-
-        emojilist = json_object['emojilist']
-
-        # add wins
-        for x, emoji in enumerate(emojilist):
-            if emoji['emoji'] == winnerobject['emoji']:
-                emojilist[x]['wins'] += 1
-            for raceremoji in listofraceremojis:
-                if emoji['emoji'] == raceremoji['emoji']:
-                    emojilist[x]['totalraces'] += 1
-
-        json_object['emojilist'] = emojilist
-        with open(thefile, 'w') as outfile:
-            json.dump(json_object, outfile, indent=2)
-
-    @commands.command()
-    async def racerinfo(self, ctx):
-        embed = Embed(color=0x228B22)
-        package_dir = os.path.dirname(os.path.abspath(__file__))
-        thefile = os.path.join(package_dir, 'emojiracers.txt')
-        with open(thefile) as json_file:
-            json_object = json.load(json_file)
-
-        emojilist = json_object['emojilist']
-
-        for emoji in emojilist:
-            embed.add_field(name=emoji['emoji'], value='Won: ' + str(emoji['wins']) + '\nLoss: ' + str((emoji['totalraces'] - emoji['wins'])) + '\nWin%: ' + str(math.ceil((emoji['wins'] / emoji['totalraces']) * 100)), inline=True)
+        embed = Embed(title="Emoji Racer Records", color=_RACE_COLOR)
+        for card in EMOJI_RACERS:
+            row = rows.get(card.emoji)
+            wins = row["wins"] if row else 0
+            races = row["total_races"] if row else 0
+            win_rate = f"{round(wins / races * 100)}%" if races else "—"
+            embed.add_field(
+                name=card.emoji,
+                value=f"Wins: {wins}\nLosses: {races - wins}\nWin rate: {win_rate}",
+                inline=True,
+            )
         await ctx.send(embed=embed)
 
-    ############################################################################################################################################################
+    # --------------------------slots-----------------------------------------
 
-    #########################################################SLOTS##############################################################################################
     @commands.command()
-    async def slots(self, ctx):
-        emojilist = ['<:sipsScared:819393684549533716>', '<:passMan:256140704806338560>', '<:fireball:267121761173110784>', '<:gabeN:255489512543748097>', '<:doug:337020649753018368>', '<:ripley:532377971009257492> ', '<:alex:338163624063533056>']
-        slotboard = []
-        slotembed = Embed(title='SadDoug Slots', color=0xa2afb8)
-        for x in range(9):
-            slotboard.append(random.choice(emojilist))
-        slotembed.add_field(name='\u200b', value=':stop_button:' + slotboard[0] + ':eight_pointed_black_star::eight_pointed_black_star::stop_button:\n :arrow_forward:' + slotboard[3] + ':eight_pointed_black_star::eight_pointed_black_star::arrow_backward:\n:stop_button:' + slotboard[
-            6] + ':eight_pointed_black_star::eight_pointed_black_star::stop_button:', inline=False)
-        message = await ctx.send(embed=slotembed)
-        await asyncio.sleep(1)
-        slotembed = Embed(title='SadDoug Slots', color=0xa2afb8)
-        slotembed.add_field(name='\u200b',
-                            value=':stop_button:' + slotboard[0] + ' ' + slotboard[1] + ':eight_pointed_black_star:' + ':stop_button:\n :arrow_forward:' + slotboard[3] + ' ' + slotboard[4] + ':eight_pointed_black_star:' + ':arrow_backward:\n:stop_button:' + slotboard[6] + ' ' + slotboard[
-                                7] + ':eight_pointed_black_star:' + ':stop_button:', inline=False)
-        await message.edit(embed=slotembed)
-        await asyncio.sleep(1)
-        slotembed = Embed(title='SadDoug Slots', color=0xa2afb8)
-        slotembed.add_field(name='\u200b',
-                            value=':stop_button:' + slotboard[0] + ' ' + slotboard[1] + ' ' + slotboard[2] + ':stop_button:\n :arrow_forward:' + slotboard[3] + ' ' + slotboard[4] + ' ' + slotboard[5] + ':arrow_backward:\n:stop_button:' + slotboard[6] + ' ' + slotboard[7] + ' ' + slotboard[
-                                8] + ':stop_button:', inline=False)
-        await message.edit(embed=slotembed)
-        if slotboard[3] is slotboard[4] is slotboard[5]:
-            await message.edit(content='Winner')
-        else:
-            await message.edit(content='Try again')
-    ############################################################################################################################################################
+    async def slots(self, ctx: commands.Context):
+        grid = [[random.choice(_SLOT_EMOJIS) for _ in range(3)] for _ in range(3)]
+
+        message = await ctx.send(embed=self._slot_embed(grid, revealed=1))
+        for revealed in (2, 3):
+            await asyncio.sleep(1)
+            await message.edit(embed=self._slot_embed(grid, revealed=revealed))
+
+        won = self._check_win(grid)
+        await message.edit(content="🎉 Winner!" if won else "Try again.")
+
+    @staticmethod
+    def _check_win(grid: list[list[str]]) -> bool:
+        lines = [
+            *grid,
+            *(list(col) for col in zip(*grid)),
+            [grid[i][i] for i in range(3)],
+            [grid[i][2 - i] for i in range(3)],
+        ]
+        return any(len(set(line)) == 1 for line in lines)
+
+    @staticmethod
+    def _slot_embed(grid: list[list[str]], revealed: int) -> Embed:
+        hidden = "✴️"
+        lines = []
+        for r, row in enumerate(grid):
+            left, right = ("▶️", "◀️") if r == 1 else ("⏹️", "⏹️")
+            cells = "".join(cell if c < revealed else hidden for c, cell in enumerate(row))
+            lines.append(f"{left}{cells}{right}")
+
+        embed = Embed(title="SadDoug Slots", color=_SLOTS_COLOR)
+        embed.add_field(name="​", value="\n".join(lines), inline=False)
+        return embed
 
 
-def setup(bot):
+def setup(bot: DougBot):
     bot.add_cog(MinigameCommands(bot))

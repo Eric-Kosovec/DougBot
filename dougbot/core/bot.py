@@ -5,6 +5,8 @@ from discord import Intents, Interaction, ApplicationCommandError
 from discord.ext import commands
 
 from dougbot import config
+from dougbot.common import models
+from dougbot.common.database import dispose_database, get_database
 from dougbot.common.logger import Logger
 from dougbot.common.messaging import reactions
 from dougbot.core import extloader
@@ -34,6 +36,8 @@ class DougBot(commands.Bot):
 
         print("I'm starting...")
 
+        self._init_database()
+
         try:
             super().run(*(self.config.token, *args), **kwargs)
         except Exception as e:
@@ -41,6 +45,17 @@ class DougBot(commands.Bot):
                 .message('Failed to run') \
                 .exception(e) \
                 .fatal()
+
+    @staticmethod
+    def _init_database():
+        try:
+            models.create_all(get_database())
+            print('Database schema ready')
+        except Exception as e:
+            Logger(__file__) \
+                .message('Failed to initialise database schema') \
+                .exception(e) \
+                .error(to_console=True)
 
     async def on_connect(self):
         self._log_channel = await self.fetch_channel(self.config.logging_channel_id)
@@ -74,6 +89,8 @@ class DougBot(commands.Bot):
             await vc.disconnect(force=True)
 
         # TODO FINISH LOGGING
+
+        dispose_database()
 
         await super().close()
 
