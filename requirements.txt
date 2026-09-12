@@ -3,11 +3,12 @@ pip
 aiohttp
 aiologger
 cachetools
-mysql-connector-python
+PyMySQL
 PyNaCl
 python-dateutil
 requests
 setuptools
+SQLAlchemy
 youtube_search
 yt-dlp[default,curl-cffi]
 py-cord
