@@ -25,7 +25,7 @@ class Bank(commands.Cog):
 
     # --------------------------commands---------------------------------------
 
-    @commands.command(name="bankEnroll", aliases=["bankenroll"])
+    @commands.command(name="bankenroll")
     async def bank_enroll(self, ctx: commands.Context):
         if await self._store.enroll(ctx.author.id):
             await ctx.send(f"{ctx.author.mention} You've opened a bank account. Balance: 0")
