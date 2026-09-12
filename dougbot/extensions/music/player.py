@@ -25,7 +25,7 @@ from dougbot.extensions.music.track import Track
 _FFMPEG_OPTIONS = '-loglevel quiet'
 
 
-class NewSoundPlayer(commands.Cog):
+class SoundPlayer(commands.Cog):
     CLIP_DIR = os.path.join(EXTENSION_RESOURCES_DIR, 'music', 'audio')
     CACHE_DIR = os.path.join(EXTENSION_RESOURCES_DIR, 'music', 'cache')
     THREAD_POOL = ThreadPoolExecutor()
@@ -148,7 +148,9 @@ class NewSoundPlayer(commands.Cog):
     async def clear_path_cache(self):
         self._path_cache.clear()
 
-    async def on_voice_state_update(self, member):
+    async def on_voice_state_update(self, member, _, __):
+        Logger(__file__).message('TEST').error()
+
         # Avoid warnings when passing to stop
         none_context: Context | None = None
 
@@ -387,4 +389,4 @@ class NewSoundPlayer(commands.Cog):
 
 
 def setup(bot):
-    bot.add_cog(NewSoundPlayer(bot))
+    bot.add_cog(SoundPlayer(bot))
