@@ -148,7 +148,7 @@ class NewSoundPlayer(commands.Cog):
     async def clear_path_cache(self):
         self._path_cache.clear()
 
-    async def on_voice_state_update(self, member):
+    async def on_voice_state_update(self, member, _, __):
         # Avoid warnings when passing to stop
         none_context: Context | None = None
 
