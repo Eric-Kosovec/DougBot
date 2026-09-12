@@ -19,6 +19,7 @@ _PAY_ALL = f"UPDATE {_TABLE} SET balance = balance + :amount"
 
 
 class BankError(RuntimeError):
+    pass
 
 class NotEnrolledError(BankError):
 
